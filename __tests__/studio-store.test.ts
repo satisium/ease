@@ -124,6 +124,7 @@ describe("Studio Zustand Store", () => {
       isTimelineOpen: false,
       activeScenarioKey: "modal",
       activeSlot: "enter",
+      activeSlotId: "enter",
       scenarioSlots: {
         modal: {},
       },
@@ -396,6 +397,33 @@ describe("Studio Zustand Store", () => {
       expect(state.scenarioSlots.modal).toEqual({})
       expect(state.activeScenarioKey).toBe("modal")
       expect(state.activeSlot).toBe("enter")
+      expect(state.activeSlotId).toBe("enter")
+    })
+
+    it("assigns curve to dynamic and custom slot IDs (slide, press, custom)", () => {
+      const store = createStudioStore()
+
+      // Assign a curve to dynamic slot "slide" in scenario "carousel"
+      store.getState().assignCurveToSlot("ios-fluid", "slide", "carousel")
+      expect(store.getState().scenarioSlots.carousel.slide).toBe("ios-fluid")
+      expect(store.getState().activeSlotId).toBe("slide")
+      expect(store.getState().activeCurveId).toBe("ios-fluid")
+
+      // Assign another curve to dynamic slot "press" in scenario "button"
+      store.getState().assignCurveToSlot("button", "press", "button")
+      expect(store.getState().scenarioSlots.button.press).toBe("button")
+      expect(store.getState().activeSlotId).toBe("press")
+      expect(store.getState().activeCurveId).toBe("button")
+
+      // Switch scenario to carousel: default slot automatically adapts to "slide"
+      store.getState().setActiveScenarioKey("carousel")
+      expect(store.getState().activeSlotId).toBe("slide")
+      expect(store.getState().activeCurveId).toBe("ios-fluid")
+
+      // Switch scenario to button: default slot automatically adapts to "press"
+      store.getState().setActiveScenarioKey("button")
+      expect(store.getState().activeSlotId).toBe("press")
+      expect(store.getState().activeCurveId).toBe("button")
     })
 
     it("assigns curve to active slot when selecting ease", () => {

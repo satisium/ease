@@ -60,12 +60,15 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
 
               <div className="grid grid-cols-3 gap-1.5">
                 {spec.recommendedIn.map((rec) => {
+                  const enterAssigned =
+                    currentSlot?.enter ?? currentSlot?.enterId
+                  const exitAssigned = currentSlot?.exit ?? currentSlot?.exitId
                   const isAssigned =
                     activeSlot === "enter"
-                      ? currentSlot?.enterId === rec.id ||
-                        (!currentSlot?.enterId && activePresetId === rec.id)
-                      : currentSlot?.exitId === rec.id ||
-                        (!currentSlot?.exitId && activePresetId === rec.id)
+                      ? enterAssigned === rec.id ||
+                        (!enterAssigned && activePresetId === rec.id)
+                      : exitAssigned === rec.id ||
+                        (!exitAssigned && activePresetId === rec.id)
 
                   return (
                     <Tooltip key={rec.id}>
@@ -113,12 +116,15 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
 
               <div className="grid grid-cols-3 gap-1.5">
                 {spec.recommendedOut.map((rec) => {
+                  const enterAssigned =
+                    currentSlot?.enter ?? currentSlot?.enterId
+                  const exitAssigned = currentSlot?.exit ?? currentSlot?.exitId
                   const isAssigned =
                     activeSlot === "enter"
-                      ? currentSlot?.enterId === rec.id ||
-                        (!currentSlot?.enterId && activePresetId === rec.id)
-                      : currentSlot?.exitId === rec.id ||
-                        (!currentSlot?.exitId && activePresetId === rec.id)
+                      ? enterAssigned === rec.id ||
+                        (!enterAssigned && activePresetId === rec.id)
+                      : exitAssigned === rec.id ||
+                        (!exitAssigned && activePresetId === rec.id)
 
                   return (
                     <Tooltip key={rec.id}>

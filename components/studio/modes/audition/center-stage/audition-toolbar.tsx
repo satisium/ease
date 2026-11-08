@@ -60,12 +60,18 @@ export function AuditionToolbar() {
     activeScenarioKey === "dropdown"
 
   const enterCurve = React.useMemo(() => {
-    return resolveEase(currentSlot?.enterId || "ease-out", customCurves)
-  }, [currentSlot?.enterId, customCurves])
+    return resolveEase(
+      currentSlot?.enter || currentSlot?.enterId || "ease-out",
+      customCurves
+    )
+  }, [currentSlot?.enter, currentSlot?.enterId, customCurves])
 
   const exitCurve = React.useMemo(() => {
-    return resolveEase(currentSlot?.exitId || "ease-in", customCurves)
-  }, [currentSlot?.exitId, customCurves])
+    return resolveEase(
+      currentSlot?.exit || currentSlot?.exitId || "ease-in",
+      customCurves
+    )
+  }, [currentSlot?.exit, currentSlot?.exitId, customCurves])
 
   const handleViewportChange = (mode: ViewportMode) => {
     setViewportMode(mode)
@@ -246,7 +252,7 @@ export function AuditionToolbar() {
                       )}
                     />
                     <span className="truncate">
-                      {currentSlot?.exitId
+                      {currentSlot?.exit || currentSlot?.exitId
                         ? exitCurve.name
                         : activeSlot === "exit"
                           ? exitCurve.name
@@ -259,7 +265,9 @@ export function AuditionToolbar() {
                 <span>
                   Exit (Out) ·{" "}
                   <span className="font-medium">
-                    {currentSlot?.exitId || activeSlot === "exit"
+                    {currentSlot?.exit ||
+                    currentSlot?.exitId ||
+                    activeSlot === "exit"
                       ? exitCurve.name
                       : "Unassigned"}
                   </span>

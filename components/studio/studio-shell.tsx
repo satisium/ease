@@ -29,7 +29,7 @@ export function StudioShell() {
 
   const activeDossier = useActiveDossier()
   const currentSlot = scenarioSlots[activeScenarioKey]
-  const exitCurveId = currentSlot?.exitId
+  const exitCurveId = currentSlot?.exit ?? currentSlot?.exitId
   const currentPhaseCurve = React.useMemo(() => {
     if (scenarioPhase === "exit" && exitCurveId) {
       return resolveEase(exitCurveId, customCurves)
