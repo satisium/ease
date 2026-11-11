@@ -1,7 +1,10 @@
 # Changelog
 
-> Release notes for this project.
+> Release notes for ease.
 
-<Badge>v0.1.0</Badge>
+## 0.2.0
 
-Initial release of the Satisium Starter.
+### Minor Changes
+
+- 37456a1: Introduce universal kinetic slot architecture, archetype manifest registry, and initial carousel and button audition scenarios.
+- 7d96223: Introduce isolated iframe preview theater stage with bidirectional postMessage bridge protocol, keyboard shortcut forwarding, spatial depth blur backdrop, and adaptive multi-target kinetic slot toolbar.

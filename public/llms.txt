@@ -5,7 +5,7 @@
 
 ## Docs
 
-- [Changelog](https://ease.satisium.com/docs/changelog) — Release notes for this project.
+- [Changelog](https://ease.satisium.com/docs/changelog) — Release notes for ease.
 - [Overview](https://ease.satisium.com/docs) — Interactive motion curve and spring physics studio for design engineers.
 - [Curve Presets](https://ease.satisium.com/docs/presets) — Catalog of standardized cubic-bezier curves and spring dynamics.
 - [Spring Physics](https://ease.satisium.com/docs/springs) — Mathematical mechanics of mass, stiffness, damping, and linear() CSS approximations.
