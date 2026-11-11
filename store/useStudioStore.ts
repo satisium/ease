@@ -12,6 +12,8 @@ import {
   EaseDossier,
   ViewportMode,
   StudioSessionCookie,
+  ScenarioSlotsRecord,
+  getDefaultSlotForScenario,
 } from "@/components/studio/domain/studio-types"
 import { INITIAL_CUSTOM_CURVES } from "@/components/studio/domain/studio-curves"
 import {
@@ -47,8 +49,9 @@ export interface StudioState {
   buttonPressed: boolean
 
   // --- Scenario Choreography State ---
-  scenarioSlots: Record<string, { enterId?: string; exitId?: string }>
+  scenarioSlots: ScenarioSlotsRecord
   activeSlot: "enter" | "exit"
+  activeSlotId: string
   scenarioOpen: boolean
   scenarioPhase: "enter" | "exit"
 
@@ -101,10 +104,11 @@ export interface StudioState {
   ) => void
   updateCustomCurve: (updatedCurve: CustomEase) => void
   setActiveSlot: (slot: "enter" | "exit") => void
+  setActiveSlotId: (slotId: string) => void
   assignCurveToSlot: (
     curveId: string,
-    slot: "enter" | "exit",
-    scenarioKey?: ArchetypeKey
+    slot: "enter" | "exit" | string,
+    scenarioKey?: ArchetypeKey | string
   ) => void
   openScenario: () => void
   closeScenario: () => void
@@ -162,7 +166,10 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
   }
 
   const initialTimeline = session?.timeline ?? false
-  const initialScenario = session?.scenario ?? "modal"
+  const initialScenario: ArchetypeKey =
+    session?.scenario === "modal" || !session?.scenario
+      ? "dialog"
+      : session.scenario
   const initialViewport = session?.viewport ?? "desktop"
   const initialWidth =
     session?.width ??
@@ -204,9 +211,11 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
 
         // Scenario choreography slots & state (Clean slate: zero hardcoded defaults)
         scenarioSlots: {
+          dialog: {},
           modal: {},
         },
         activeSlot: "enter",
+        activeSlotId: "enter",
         scenarioOpen: false,
         scenarioPhase: "enter",
 
@@ -214,13 +223,22 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
           const dossier = resolveEase(id, get().customCurves)
           syncSessionCookie({ curve: dossier.id, engine: dossier.engine })
           const currentScenario = get().activeScenarioKey
-          const currentSlot = get().activeSlot
+          const currentSlotId =
+            get().activeSlotId || getDefaultSlotForScenario(currentScenario)
           const prevScenarioSlot = get().scenarioSlots[currentScenario] || {}
-          const nextSlots = {
+          const legacyProp =
+            currentSlotId === "enter"
+              ? "enterId"
+              : currentSlotId === "exit"
+                ? "exitId"
+                : undefined
+
+          const nextSlots: ScenarioSlotsRecord = {
             ...get().scenarioSlots,
             [currentScenario]: {
               ...prevScenarioSlot,
-              [currentSlot === "enter" ? "enterId" : "exitId"]: dossier.id,
+              [currentSlotId]: dossier.id,
+              ...(legacyProp ? { [legacyProp]: dossier.id } : {}),
             },
           }
           set((state) => {
@@ -228,11 +246,17 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
               ? ({ level: 1, curveId: dossier.id } as StackLevel)
               : state.navStack
 
-            const nextPlayback = opt?.audition
+            const shouldAudition = opt?.audition !== false
+            const targetPhase: "enter" | "exit" =
+              currentSlotId === "exit" ? "exit" : "enter"
+
+            const nextPlayback = shouldAudition
               ? {
                   isPlaying: true,
                   scrubProgress: 0,
                   animKey: state.animKey + 1,
+                  scenarioOpen: true,
+                  scenarioPhase: targetPhase,
                 }
               : {}
 
@@ -258,64 +282,125 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
 
         setActiveScenarioKey: (activeScenarioKey) => {
           syncSessionCookie({ scenario: activeScenarioKey })
-          // If the new scenario has a configured enterId, switch activeCurveId to match
+          const defaultSlot = getDefaultSlotForScenario(activeScenarioKey)
           const slot = get().scenarioSlots[activeScenarioKey]
-          if (slot?.enterId) {
-            const dossier = resolveEase(slot.enterId, get().customCurves)
+          const targetId =
+            slot?.[defaultSlot] ??
+            slot?.enter ??
+            slot?.enterId ??
+            (slot
+              ? (Object.values(slot).find(Boolean) as string | undefined)
+              : undefined)
+
+          const projectedLegacySlot: "enter" | "exit" =
+            defaultSlot === "exit" ? "exit" : "enter"
+
+          if (targetId) {
+            const dossier = resolveEase(targetId, get().customCurves)
             syncSessionCookie({ curve: dossier.id, engine: dossier.engine })
             set({
               activeScenarioKey,
               activeCurveId: dossier.id,
               activeEngine: dossier.engine,
+              activeSlot: projectedLegacySlot,
+              activeSlotId: defaultSlot,
               scenarioOpen: false,
-              scenarioPhase: "enter",
+              scenarioPhase: projectedLegacySlot,
               scrubProgress: 0,
             })
           } else {
             set({
               activeScenarioKey,
+              activeSlot: projectedLegacySlot,
+              activeSlotId: defaultSlot,
               scenarioOpen: false,
-              scenarioPhase: "enter",
+              scenarioPhase: projectedLegacySlot,
               scrubProgress: 0,
             })
           }
         },
 
         setActiveSlot: (activeSlot) => {
+          get().setActiveSlotId(activeSlot)
+        },
+
+        setActiveSlotId: (activeSlotId) => {
           const scenarioKey = get().activeScenarioKey
           const slot = get().scenarioSlots[scenarioKey]
-          const targetId = activeSlot === "enter" ? slot?.enterId : slot?.exitId
+          const targetId =
+            slot?.[activeSlotId] ??
+            (activeSlotId === "enter"
+              ? (slot?.enter ?? slot?.enterId)
+              : activeSlotId === "exit"
+                ? (slot?.exit ?? slot?.exitId)
+                : undefined)
+
+          const projectedLegacySlot: "enter" | "exit" =
+            activeSlotId === "exit" ? "exit" : "enter"
+
           if (targetId) {
             const dossier = resolveEase(targetId, get().customCurves)
             syncSessionCookie({ curve: dossier.id, engine: dossier.engine })
-            set({
-              activeSlot,
+            set((state) => ({
+              activeSlot: projectedLegacySlot,
+              activeSlotId,
               activeCurveId: dossier.id,
               activeEngine: dossier.engine,
-            })
+              scenarioPhase: projectedLegacySlot,
+              scenarioOpen: true,
+              isPlaying: true,
+              scrubProgress: 0,
+              animKey: state.animKey + 1,
+            }))
           } else {
-            set({ activeSlot })
+            set((state) => ({
+              activeSlot: projectedLegacySlot,
+              activeSlotId,
+              scenarioPhase: projectedLegacySlot,
+              scenarioOpen: true,
+              isPlaying: true,
+              scrubProgress: 0,
+              animKey: state.animKey + 1,
+            }))
           }
         },
 
         assignCurveToSlot: (curveId, slot, scenarioKey) => {
           const targetKey = scenarioKey ?? get().activeScenarioKey
           const prev = get().scenarioSlots[targetKey] || {}
-          const nextSlots = {
+          const legacyProp =
+            slot === "enter"
+              ? "enterId"
+              : slot === "exit"
+                ? "exitId"
+                : undefined
+
+          const nextSlots: ScenarioSlotsRecord = {
             ...get().scenarioSlots,
             [targetKey]: {
               ...prev,
-              [slot === "enter" ? "enterId" : "exitId"]: curveId,
+              [slot]: curveId,
+              ...(legacyProp ? { [legacyProp]: curveId } : {}),
             },
           }
           const dossier = resolveEase(curveId, get().customCurves)
           syncSessionCookie({ curve: dossier.id, engine: dossier.engine })
-          set({
+
+          const projectedLegacySlot: "enter" | "exit" =
+            slot === "exit" ? "exit" : "enter"
+
+          set((state) => ({
             scenarioSlots: nextSlots,
             activeCurveId: dossier.id,
             activeEngine: dossier.engine,
-            activeSlot: slot,
-          })
+            activeSlot: projectedLegacySlot,
+            activeSlotId: slot,
+            scenarioPhase: projectedLegacySlot,
+            scenarioOpen: true,
+            isPlaying: true,
+            scrubProgress: 0,
+            animKey: state.animKey + 1,
+          }))
         },
 
         openScenario: () => {
@@ -379,13 +464,17 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
         setIsPlaying: (isPlaying) => set({ isPlaying }),
 
         togglePlayback: () => {
-          const { isPlaying, scrubProgress, animKey } = get()
+          const { isPlaying, scrubProgress, animKey, activeSlotId } = get()
           if (isPlaying) {
             set({ isPlaying: false })
           } else {
             const reset = scrubProgress >= 99.5
+            const targetPhase: "enter" | "exit" =
+              activeSlotId === "exit" ? "exit" : "enter"
             set({
               isPlaying: true,
+              scenarioPhase: targetPhase,
+              scenarioOpen: true,
               scrubProgress: reset ? 0 : scrubProgress,
               animKey: reset ? animKey + 1 : animKey,
             })
@@ -399,10 +488,15 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
         setButtonPressed: (buttonPressed) => set({ buttonPressed }),
 
         triggerAudition: () => {
+          const { activeSlotId } = get()
+          const targetPhase: "enter" | "exit" =
+            activeSlotId === "exit" ? "exit" : "enter"
           set((state) => ({
             isPlaying: true,
             scrubProgress: 0,
             animKey: state.animKey + 1,
+            scenarioOpen: true,
+            scenarioPhase: targetPhase,
           }))
         },
 
@@ -827,9 +921,39 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
         ),
         merge: (persistedState: unknown, currentState: StudioState) => {
           const persisted = (persistedState as Partial<StudioState>) || {}
+          const resolvedScenario =
+            session?.scenario ??
+            persisted.activeScenarioKey ??
+            currentState.activeScenarioKey
+
+          const defaultSlot = getDefaultSlotForScenario(resolvedScenario)
+          const resolvedSlotId =
+            persisted.activeSlotId ??
+            (persisted.activeSlot as string | undefined) ??
+            defaultSlot
+
+          // Normalize persisted scenario slots to ensure both canonical and legacy keys exist
+          const rawSlots = persisted.scenarioSlots ?? currentState.scenarioSlots
+          const normalizedSlots: ScenarioSlotsRecord = {}
+          if (rawSlots) {
+            for (const [key, slotMap] of Object.entries(rawSlots)) {
+              if (!slotMap || typeof slotMap !== "object") continue
+              const enterVal = slotMap.enter ?? slotMap.enterId
+              const exitVal = slotMap.exit ?? slotMap.exitId
+              normalizedSlots[key] = {
+                ...slotMap,
+                ...(enterVal ? { enter: enterVal, enterId: enterVal } : {}),
+                ...(exitVal ? { exit: exitVal, exitId: exitVal } : {}),
+              }
+            }
+          }
+
           return {
             ...currentState,
             ...persisted,
+            scenarioSlots: normalizedSlots,
+            activeSlotId: resolvedSlotId,
+            activeSlot: resolvedSlotId === "exit" ? "exit" : "enter",
             // Guaranteed adherence to cookie session over stale localStorage
             activeCurveId:
               session?.curve ??
@@ -845,10 +969,7 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
               session?.timeline !== undefined
                 ? session.timeline
                 : (persisted.isTimelineOpen ?? currentState.isTimelineOpen),
-            activeScenarioKey:
-              session?.scenario ??
-              persisted.activeScenarioKey ??
-              currentState.activeScenarioKey,
+            activeScenarioKey: resolvedScenario,
             viewportMode:
               session?.viewport ??
               persisted.viewportMode ??
@@ -876,6 +997,7 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
           benchmarkTargetId: state.benchmarkTargetId,
           scenarioSlots: state.scenarioSlots,
           activeSlot: state.activeSlot,
+          activeSlotId: state.activeSlotId,
         }),
       }
     )

@@ -27,6 +27,8 @@ jobs:
         run: pnpm build:registry:meta
       - name: Version packages with Changesets
         run: pnpm changeset version
+      - name: Sync changelog to docs
+        run: node scripts/sync-changelog.mjs
       - name: Build (verify)
         run: pnpm build
       - name: Commit version bump

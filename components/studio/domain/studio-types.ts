@@ -4,6 +4,26 @@ export type EngineType = "bezier" | "spring"
 export type StudioMode = "audition" | "customize" | "compare"
 export type ViewportMode = "desktop" | "tablet" | "mobile" | "custom"
 
+export type ScenarioSlotMap = {
+  enter?: string
+  exit?: string
+  enterId?: string
+  exitId?: string
+  [slotId: string]: string | undefined
+}
+
+export type ScenarioSlotAssignment = ScenarioSlotMap
+export type ScenarioSlotsRecord = Record<string, ScenarioSlotMap>
+
+export function getDefaultSlotForScenario(scenarioKey: string): string {
+  switch (scenarioKey) {
+    case "dialog":
+    case "modal":
+    default:
+      return "enter"
+  }
+}
+
 export interface CustomEase {
   id: string
   name: string
@@ -54,8 +74,7 @@ export interface PresetFamily {
   presetIds: string[]
 }
 
-export type ArchetypeKey =
-  "button" | "sheet" | "modal" | "toast" | "dropdown" | "carousel"
+export type ArchetypeKey = "dialog" | "modal"
 
 export interface ArchetypeScenario {
   id: ArchetypeKey

@@ -105,7 +105,10 @@ flowchart TD
    - _"Looks great, commit this."_
    - _"Commit these changes with message '...'."_
 2. **Agent Responsibilities:**
-   - Stage only the relevant modified files (`git add <file1> <file2>`).
+   - **Changeset Check:** If the change alters user-facing behavior, components, or kinetics, generate a changeset release note (`.changeset/<slug>.md`) specifying:
+     - Type: `patch` (bug fixes/polish) or `minor` (new capabilities/archetypes).
+     - Summary: 1-line human release note.
+   - Stage only the relevant modified files (`git add <file1> <file2> ...`).
    - Create a single, atomic conventional commit:
      - `feat(scope): concise imperative description`
      - `fix(scope): concise imperative description`

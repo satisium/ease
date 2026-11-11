@@ -43,8 +43,9 @@ export function useScenarioChoreography(): ScenarioChoreography {
 
   // 1. Resolve Entrance curve
   const currentSlot = scenarioSlots[activeScenarioKey]
-  const enterCurveId = currentSlot?.enterId || activeCurveId
-  const exitCurveId = currentSlot?.exitId
+  const enterCurveId =
+    currentSlot?.enter ?? currentSlot?.enterId ?? activeCurveId
+  const exitCurveId = currentSlot?.exit ?? currentSlot?.exitId
   const enterCurve = React.useMemo(() => {
     return resolveEase(enterCurveId, customCurves)
   }, [enterCurveId, customCurves])
