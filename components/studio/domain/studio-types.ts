@@ -108,3 +108,24 @@ export interface StudioSessionCookie {
   navLevel?: number
   mode?: StudioMode
 }
+
+export type InterpolationKind = "scalar" | "dimension" | "angular"
+
+export interface KineticChannelDef {
+  id: string
+  label: string
+  property: string
+  kind: InterpolationKind
+  unit: "px" | "" | "deg" | "%"
+  from: number
+  to: number
+  defaultCurveId: string
+  durationMs?: number
+  delayMs?: number
+  isMuted?: boolean
+}
+
+export type ScenarioChannelRecord = Record<
+  string,
+  Record<string, Record<string, string>>
+>

@@ -51,6 +51,9 @@ export function AuditionToolbar() {
   const scenarioSlots = useStudioStore((s) => s.scenarioSlots)
   const activeSlotId = useStudioStore((s) => s.activeSlotId)
   const setActiveSlotId = useStudioStore((s) => s.setActiveSlotId)
+  const activeChannelId = useStudioStore((s) => s.activeChannelId)
+  const setActiveChannelId = useStudioStore((s) => s.setActiveChannelId)
+  const scenarioChannelSlots = useStudioStore((s) => s.scenarioChannelSlots)
   const customCurves = useStudioStore((s) => s.customCurves)
   const triggerAudition = useStudioStore((s) => s.triggerAudition)
   const isTimelineOpen = useStudioStore((s) => s.isTimelineOpen)
@@ -97,6 +100,34 @@ export function AuditionToolbar() {
       }
     })
   }, [manifest, activeScenarioKey, scenarioSlots, customCurves])
+
+  const activeSlotDef = React.useMemo(() => {
+    return (
+      manifest?.slots.find((s) => s.id === activeSlotId) ?? manifest?.slots[0]
+    )
+  }, [manifest, activeSlotId])
+
+  const channelsWithCurves = React.useMemo(() => {
+    const rawChannels = activeSlotDef?.channels || []
+    const slotChannelAssignments =
+      scenarioChannelSlots?.[activeScenarioKey]?.[activeSlotId] || {}
+
+    return rawChannels.map((ch) => {
+      const assignedCurveId = slotChannelAssignments[ch.id] || ch.defaultCurveId
+      const curve = resolveEase(assignedCurveId, customCurves)
+      return {
+        ...ch,
+        assignedCurveId,
+        curve,
+      }
+    })
+  }, [
+    activeSlotDef,
+    scenarioChannelSlots,
+    activeScenarioKey,
+    activeSlotId,
+    customCurves,
+  ])
 
   const handleViewportChange = (mode: ViewportMode) => {
     setViewportMode(mode)
@@ -259,6 +290,94 @@ export function AuditionToolbar() {
           })}
         </div>
       ) : null}
+
+      {/* Kinetic Channel Strip (Multi-Target Property Tuning) */}
+      {channelsWithCurves.length > 0 && (
+        <>
+          <div className="h-4 w-px bg-border" />
+          <LayoutGroup id="audition-channels">
+            <div className="relative flex items-center rounded-[10px] bg-muted p-0.5">
+              {/* All (Master) Chip */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setActiveChannelId("all")}
+                    className={cn(
+                      "relative z-10 flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] px-2.5 font-sans text-[11px] tracking-tight transition-colors",
+                      activeChannelId === "all"
+                        ? "font-medium text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {activeChannelId === "all" && (
+                      <motion.div
+                        layoutId="audition-channel-pill"
+                        transition={{
+                          type: "spring",
+                          stiffness: 350,
+                          damping: 30,
+                        }}
+                        className="absolute inset-0 rounded-[8px] bg-background shadow-xs"
+                      />
+                    )}
+                    <span className="relative z-20">All</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  <span>Master Channel (All Properties)</span>
+                </TooltipContent>
+              </Tooltip>
+
+              {/* Individual Kinetic Channel Chips */}
+              {channelsWithCurves.map((ch) => {
+                const isChannelActive = activeChannelId === ch.id
+                return (
+                  <Tooltip key={ch.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setActiveChannelId(ch.id)}
+                        className={cn(
+                          "relative z-10 flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] px-2 font-sans text-[11px] tracking-tight transition-colors",
+                          isChannelActive
+                            ? "font-medium text-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {isChannelActive && (
+                          <motion.div
+                            layoutId="audition-channel-pill"
+                            transition={{
+                              type: "spring",
+                              stiffness: 350,
+                              damping: 30,
+                            }}
+                            className="absolute inset-0 rounded-[8px] bg-background shadow-xs"
+                          />
+                        )}
+                        <span className="relative z-20 flex items-center gap-1">
+                          <span>{ch.label}</span>
+                          <span className="font-mono text-[9px] text-muted-foreground">
+                            {ch.curve.name}
+                          </span>
+                        </span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      <span>
+                        {ch.label} ({ch.property}) ·{" "}
+                        <span className="font-medium">{ch.curve.name}</span>
+                        {ch.delayMs ? ` · ${ch.delayMs}ms delay` : ""}
+                      </span>
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              })}
+            </div>
+          </LayoutGroup>
+        </>
+      )}
 
       <div className="h-4 w-px bg-border" />
 

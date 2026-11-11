@@ -1,7 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { ArchetypeKey, ArchetypeScenario } from "./studio-types"
+import {
+  ArchetypeKey,
+  ArchetypeScenario,
+  KineticChannelDef,
+} from "./studio-types"
 import { ModalScenario } from "@/components/studio/modes/audition/center-stage/scenarios"
 
 export interface MotionSlotDefinition {
@@ -10,6 +14,7 @@ export interface MotionSlotDefinition {
   description: string
   defaultCurveId: string
   iconType?: "in" | "out" | "slide" | "press" | "generic"
+  channels?: KineticChannelDef[]
 }
 
 export interface MotionComponentManifest {
@@ -37,6 +42,41 @@ export const ARCHETYPE_MANIFESTS: MotionComponentManifest[] = [
         description: "Scale & opacity deceleration into resting focus",
         defaultCurveId: "modal-sheet",
         iconType: "in",
+        channels: [
+          {
+            id: "backdrop",
+            label: "Backdrop",
+            property: "opacity",
+            kind: "scalar",
+            unit: "",
+            from: 0,
+            to: 0.45,
+            defaultCurveId: "material-decelerate",
+            delayMs: 0,
+          },
+          {
+            id: "translateY",
+            label: "Translate Y",
+            property: "translateY",
+            kind: "dimension",
+            unit: "px",
+            from: 44,
+            to: 0,
+            defaultCurveId: "modal-sheet",
+            delayMs: 25,
+          },
+          {
+            id: "scale",
+            label: "Scale",
+            property: "scale",
+            kind: "scalar",
+            unit: "",
+            from: 0.88,
+            to: 1.0,
+            defaultCurveId: "gentle",
+            delayMs: 25,
+          },
+        ],
       },
       {
         id: "exit",
@@ -44,6 +84,41 @@ export const ARCHETYPE_MANIFESTS: MotionComponentManifest[] = [
         description: "Swift acceleration on dismiss and unmount",
         defaultCurveId: "expo-in",
         iconType: "out",
+        channels: [
+          {
+            id: "backdrop",
+            label: "Backdrop",
+            property: "opacity",
+            kind: "scalar",
+            unit: "",
+            from: 0.45,
+            to: 0,
+            defaultCurveId: "expo-in",
+            delayMs: 40,
+          },
+          {
+            id: "translateY",
+            label: "Translate Y",
+            property: "translateY",
+            kind: "dimension",
+            unit: "px",
+            from: 0,
+            to: 36,
+            defaultCurveId: "expo-in",
+            delayMs: 0,
+          },
+          {
+            id: "scale",
+            label: "Scale",
+            property: "scale",
+            kind: "scalar",
+            unit: "",
+            from: 1.0,
+            to: 0.88,
+            defaultCurveId: "expo-in",
+            delayMs: 0,
+          },
+        ],
       },
     ],
     component: ModalScenario,

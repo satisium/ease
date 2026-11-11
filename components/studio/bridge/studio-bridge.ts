@@ -4,6 +4,7 @@ import {
   ArchetypeKey,
   EaseDossier,
   ScenarioSlotsRecord,
+  ScenarioChannelRecord,
 } from "@/components/studio/domain/studio-types"
 
 export const EASE_BRIDGE_VERSION = "1.0.0" as const
@@ -14,6 +15,7 @@ export type EaseBridgeMessageType =
   | "SYNC_THEME"
   | "SET_SCENARIO"
   | "SET_SLOT_CURVE"
+  | "SET_CHANNEL_CURVE"
   | "SCRUB_UPDATE"
   | "TOGGLE_SCENARIO"
   | "BUBBLE_KEYBOARD"
@@ -34,6 +36,9 @@ export interface HostInitPayload {
   activeSlotId: string
   activeCurve: EaseDossier
   scenarioSlots: ScenarioSlotsRecord
+  scenarioChannelSlots?: ScenarioChannelRecord
+  activeChannelId?: string | "all"
+  mutedChannels?: Record<string, boolean>
   scrubProgress: number
   isPlaying: boolean
   isScrubbing: boolean
@@ -50,6 +55,8 @@ export interface ScrubUpdatePayload {
   isPlaying?: boolean
   isScrubbing?: boolean
   scenarioOpen?: boolean
+  channelCurves?: Record<string, EaseDossier>
+  activeChannelId?: string | "all"
 }
 
 export interface SetScenarioPayload {
@@ -61,6 +68,13 @@ export interface SetScenarioPayload {
 export interface SetSlotCurvePayload {
   scenarioKey: string
   slotId: string
+  curve: EaseDossier
+}
+
+export interface SetChannelCurvePayload {
+  scenarioKey: string
+  slotId: string
+  channelId: string
   curve: EaseDossier
 }
 

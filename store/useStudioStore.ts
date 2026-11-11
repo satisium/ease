@@ -13,6 +13,7 @@ import {
   ViewportMode,
   StudioSessionCookie,
   ScenarioSlotsRecord,
+  ScenarioChannelRecord,
   getDefaultSlotForScenario,
 } from "@/components/studio/domain/studio-types"
 import { INITIAL_CUSTOM_CURVES } from "@/components/studio/domain/studio-curves"
@@ -50,8 +51,11 @@ export interface StudioState {
 
   // --- Scenario Choreography State ---
   scenarioSlots: ScenarioSlotsRecord
+  scenarioChannelSlots: ScenarioChannelRecord
   activeSlot: "enter" | "exit"
   activeSlotId: string
+  activeChannelId: string | "all"
+  mutedChannels: Record<string, boolean>
   scenarioOpen: boolean
   scenarioPhase: "enter" | "exit"
 
@@ -105,11 +109,19 @@ export interface StudioState {
   updateCustomCurve: (updatedCurve: CustomEase) => void
   setActiveSlot: (slot: "enter" | "exit") => void
   setActiveSlotId: (slotId: string) => void
+  setActiveChannelId: (channelId: string | "all") => void
   assignCurveToSlot: (
     curveId: string,
     slot: "enter" | "exit" | string,
     scenarioKey?: ArchetypeKey | string
   ) => void
+  assignCurveToChannel: (
+    curveId: string,
+    channelId: string,
+    slotId?: string,
+    scenarioKey?: ArchetypeKey | string
+  ) => void
+  toggleMuteChannel: (channelId: string) => void
   openScenario: () => void
   closeScenario: () => void
   toggleScenario: () => void
@@ -214,8 +226,36 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
           dialog: {},
           modal: {},
         },
+        scenarioChannelSlots: {
+          dialog: {
+            enter: {
+              backdrop: "material-decelerate",
+              translateY: "modal-sheet",
+              scale: "gentle",
+            },
+            exit: {
+              backdrop: "expo-in",
+              translateY: "expo-in",
+              scale: "expo-in",
+            },
+          },
+          modal: {
+            enter: {
+              backdrop: "material-decelerate",
+              translateY: "modal-sheet",
+              scale: "gentle",
+            },
+            exit: {
+              backdrop: "expo-in",
+              translateY: "expo-in",
+              scale: "expo-in",
+            },
+          },
+        },
         activeSlot: "enter",
         activeSlotId: "enter",
+        activeChannelId: "all",
+        mutedChannels: {},
         scenarioOpen: false,
         scenarioPhase: "enter",
 
@@ -232,6 +272,16 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
               : currentSlotId === "exit"
                 ? "exitId"
                 : undefined
+
+          const activeChan = get().activeChannelId
+          if (activeChan && activeChan !== "all") {
+            get().assignCurveToChannel(
+              dossier.id,
+              activeChan,
+              currentSlotId,
+              currentScenario
+            )
+          }
 
           const nextSlots: ScenarioSlotsRecord = {
             ...get().scenarioSlots,
@@ -399,6 +449,65 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
             scenarioOpen: true,
             isPlaying: true,
             scrubProgress: 0,
+            animKey: state.animKey + 1,
+          }))
+        },
+
+        setActiveChannelId: (channelId) => {
+          set({ activeChannelId: channelId })
+          if (channelId !== "all") {
+            const scenario = get().activeScenarioKey
+            const slot = get().activeSlotId
+            const assigned =
+              get().scenarioChannelSlots?.[scenario]?.[slot]?.[channelId]
+            if (assigned) {
+              const dossier = resolveEase(assigned, get().customCurves)
+              set({
+                activeCurveId: dossier.id,
+                activeEngine: dossier.engine,
+              })
+              syncSessionCookie({ curve: dossier.id, engine: dossier.engine })
+            }
+          }
+        },
+
+        assignCurveToChannel: (curveId, channelId, slotId, scenarioKey) => {
+          const targetScenario = scenarioKey ?? get().activeScenarioKey
+          const targetSlot = slotId ?? get().activeSlotId
+          const prevScenario = get().scenarioChannelSlots[targetScenario] || {}
+          const prevSlot = prevScenario[targetSlot] || {}
+
+          const nextChannelSlots: ScenarioChannelRecord = {
+            ...get().scenarioChannelSlots,
+            [targetScenario]: {
+              ...prevScenario,
+              [targetSlot]: {
+                ...prevSlot,
+                [channelId]: curveId,
+              },
+            },
+          }
+
+          const dossier = resolveEase(curveId, get().customCurves)
+          syncSessionCookie({ curve: dossier.id, engine: dossier.engine })
+
+          set((state) => ({
+            scenarioChannelSlots: nextChannelSlots,
+            activeCurveId: dossier.id,
+            activeEngine: dossier.engine,
+            isPlaying: true,
+            scrubProgress: 0,
+            animKey: state.animKey + 1,
+            scenarioOpen: true,
+          }))
+        },
+
+        toggleMuteChannel: (channelId) => {
+          set((state) => ({
+            mutedChannels: {
+              ...state.mutedChannels,
+              [channelId]: !state.mutedChannels[channelId],
+            },
             animKey: state.animKey + 1,
           }))
         },
@@ -952,6 +1061,12 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
             ...currentState,
             ...persisted,
             scenarioSlots: normalizedSlots,
+            scenarioChannelSlots: {
+              ...currentState.scenarioChannelSlots,
+              ...(persisted.scenarioChannelSlots ?? {}),
+            },
+            activeChannelId:
+              persisted.activeChannelId ?? currentState.activeChannelId,
             activeSlotId: resolvedSlotId,
             activeSlot: resolvedSlotId === "exit" ? "exit" : "enter",
             // Guaranteed adherence to cookie session over stale localStorage
@@ -996,6 +1111,8 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
           compareQueue: state.compareQueue,
           benchmarkTargetId: state.benchmarkTargetId,
           scenarioSlots: state.scenarioSlots,
+          scenarioChannelSlots: state.scenarioChannelSlots,
+          activeChannelId: state.activeChannelId,
           activeSlot: state.activeSlot,
           activeSlotId: state.activeSlotId,
         }),

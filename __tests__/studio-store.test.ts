@@ -475,5 +475,39 @@ describe("Studio Zustand Store", () => {
       expect(store.getState().scenarioOpen).toBe(true)
       expect(store.getState().scenarioPhase).toBe("enter")
     })
+
+    it("manages multi-channel kinetic slots (channel selection, assignment, mute)", () => {
+      const store = createStudioStore()
+      expect(store.getState().activeChannelId).toBe("all")
+
+      // 1. Assign custom curve to specific channel
+      store
+        .getState()
+        .assignCurveToChannel(
+          "material-decelerate",
+          "backdrop",
+          "enter",
+          "dialog"
+        )
+      expect(store.getState().scenarioChannelSlots.dialog.enter.backdrop).toBe(
+        "material-decelerate"
+      )
+
+      // 2. Switch active channel and verify active curve synchronization
+      store.getState().setActiveChannelId("backdrop")
+      expect(store.getState().activeChannelId).toBe("backdrop")
+      expect(store.getState().activeCurveId).toBe("material-decelerate")
+
+      // 3. Switch back to all
+      store.getState().setActiveChannelId("all")
+      expect(store.getState().activeChannelId).toBe("all")
+
+      // 4. Toggle channel mute
+      expect(store.getState().mutedChannels.backdrop).toBeFalsy()
+      store.getState().toggleMuteChannel("backdrop")
+      expect(store.getState().mutedChannels.backdrop).toBe(true)
+      store.getState().toggleMuteChannel("backdrop")
+      expect(store.getState().mutedChannels.backdrop).toBe(false)
+    })
   })
 })

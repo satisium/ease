@@ -11,59 +11,88 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { useStageBridge } from "@/components/studio/bridge"
-import {
-  resolveEase,
-  getEasedValue,
-} from "@/components/studio/domain/studio-kinetics"
+import { resolveEase } from "@/components/studio/domain/studio-kinetics"
+import { evaluateChoreography } from "@/components/studio/domain/kinetic-evaluator"
+import { getArchetypeManifest } from "@/components/studio/domain/archetype-registry"
 import { INITIAL_CUSTOM_CURVES } from "@/components/studio/domain/studio-curves"
+import { EaseDossier } from "@/components/studio/domain/studio-types"
 
 export default function StagePage() {
   const { stageState, emitAction } = useStageBridge()
 
-  // 1. Resolve Entrance & Exit curves for the Dialog
-  const currentSlot =
-    stageState.scenarioSlots["dialog"] ||
-    stageState.scenarioSlots["modal"] ||
-    {}
-  const enterCurveId =
-    currentSlot?.enter || currentSlot?.enterId || "modal-sheet"
-  const exitCurveId = currentSlot?.exit || currentSlot?.exitId || "expo-in"
+  // 1. Resolve Multi-Channel Kinetic Definitions for Dialog
+  const manifest = React.useMemo(
+    () => getArchetypeManifest(stageState.scenarioKey || "dialog"),
+    [stageState.scenarioKey]
+  )
+  const activeSlotDef = React.useMemo(() => {
+    return (
+      manifest?.slots.find((s) => s.id === stageState.scenarioPhase) ??
+      manifest?.slots[0]
+    )
+  }, [manifest, stageState.scenarioPhase])
 
-  const enterCurve = React.useMemo(() => {
-    if (
-      stageState.activeCurve &&
-      (stageState.activeSlotId === "enter" ||
-        stageState.activeCurve.id === enterCurveId)
-    ) {
-      return stageState.activeCurve
+  const channels = React.useMemo(
+    () => activeSlotDef?.channels || [],
+    [activeSlotDef]
+  )
+
+  // 2. Resolve independent curves for each channel
+  const channelCurves = React.useMemo(() => {
+    const curves: Record<string, EaseDossier> = {}
+    const scenarioKey = stageState.scenarioKey || "dialog"
+    const slotId = stageState.scenarioPhase
+    const assignedChannels =
+      stageState.scenarioChannelSlots?.[scenarioKey]?.[slotId] || {}
+
+    for (const ch of channels) {
+      // If user is tuning this channel specifically in studio, prioritize live curve
+      if (stageState.activeCurve && stageState.activeChannelId === ch.id) {
+        curves[ch.id] = stageState.activeCurve
+        continue
+      }
+
+      // Check channel-specific assignment in store
+      const assignedId = assignedChannels[ch.id]
+      if (assignedId) {
+        curves[ch.id] = resolveEase(assignedId, INITIAL_CUSTOM_CURVES)
+        continue
+      }
+
+      // If active curve is set on slot level (e.g. "all"), fallback
+      if (stageState.activeCurve && stageState.activeChannelId === "all") {
+        curves[ch.id] = stageState.activeCurve
+      } else {
+        curves[ch.id] = resolveEase(ch.defaultCurveId, INITIAL_CUSTOM_CURVES)
+      }
     }
-    return resolveEase(enterCurveId, INITIAL_CUSTOM_CURVES)
-  }, [enterCurveId, stageState.activeCurve, stageState.activeSlotId])
+    return curves
+  }, [
+    channels,
+    stageState.scenarioKey,
+    stageState.scenarioPhase,
+    stageState.scenarioChannelSlots,
+    stageState.activeCurve,
+    stageState.activeChannelId,
+  ])
 
-  const exitCurve = React.useMemo(() => {
-    if (
-      stageState.activeCurve &&
-      (stageState.activeSlotId === "exit" ||
-        stageState.activeCurve.id === exitCurveId)
-    ) {
-      return stageState.activeCurve
-    }
-    return resolveEase(exitCurveId, INITIAL_CUSTOM_CURVES)
-  }, [exitCurveId, stageState.activeCurve, stageState.activeSlotId])
-
-  const activeMotionCurve =
-    stageState.scenarioPhase === "enter" ? enterCurve : exitCurve
-
-  // 2. Solve mathematical eased progress (0 -> 1)
-  const easedValue = React.useMemo(() => {
-    return getEasedValue(
+  // 3. Multi-Channel Evaluation (stagger, delay, individual physics)
+  const evaluatedChoreography = React.useMemo(() => {
+    return evaluateChoreography(
+      channels,
+      channelCurves,
       stageState.scrubProgress,
-      activeMotionCurve,
+      400,
       stageState.isReducedMotion
     )
-  }, [stageState.scrubProgress, activeMotionCurve, stageState.isReducedMotion])
+  }, [
+    channels,
+    channelCurves,
+    stageState.scrubProgress,
+    stageState.isReducedMotion,
+  ])
 
-  // 3. Physical Coordinated Transforms (Visually Vivid Amplitude)
+  // 4. Physical Coordinated Transforms
   const isSimulating = stageState.isPlaying || stageState.isScrubbing
 
   let modalScale = 0.88
@@ -75,19 +104,19 @@ export default function StagePage() {
     isSimulating ||
     (stageState.scrubProgress > 0 && stageState.scrubProgress < 100)
   ) {
-    if (stageState.scenarioPhase === "enter") {
-      // Natural spring entrance: lifts up 44px -> 0px, scales 0.88 -> 1.0 (with genuine physical overshoot)
-      modalScale = 0.88 + easedValue * 0.12
-      modalTranslateY = Math.round((1 - easedValue) * 44)
-      modalOpacity = Math.min(1, Math.max(0, easedValue))
-      backdropOpacity = Math.min(1, Math.max(0, easedValue)) * 0.45
-    } else {
-      // Crisp exit: drops down 0px -> 36px, scales 1.0 -> 0.88, swift fade
-      modalScale = 1.0 - easedValue * 0.12
-      modalTranslateY = Math.round(easedValue * 36)
-      modalOpacity = Math.max(0, 1 - easedValue)
-      backdropOpacity = Math.max(0, (1 - easedValue) * 0.45)
-    }
+    const ev = evaluatedChoreography.channels
+    modalTranslateY = Math.round(
+      ev.translateY?.currentValue ??
+        (stageState.scenarioPhase === "enter" ? 0 : 36)
+    )
+    modalScale = ev.scale?.currentValue ?? 1
+    backdropOpacity =
+      ev.backdrop?.currentValue ??
+      (stageState.scenarioPhase === "enter" ? 0.45 : 0)
+    modalOpacity =
+      stageState.scenarioPhase === "enter"
+        ? Math.min(1, Math.max(0, ev.scale?.easedValue ?? 1))
+        : Math.max(0, 1 - (ev.scale?.easedValue ?? 0))
   } else {
     // Resting settled state (progress == 0 or progress == 100, not actively playing)
     const isOpen =
