@@ -2,11 +2,7 @@
 
 import * as React from "react"
 import { ArchetypeKey, ArchetypeScenario } from "./studio-types"
-import {
-  ModalScenario,
-  CarouselScenario,
-  ButtonScenario,
-} from "@/components/studio/modes/audition/center-stage/scenarios"
+import { ModalScenario } from "@/components/studio/modes/audition/center-stage/scenarios"
 
 export interface MotionSlotDefinition {
   id: string
@@ -28,8 +24,8 @@ export interface MotionComponentManifest {
 
 export const ARCHETYPE_MANIFESTS: MotionComponentManifest[] = [
   {
-    id: "modal",
-    name: "Modal Dialog",
+    id: "dialog",
+    name: "Dialog",
     role: "Focused Surface",
     description:
       "Centered dialog surface with progressive scale deceleration on arrival and swift acceleration on dismissal.",
@@ -52,48 +48,12 @@ export const ARCHETYPE_MANIFESTS: MotionComponentManifest[] = [
     ],
     component: ModalScenario,
   },
-  {
-    id: "carousel",
-    name: "Media Carousel",
-    role: "Paged Travel",
-    description:
-      "Horizontal surface translation with symmetric travel tempo, boundary resistance, and natural momentum.",
-    category: "navigation",
-    slots: [
-      {
-        id: "slide",
-        label: "Slide",
-        description: "Horizontal card translation with spring physics",
-        defaultCurveId: "ios-fluid",
-        iconType: "slide",
-      },
-    ],
-    component: CarouselScenario,
-  },
-  {
-    id: "button",
-    name: "Tactile Button",
-    role: "Direct Contact",
-    description:
-      "Direct manipulation trigger featuring spring-loaded surface compression and high-fidelity haptic rebound.",
-    category: "interactive",
-    slots: [
-      {
-        id: "press",
-        label: "Press",
-        description: "Tactile scale compression and rebound bounce",
-        defaultCurveId: "button",
-        iconType: "press",
-      },
-    ],
-    component: ButtonScenario,
-  },
 ]
 
 export function getArchetypeManifest(
   key: string
 ): MotionComponentManifest | undefined {
-  return ARCHETYPE_MANIFESTS.find((m) => m.id === key)
+  return ARCHETYPE_MANIFESTS.find((m) => m.id === key) ?? ARCHETYPE_MANIFESTS[0]
 }
 
 export function getAllArchetypeManifests(): MotionComponentManifest[] {

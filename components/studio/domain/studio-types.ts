@@ -17,14 +17,8 @@ export type ScenarioSlotsRecord = Record<string, ScenarioSlotMap>
 
 export function getDefaultSlotForScenario(scenarioKey: string): string {
   switch (scenarioKey) {
-    case "carousel":
-      return "slide"
-    case "button":
-      return "press"
+    case "dialog":
     case "modal":
-    case "sheet":
-    case "toast":
-    case "dropdown":
     default:
       return "enter"
   }
@@ -80,8 +74,7 @@ export interface PresetFamily {
   presetIds: string[]
 }
 
-export type ArchetypeKey =
-  "button" | "sheet" | "modal" | "toast" | "dropdown" | "carousel"
+export type ArchetypeKey = "dialog" | "modal"
 
 export interface ArchetypeScenario {
   id: ArchetypeKey

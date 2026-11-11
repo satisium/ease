@@ -268,24 +268,10 @@ export const POPULAR_PRESET_IDS = new Set<string>([
 
 export const ARCHETYPE_SCENARIOS: ArchetypeScenario[] = [
   {
-    id: "modal",
-    name: "Modal Dialog",
+    id: "dialog",
+    name: "Dialog",
     role: "Focused Surface",
     description:
       "Centered dialog surface with progressive scale deceleration on arrival and swift acceleration on dismissal.",
-  },
-  {
-    id: "carousel",
-    name: "Media Carousel",
-    role: "Paged Travel",
-    description:
-      "Horizontal surface translation with symmetric travel tempo, boundary resistance, and natural momentum.",
-  },
-  {
-    id: "button",
-    name: "Tactile Button",
-    role: "Direct Contact",
-    description:
-      "Direct manipulation trigger featuring spring-loaded surface compression and high-fidelity haptic rebound.",
   },
 ]

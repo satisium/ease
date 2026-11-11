@@ -21,7 +21,7 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
 
   const currentSlot = scenarioSlots[activeScenarioKey]
   const spec: BestPracticeSpec =
-    BEST_PRACTICES[activeScenarioKey] ?? BEST_PRACTICES.modal
+    BEST_PRACTICES[activeScenarioKey] ?? BEST_PRACTICES.dialog
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -62,13 +62,11 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
                 {spec.recommendedIn.map((rec) => {
                   const enterAssigned =
                     currentSlot?.enter ?? currentSlot?.enterId
-                  const exitAssigned = currentSlot?.exit ?? currentSlot?.exitId
                   const isAssigned =
-                    activeSlot === "enter"
-                      ? enterAssigned === rec.id ||
-                        (!enterAssigned && activePresetId === rec.id)
-                      : exitAssigned === rec.id ||
-                        (!exitAssigned && activePresetId === rec.id)
+                    enterAssigned === rec.id ||
+                    (!enterAssigned &&
+                      activePresetId === rec.id &&
+                      activeSlot === "enter")
 
                   return (
                     <Tooltip key={rec.id}>
@@ -78,7 +76,7 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
                           onClick={() => {
                             assignCurveToSlot(
                               rec.id,
-                              activeSlot,
+                              "enter",
                               activeScenarioKey
                             )
                           }}
@@ -116,15 +114,12 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
 
               <div className="grid grid-cols-3 gap-1.5">
                 {spec.recommendedOut.map((rec) => {
-                  const enterAssigned =
-                    currentSlot?.enter ?? currentSlot?.enterId
                   const exitAssigned = currentSlot?.exit ?? currentSlot?.exitId
                   const isAssigned =
-                    activeSlot === "enter"
-                      ? enterAssigned === rec.id ||
-                        (!enterAssigned && activePresetId === rec.id)
-                      : exitAssigned === rec.id ||
-                        (!exitAssigned && activePresetId === rec.id)
+                    exitAssigned === rec.id ||
+                    (!exitAssigned &&
+                      activePresetId === rec.id &&
+                      activeSlot === "exit")
 
                   return (
                     <Tooltip key={rec.id}>
@@ -132,11 +127,7 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
                         <button
                           type="button"
                           onClick={() => {
-                            assignCurveToSlot(
-                              rec.id,
-                              activeSlot,
-                              activeScenarioKey
-                            )
+                            assignCurveToSlot(rec.id, "exit", activeScenarioKey)
                           }}
                           className={cn(
                             "flex h-8 cursor-pointer items-center justify-center rounded-[8px] px-1 font-sans text-xs transition-colors active:scale-95",

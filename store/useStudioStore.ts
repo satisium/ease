@@ -166,7 +166,10 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
   }
 
   const initialTimeline = session?.timeline ?? false
-  const initialScenario = session?.scenario ?? "modal"
+  const initialScenario: ArchetypeKey =
+    session?.scenario === "modal" || !session?.scenario
+      ? "dialog"
+      : session.scenario
   const initialViewport = session?.viewport ?? "desktop"
   const initialWidth =
     session?.width ??
@@ -208,6 +211,7 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
 
         // Scenario choreography slots & state (Clean slate: zero hardcoded defaults)
         scenarioSlots: {
+          dialog: {},
           modal: {},
         },
         activeSlot: "enter",
@@ -242,11 +246,17 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
               ? ({ level: 1, curveId: dossier.id } as StackLevel)
               : state.navStack
 
-            const nextPlayback = opt?.audition
+            const shouldAudition = opt?.audition !== false
+            const targetPhase: "enter" | "exit" =
+              currentSlotId === "exit" ? "exit" : "enter"
+
+            const nextPlayback = shouldAudition
               ? {
                   isPlaying: true,
                   scrubProgress: 0,
                   animKey: state.animKey + 1,
+                  scenarioOpen: true,
+                  scenarioPhase: targetPhase,
                 }
               : {}
 
@@ -331,17 +341,27 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
           if (targetId) {
             const dossier = resolveEase(targetId, get().customCurves)
             syncSessionCookie({ curve: dossier.id, engine: dossier.engine })
-            set({
+            set((state) => ({
               activeSlot: projectedLegacySlot,
               activeSlotId,
               activeCurveId: dossier.id,
               activeEngine: dossier.engine,
-            })
+              scenarioPhase: projectedLegacySlot,
+              scenarioOpen: true,
+              isPlaying: true,
+              scrubProgress: 0,
+              animKey: state.animKey + 1,
+            }))
           } else {
-            set({
+            set((state) => ({
               activeSlot: projectedLegacySlot,
               activeSlotId,
-            })
+              scenarioPhase: projectedLegacySlot,
+              scenarioOpen: true,
+              isPlaying: true,
+              scrubProgress: 0,
+              animKey: state.animKey + 1,
+            }))
           }
         },
 
@@ -369,13 +389,18 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
           const projectedLegacySlot: "enter" | "exit" =
             slot === "exit" ? "exit" : "enter"
 
-          set({
+          set((state) => ({
             scenarioSlots: nextSlots,
             activeCurveId: dossier.id,
             activeEngine: dossier.engine,
             activeSlot: projectedLegacySlot,
             activeSlotId: slot,
-          })
+            scenarioPhase: projectedLegacySlot,
+            scenarioOpen: true,
+            isPlaying: true,
+            scrubProgress: 0,
+            animKey: state.animKey + 1,
+          }))
         },
 
         openScenario: () => {
@@ -439,13 +464,17 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
         setIsPlaying: (isPlaying) => set({ isPlaying }),
 
         togglePlayback: () => {
-          const { isPlaying, scrubProgress, animKey } = get()
+          const { isPlaying, scrubProgress, animKey, activeSlotId } = get()
           if (isPlaying) {
             set({ isPlaying: false })
           } else {
             const reset = scrubProgress >= 99.5
+            const targetPhase: "enter" | "exit" =
+              activeSlotId === "exit" ? "exit" : "enter"
             set({
               isPlaying: true,
+              scenarioPhase: targetPhase,
+              scenarioOpen: true,
               scrubProgress: reset ? 0 : scrubProgress,
               animKey: reset ? animKey + 1 : animKey,
             })
@@ -459,10 +488,15 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
         setButtonPressed: (buttonPressed) => set({ buttonPressed }),
 
         triggerAudition: () => {
+          const { activeSlotId } = get()
+          const targetPhase: "enter" | "exit" =
+            activeSlotId === "exit" ? "exit" : "enter"
           set((state) => ({
             isPlaying: true,
             scrubProgress: 0,
             animKey: state.animKey + 1,
+            scenarioOpen: true,
+            scenarioPhase: targetPhase,
           }))
         },
 
