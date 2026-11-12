@@ -37,6 +37,7 @@ export function PreviewTheater() {
   const openScenario = useStudioStore((s) => s.openScenario)
   const closeScenario = useStudioStore((s) => s.closeScenario)
   const toggleTimeline = useStudioStore((s) => s.toggleTimeline)
+  const setDiscoveredChannels = useStudioStore((s) => s.setDiscoveredChannels)
 
   const activeDossier = useActiveDossier()
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
@@ -93,6 +94,13 @@ export function PreviewTheater() {
       } else if (act.action === "audition") {
         triggerAudition()
       }
+    },
+    onDiscoveredChannels: (payload) => {
+      setDiscoveredChannels(
+        payload.scenarioKey,
+        payload.slotId,
+        payload.channels
+      )
     },
   })
 

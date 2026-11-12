@@ -10,6 +10,7 @@ import {
   SetChannelCurvePayload,
   BubbleKeyboardPayload,
   StageActionPayload,
+  SnifferDetectedChannelsPayload,
   postToIframe,
   postToHost,
 } from "./studio-bridge"
@@ -25,6 +26,7 @@ export interface UseHostBridgeOptions {
   getInitPayload: () => HostInitPayload
   onKeyboardEvent?: (event: BubbleKeyboardPayload) => void
   onStageAction?: (action: StageActionPayload) => void
+  onDiscoveredChannels?: (payload: SnifferDetectedChannelsPayload) => void
 }
 
 export function useHostBridge({
@@ -32,6 +34,7 @@ export function useHostBridge({
   getInitPayload,
   onKeyboardEvent,
   onStageAction,
+  onDiscoveredChannels,
 }: UseHostBridgeOptions) {
   const [isStageReady, setIsStageReady] = React.useState(false)
 
@@ -55,12 +58,22 @@ export function useHostBridge({
           onStageAction?.(data.payload as StageActionPayload)
           break
         }
+        case "SNIFFER_DETECTED_CHANNELS": {
+          onDiscoveredChannels?.(data.payload as SnifferDetectedChannelsPayload)
+          break
+        }
       }
     }
 
     window.addEventListener("message", handleMessage)
     return () => window.removeEventListener("message", handleMessage)
-  }, [iframeRef, getInitPayload, onKeyboardEvent, onStageAction])
+  }, [
+    iframeRef,
+    getInitPayload,
+    onKeyboardEvent,
+    onStageAction,
+    onDiscoveredChannels,
+  ])
 
   // Broadcast high-frequency scrub updates
   const sendScrubUpdate = React.useCallback(

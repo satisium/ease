@@ -114,6 +114,7 @@ export type InterpolationKind = "scalar" | "dimension" | "angular"
 export interface KineticChannelDef {
   id: string
   label: string
+  targetSelector?: string
   property: string
   kind: InterpolationKind
   unit: "px" | "" | "deg" | "%"
@@ -123,6 +124,7 @@ export interface KineticChannelDef {
   durationMs?: number
   delayMs?: number
   isMuted?: boolean
+  role?: string
 }
 
 export type ScenarioChannelRecord = Record<

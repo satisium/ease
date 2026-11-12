@@ -54,6 +54,7 @@ export function AuditionToolbar() {
   const activeChannelId = useStudioStore((s) => s.activeChannelId)
   const setActiveChannelId = useStudioStore((s) => s.setActiveChannelId)
   const scenarioChannelSlots = useStudioStore((s) => s.scenarioChannelSlots)
+  const discoveredChannels = useStudioStore((s) => s.discoveredChannels)
   const customCurves = useStudioStore((s) => s.customCurves)
   const triggerAudition = useStudioStore((s) => s.triggerAudition)
   const isTimelineOpen = useStudioStore((s) => s.isTimelineOpen)
@@ -108,7 +109,9 @@ export function AuditionToolbar() {
   }, [manifest, activeSlotId])
 
   const channelsWithCurves = React.useMemo(() => {
-    const rawChannels = activeSlotDef?.channels || []
+    const detected = discoveredChannels?.[activeScenarioKey]?.[activeSlotId]
+    const rawChannels =
+      detected && detected.length > 0 ? detected : activeSlotDef?.channels || []
     const slotChannelAssignments =
       scenarioChannelSlots?.[activeScenarioKey]?.[activeSlotId] || {}
 
@@ -122,6 +125,7 @@ export function AuditionToolbar() {
       }
     })
   }, [
+    discoveredChannels,
     activeSlotDef,
     scenarioChannelSlots,
     activeScenarioKey,

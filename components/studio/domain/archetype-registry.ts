@@ -46,6 +46,7 @@ export const ARCHETYPE_MANIFESTS: MotionComponentManifest[] = [
           {
             id: "backdrop",
             label: "Backdrop",
+            targetSelector: "[data-ease-target='backdrop']",
             property: "opacity",
             kind: "scalar",
             unit: "",
@@ -57,6 +58,7 @@ export const ARCHETYPE_MANIFESTS: MotionComponentManifest[] = [
           {
             id: "translateY",
             label: "Translate Y",
+            targetSelector: "[data-ease-target='card']",
             property: "translateY",
             kind: "dimension",
             unit: "px",
@@ -68,6 +70,7 @@ export const ARCHETYPE_MANIFESTS: MotionComponentManifest[] = [
           {
             id: "scale",
             label: "Scale",
+            targetSelector: "[data-ease-target='card']",
             property: "scale",
             kind: "scalar",
             unit: "",
@@ -88,6 +91,7 @@ export const ARCHETYPE_MANIFESTS: MotionComponentManifest[] = [
           {
             id: "backdrop",
             label: "Backdrop",
+            targetSelector: "[data-ease-target='backdrop']",
             property: "opacity",
             kind: "scalar",
             unit: "",
@@ -99,6 +103,7 @@ export const ARCHETYPE_MANIFESTS: MotionComponentManifest[] = [
           {
             id: "translateY",
             label: "Translate Y",
+            targetSelector: "[data-ease-target='card']",
             property: "translateY",
             kind: "dimension",
             unit: "px",
@@ -110,6 +115,7 @@ export const ARCHETYPE_MANIFESTS: MotionComponentManifest[] = [
           {
             id: "scale",
             label: "Scale",
+            targetSelector: "[data-ease-target='card']",
             property: "scale",
             kind: "scalar",
             unit: "",

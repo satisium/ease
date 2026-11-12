@@ -508,6 +508,24 @@ describe("Studio Zustand Store", () => {
       expect(store.getState().mutedChannels.backdrop).toBe(true)
       store.getState().toggleMuteChannel("backdrop")
       expect(store.getState().mutedChannels.backdrop).toBe(false)
+
+      // 5. Set discovered channels from Sniffer Engine
+      store.getState().setDiscoveredChannels("dialog", "enter", [
+        {
+          id: "sniffed-backdrop",
+          label: "Backdrop",
+          property: "opacity",
+          kind: "scalar",
+          unit: "",
+          from: 0,
+          to: 1,
+          role: "Atmospheric Scrim",
+          defaultCurveId: "material-decelerate",
+        },
+      ])
+      expect(store.getState().discoveredChannels.dialog.enter[0].id).toBe(
+        "sniffed-backdrop"
+      )
     })
   })
 })

@@ -14,6 +14,7 @@ import {
   StudioSessionCookie,
   ScenarioSlotsRecord,
   ScenarioChannelRecord,
+  KineticChannelDef,
   getDefaultSlotForScenario,
 } from "@/components/studio/domain/studio-types"
 import { INITIAL_CUSTOM_CURVES } from "@/components/studio/domain/studio-curves"
@@ -52,6 +53,7 @@ export interface StudioState {
   // --- Scenario Choreography State ---
   scenarioSlots: ScenarioSlotsRecord
   scenarioChannelSlots: ScenarioChannelRecord
+  discoveredChannels: Record<string, Record<string, KineticChannelDef[]>>
   activeSlot: "enter" | "exit"
   activeSlotId: string
   activeChannelId: string | "all"
@@ -122,6 +124,11 @@ export interface StudioState {
     scenarioKey?: ArchetypeKey | string
   ) => void
   toggleMuteChannel: (channelId: string) => void
+  setDiscoveredChannels: (
+    scenarioKey: string,
+    slotId: string,
+    channels: KineticChannelDef[]
+  ) => void
   openScenario: () => void
   closeScenario: () => void
   toggleScenario: () => void
@@ -256,6 +263,7 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
         activeSlotId: "enter",
         activeChannelId: "all",
         mutedChannels: {},
+        discoveredChannels: {},
         scenarioOpen: false,
         scenarioPhase: "enter",
 
@@ -510,6 +518,21 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
             },
             animKey: state.animKey + 1,
           }))
+        },
+
+        setDiscoveredChannels: (scenarioKey, slotId, channels) => {
+          set((state) => {
+            const prevScenario = state.discoveredChannels[scenarioKey] || {}
+            return {
+              discoveredChannels: {
+                ...state.discoveredChannels,
+                [scenarioKey]: {
+                  ...prevScenario,
+                  [slotId]: channels,
+                },
+              },
+            }
+          })
         },
 
         openScenario: () => {

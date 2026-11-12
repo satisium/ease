@@ -10,32 +10,68 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { useStageBridge } from "@/components/studio/bridge"
+import { cn } from "@/lib/utils"
+import {
+  useStageBridge,
+  postToHost,
+  useSnifferObserver,
+} from "@/components/studio/bridge"
 import { resolveEase } from "@/components/studio/domain/studio-kinetics"
 import { evaluateChoreography } from "@/components/studio/domain/kinetic-evaluator"
+import { applyChoreographyToDOM } from "@/components/studio/domain/dom-applicator"
 import { getArchetypeManifest } from "@/components/studio/domain/archetype-registry"
 import { INITIAL_CUSTOM_CURVES } from "@/components/studio/domain/studio-curves"
-import { EaseDossier } from "@/components/studio/domain/studio-types"
+import {
+  EaseDossier,
+  KineticChannelDef,
+} from "@/components/studio/domain/studio-types"
 
 export default function StagePage() {
   const { stageState, emitAction } = useStageBridge()
 
-  // 1. Resolve Multi-Channel Kinetic Definitions for Dialog
+  const scenarioKey = stageState.scenarioKey || "dialog"
+  const phase = stageState.scenarioPhase || "enter"
+  const [discoveredChannels, setDiscoveredChannels] = React.useState<
+    KineticChannelDef[]
+  >([])
+
+  // 1. Reactive Sniffer Engine: Observes DOM mutations, portals, and dynamic state transitions
+  const handleDiscovered = React.useCallback(
+    (channels: KineticChannelDef[]) => {
+      setDiscoveredChannels(channels)
+      if (channels.length > 0) {
+        postToHost("SNIFFER_DETECTED_CHANNELS", {
+          scenarioKey,
+          slotId: phase,
+          channels,
+        })
+      }
+    },
+    [scenarioKey, phase]
+  )
+
+  useSnifferObserver(
+    typeof document !== "undefined" ? document : null,
+    scenarioKey,
+    phase,
+    handleDiscovered
+  )
+
+  // 2. Resolve Multi-Channel Kinetic Definitions (Prioritize live sniffed channels)
   const manifest = React.useMemo(
-    () => getArchetypeManifest(stageState.scenarioKey || "dialog"),
-    [stageState.scenarioKey]
+    () => getArchetypeManifest(scenarioKey),
+    [scenarioKey]
   )
   const activeSlotDef = React.useMemo(() => {
-    return (
-      manifest?.slots.find((s) => s.id === stageState.scenarioPhase) ??
-      manifest?.slots[0]
-    )
-  }, [manifest, stageState.scenarioPhase])
+    return manifest?.slots.find((s) => s.id === phase) ?? manifest?.slots[0]
+  }, [manifest, phase])
 
-  const channels = React.useMemo(
-    () => activeSlotDef?.channels || [],
-    [activeSlotDef]
-  )
+  const channels = React.useMemo(() => {
+    if (discoveredChannels.length > 0) {
+      return discoveredChannels
+    }
+    return activeSlotDef?.channels || []
+  }, [discoveredChannels, activeSlotDef])
 
   // 2. Resolve independent curves for each channel
   const channelCurves = React.useMemo(() => {
@@ -92,46 +128,46 @@ export default function StagePage() {
     stageState.isReducedMotion,
   ])
 
-  // 4. Physical Coordinated Transforms
+  // 4. Determine simulation and resting lifecycle states
   const isSimulating = stageState.isPlaying || stageState.isScrubbing
+  const isOpen =
+    stageState.scenarioPhase === "enter"
+      ? stageState.scrubProgress >= 100 || stageState.scenarioOpen
+      : stageState.scrubProgress <= 0 && stageState.scenarioOpen
 
-  let modalScale = 0.88
-  let modalTranslateY = 44
-  let modalOpacity = 0
-  let backdropOpacity = 0
+  const isModalVisible = isOpen || stageState.scenarioOpen || isSimulating
 
-  if (
-    isSimulating ||
-    (stageState.scrubProgress > 0 && stageState.scrubProgress < 100)
-  ) {
-    const ev = evaluatedChoreography.channels
-    modalTranslateY = Math.round(
-      ev.translateY?.currentValue ??
-        (stageState.scenarioPhase === "enter" ? 0 : 36)
-    )
-    modalScale = ev.scale?.currentValue ?? 1
-    backdropOpacity =
-      ev.backdrop?.currentValue ??
-      (stageState.scenarioPhase === "enter" ? 0.45 : 0)
-    modalOpacity =
-      stageState.scenarioPhase === "enter"
-        ? Math.min(1, Math.max(0, ev.scale?.easedValue ?? 1))
-        : Math.max(0, 1 - (ev.scale?.easedValue ?? 0))
-  } else {
-    // Resting settled state (progress == 0 or progress == 100, not actively playing)
-    const isOpen =
-      stageState.scenarioPhase === "enter"
-        ? stageState.scrubProgress >= 100 || stageState.scenarioOpen
-        : stageState.scrubProgress <= 0 && stageState.scenarioOpen
+  // 5. Universal DOM Application: Decoupled styling engine
+  React.useEffect(() => {
+    if (!isModalVisible) return
 
-    modalScale = isOpen ? 1 : 0.88
-    modalTranslateY = isOpen ? 0 : 44
-    modalOpacity = isOpen ? 1 : 0
-    backdropOpacity = isOpen ? 0.45 : 0
-  }
-
-  const isModalVisible =
-    modalOpacity > 0.01 || stageState.scenarioOpen || isSimulating
+    if (
+      isSimulating ||
+      (stageState.scrubProgress > 0 && stageState.scrubProgress < 100)
+    ) {
+      applyChoreographyToDOM(document, evaluatedChoreography.channels, channels)
+    } else {
+      // Settle frame at boundary (0% or 100%)
+      const settledProgress = isOpen ? 100 : 0
+      const settledEvaluated = evaluateChoreography(
+        channels,
+        channelCurves,
+        settledProgress,
+        400,
+        stageState.isReducedMotion
+      )
+      applyChoreographyToDOM(document, settledEvaluated.channels, channels)
+    }
+  }, [
+    isModalVisible,
+    isSimulating,
+    stageState.scrubProgress,
+    isOpen,
+    evaluatedChoreography,
+    channels,
+    channelCurves,
+    stageState.isReducedMotion,
+  ])
 
   // --- Satisium Pure Kinetic Dialog Experience ---
   // Core Laws: Zero Borders, Authentic Squircles (rounded-[8px] / rounded-[18px]), Monochrome Hierarchy
@@ -148,94 +184,100 @@ export default function StagePage() {
         </button>
       </div>
 
-      {/* Precision Backdrop Scrim */}
-      {isModalVisible && (
-        <div
-          onClick={() => emitAction("close")}
-          style={{ opacity: backdropOpacity }}
-          className="fixed inset-0 z-40 cursor-pointer bg-black backdrop-blur-xs transition-opacity duration-75"
-        />
-      )}
+      {/* Precision Backdrop Scrim (Discovered by Sniffer, Driven by Universal DOM Applicator) */}
+      <div
+        data-ease-target="backdrop"
+        onClick={() => emitAction("close")}
+        className={cn(
+          "fixed inset-0 z-40 cursor-pointer bg-black backdrop-blur-xs transition-opacity duration-75",
+          !isModalVisible && "pointer-events-none opacity-0"
+        )}
+      />
 
-      {/* Satisium Borderless Squircle Dialog Surface */}
-      {isModalVisible && (
-        <Dialog
-          open={isModalVisible}
-          onOpenChange={(open) => emitAction(open ? "open" : "close")}
+      {/* Satisium Borderless Squircle Dialog Surface (Discovered by Sniffer, Driven by Universal DOM Applicator) */}
+      <Dialog
+        open={isModalVisible}
+        onOpenChange={(open) => emitAction(open ? "open" : "close")}
+      >
+        <div
+          className={cn(
+            "fixed inset-0 z-50 flex items-center justify-center p-4",
+            !isModalVisible && "pointer-events-none opacity-0"
+          )}
         >
-          <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div
-              style={{
-                transform: `translateY(${modalTranslateY}px) scale(${modalScale})`,
-                opacity: modalOpacity,
-              }}
-              role="dialog"
-              aria-modal="true"
-              className="pointer-events-auto relative w-full max-w-[380px] rounded-[18px] bg-card p-6 shadow-2xl will-change-transform"
+          <div
+            data-ease-target="card"
+            role="dialog"
+            aria-modal="true"
+            className={cn(
+              "relative w-full max-w-[380px] rounded-[18px] bg-card p-6 shadow-2xl will-change-transform",
+              isModalVisible
+                ? "pointer-events-auto"
+                : "pointer-events-none opacity-0"
+            )}
+          >
+            {/* Dismiss Close Icon */}
+            <button
+              type="button"
+              onClick={() => emitAction("close")}
+              className="absolute top-4 right-4 flex size-7 cursor-pointer items-center justify-center rounded-[8px] bg-secondary text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              {/* Dismiss Close Icon */}
+              <HugeiconsIcon icon={Cancel01Icon} className="size-3.5" />
+              <span className="sr-only">Close</span>
+            </button>
+
+            {/* Dialog Header */}
+            <DialogHeader className="gap-1.5">
+              <DialogTitle className="font-heading text-sm font-semibold tracking-tight text-foreground">
+                Edit Profile
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Make changes to your profile parameters here.
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Recessed Borderless Squircle Input Troughs */}
+            <div className="flex flex-col gap-2.5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="w-16 text-right font-sans text-xs text-muted-foreground">
+                  Name
+                </span>
+                <input
+                  defaultValue="Satishkumar"
+                  className="h-8 flex-1 rounded-[8px] bg-secondary px-3 font-sans text-xs text-foreground transition-colors outline-none focus:bg-muted"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="w-16 text-right font-sans text-xs text-muted-foreground">
+                  Username
+                </span>
+                <input
+                  defaultValue="@iamsatish4564"
+                  className="h-8 flex-1 rounded-[8px] bg-secondary px-3 font-sans text-xs text-foreground transition-colors outline-none focus:bg-muted"
+                />
+              </div>
+            </div>
+
+            {/* Pure Monochrome Satisium Actions — Zero Orange */}
+            <DialogFooter className="flex-row items-center justify-end gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => emitAction("close")}
-                className="absolute top-4 right-4 flex size-7 cursor-pointer items-center justify-center rounded-[8px] bg-secondary text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted active:scale-95"
               >
-                <HugeiconsIcon icon={Cancel01Icon} className="size-3.5" />
-                <span className="sr-only">Close</span>
+                Cancel
               </button>
-
-              {/* Dialog Header */}
-              <DialogHeader className="gap-1.5">
-                <DialogTitle className="font-heading text-sm font-semibold tracking-tight text-foreground">
-                  Edit Profile
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
-                  Make changes to your profile parameters here.
-                </DialogDescription>
-              </DialogHeader>
-
-              {/* Recessed Borderless Squircle Input Troughs */}
-              <div className="flex flex-col gap-2.5 py-4">
-                <div className="flex items-center gap-3">
-                  <span className="w-16 text-right font-sans text-xs text-muted-foreground">
-                    Name
-                  </span>
-                  <input
-                    defaultValue="Satishkumar"
-                    className="h-8 flex-1 rounded-[8px] bg-secondary px-3 font-sans text-xs text-foreground transition-colors outline-none focus:bg-muted"
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="w-16 text-right font-sans text-xs text-muted-foreground">
-                    Username
-                  </span>
-                  <input
-                    defaultValue="@iamsatish4564"
-                    className="h-8 flex-1 rounded-[8px] bg-secondary px-3 font-sans text-xs text-foreground transition-colors outline-none focus:bg-muted"
-                  />
-                </div>
-              </div>
-
-              {/* Pure Monochrome Satisium Actions — Zero Orange */}
-              <DialogFooter className="flex-row items-center justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => emitAction("close")}
-                  className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted active:scale-95"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => emitAction("close")}
-                  className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[8px] bg-foreground px-3.5 font-heading text-xs font-medium text-background transition-opacity hover:opacity-90 active:scale-95"
-                >
-                  Save changes
-                </button>
-              </DialogFooter>
-            </div>
+              <button
+                type="button"
+                onClick={() => emitAction("close")}
+                className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[8px] bg-foreground px-3.5 font-heading text-xs font-medium text-background transition-opacity hover:opacity-90 active:scale-95"
+              >
+                Save changes
+              </button>
+            </DialogFooter>
           </div>
-        </Dialog>
-      )}
+        </div>
+      </Dialog>
     </main>
   )
 }
