@@ -82,25 +82,27 @@ export default function StagePage() {
       stageState.scenarioChannelSlots?.[scenarioKey]?.[slotId] || {}
 
     for (const ch of channels) {
-      // If user is tuning this channel specifically in studio, prioritize live curve
+      // 1. If user is tuning this specific channel in studio, prioritize live curve
       if (stageState.activeCurve && stageState.activeChannelId === ch.id) {
         curves[ch.id] = stageState.activeCurve
         continue
       }
 
-      // Check channel-specific assignment in store
+      // 2. If master channel ("all") is selected, prioritize the live active curve across all channels
+      if (stageState.activeCurve && stageState.activeChannelId === "all") {
+        curves[ch.id] = stageState.activeCurve
+        continue
+      }
+
+      // 3. Check channel-specific assignment in store
       const assignedId = assignedChannels[ch.id]
       if (assignedId) {
         curves[ch.id] = resolveEase(assignedId, INITIAL_CUSTOM_CURVES)
         continue
       }
 
-      // If active curve is set on slot level (e.g. "all"), fallback
-      if (stageState.activeCurve && stageState.activeChannelId === "all") {
-        curves[ch.id] = stageState.activeCurve
-      } else {
-        curves[ch.id] = resolveEase(ch.defaultCurveId, INITIAL_CUSTOM_CURVES)
-      }
+      // 4. Clean fallback to channel's default curve
+      curves[ch.id] = resolveEase(ch.defaultCurveId, INITIAL_CUSTOM_CURVES)
     }
     return curves
   }, [

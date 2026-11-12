@@ -289,6 +289,29 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
               currentSlotId,
               currentScenario
             )
+          } else if (activeChan === "all") {
+            // Master channel selection: synchronize all channel slots for this phase
+            const prevScenario =
+              get().scenarioChannelSlots[currentScenario] || {}
+            const prevSlot = prevScenario[currentSlotId] || {}
+            const nextSlotChannels: Record<string, string> = {}
+            for (const chId of Object.keys(prevSlot)) {
+              nextSlotChannels[chId] = dossier.id
+            }
+            const discovered =
+              get().discoveredChannels[currentScenario]?.[currentSlotId] || []
+            for (const ch of discovered) {
+              nextSlotChannels[ch.id] = dossier.id
+            }
+            set((s) => ({
+              scenarioChannelSlots: {
+                ...s.scenarioChannelSlots,
+                [currentScenario]: {
+                  ...prevScenario,
+                  [currentSlotId]: nextSlotChannels,
+                },
+              },
+            }))
           }
 
           const nextSlots: ScenarioSlotsRecord = {
@@ -304,7 +327,8 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
               ? ({ level: 1, curveId: dossier.id } as StackLevel)
               : state.navStack
 
-            const shouldAudition = opt?.audition !== false
+            // Passive selection: only trigger playback if explicitly requested via opt.audition === true
+            const shouldAudition = opt?.audition === true
             const targetPhase: "enter" | "exit" =
               currentSlotId === "exit" ? "exit" : "enter"
 
@@ -399,27 +423,19 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
           if (targetId) {
             const dossier = resolveEase(targetId, get().customCurves)
             syncSessionCookie({ curve: dossier.id, engine: dossier.engine })
-            set((state) => ({
+            set({
               activeSlot: projectedLegacySlot,
               activeSlotId,
               activeCurveId: dossier.id,
               activeEngine: dossier.engine,
               scenarioPhase: projectedLegacySlot,
-              scenarioOpen: true,
-              isPlaying: true,
-              scrubProgress: 0,
-              animKey: state.animKey + 1,
-            }))
+            })
           } else {
-            set((state) => ({
+            set({
               activeSlot: projectedLegacySlot,
               activeSlotId,
               scenarioPhase: projectedLegacySlot,
-              scenarioOpen: true,
-              isPlaying: true,
-              scrubProgress: 0,
-              animKey: state.animKey + 1,
-            }))
+            })
           }
         },
 
@@ -447,18 +463,14 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
           const projectedLegacySlot: "enter" | "exit" =
             slot === "exit" ? "exit" : "enter"
 
-          set((state) => ({
+          set({
             scenarioSlots: nextSlots,
             activeCurveId: dossier.id,
             activeEngine: dossier.engine,
             activeSlot: projectedLegacySlot,
             activeSlotId: slot,
             scenarioPhase: projectedLegacySlot,
-            scenarioOpen: true,
-            isPlaying: true,
-            scrubProgress: 0,
-            animKey: state.animKey + 1,
-          }))
+          })
         },
 
         setActiveChannelId: (channelId) => {
@@ -499,15 +511,11 @@ export const createStudioStore = (options?: CreateStudioStoreOptions) => {
           const dossier = resolveEase(curveId, get().customCurves)
           syncSessionCookie({ curve: dossier.id, engine: dossier.engine })
 
-          set((state) => ({
+          set({
             scenarioChannelSlots: nextChannelSlots,
             activeCurveId: dossier.id,
             activeEngine: dossier.engine,
-            isPlaying: true,
-            scrubProgress: 0,
-            animKey: state.animKey + 1,
-            scenarioOpen: true,
-          }))
+          })
         },
 
         toggleMuteChannel: (channelId) => {

@@ -527,5 +527,30 @@ describe("Studio Zustand Store", () => {
         "sniffed-backdrop"
       )
     })
+
+    it("ensures passive selection without triggering unwanted auto-playback", () => {
+      const store = createStudioStore()
+      expect(store.getState().isPlaying).toBe(false)
+      expect(store.getState().scenarioOpen).toBe(false)
+
+      // 1. Passive curve selection should not trigger playback
+      store.getState().selectEase("ios-fluid")
+      expect(store.getState().activeCurveId).toBe("ios-fluid")
+      expect(store.getState().isPlaying).toBe(false)
+      expect(store.getState().scenarioOpen).toBe(false)
+
+      // 2. Switching slots (enter -> exit) should not trigger playback
+      store.getState().setActiveSlotId("exit")
+      expect(store.getState().activeSlotId).toBe("exit")
+      expect(store.getState().isPlaying).toBe(false)
+      expect(store.getState().scenarioOpen).toBe(false)
+
+      // 3. Assigning curve to channel should not trigger playback
+      store
+        .getState()
+        .assignCurveToChannel("expo-in", "backdrop", "exit", "dialog")
+      expect(store.getState().isPlaying).toBe(false)
+      expect(store.getState().scenarioOpen).toBe(false)
+    })
   })
 })

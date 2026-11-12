@@ -141,10 +141,10 @@ export function AuditionToolbar() {
   }
 
   return (
-    <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5 rounded-[14px] bg-background p-1 select-none">
+    <div className="absolute bottom-3 left-3 z-30 flex max-w-[calc(100vw-24px)] scrollbar-none items-center gap-1.5 overflow-x-auto rounded-[14px] bg-background p-1 select-none">
       {/* Viewport switcher: Desktop / Tablet / Mobile */}
       <LayoutGroup id="audition-viewport">
-        <div className="relative flex items-center rounded-[10px] bg-muted p-0.5">
+        <div className="relative flex shrink-0 items-center rounded-[10px] bg-muted p-0.5">
           {[
             {
               mode: "desktop" as const,
@@ -170,7 +170,7 @@ export function AuditionToolbar() {
                     type="button"
                     onClick={() => handleViewportChange(item.mode)}
                     className={cn(
-                      "relative z-10 flex size-8 cursor-pointer items-center justify-center rounded-[8px] transition-colors",
+                      "relative z-10 flex size-8 cursor-pointer items-center justify-center rounded-[8px] transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring",
                       isActive
                         ? "text-foreground"
                         : "text-muted-foreground hover:text-foreground"
@@ -201,17 +201,21 @@ export function AuditionToolbar() {
         </div>
       </LayoutGroup>
 
-      <div className="h-4 w-px bg-border" />
+      <div className="h-4 w-px shrink-0 bg-border" />
 
       {/* Single Archetype Component Badge */}
-      <div className="flex h-7 items-center rounded-[8px] bg-muted px-2.5 font-heading text-xs font-medium text-foreground select-none">
+      <div className="flex h-7 shrink-0 items-center rounded-[8px] bg-muted px-2.5 font-heading text-xs font-medium text-foreground select-none">
         Dialog
       </div>
 
-      {/* Kinetic Slot Badges (Dynamic Multi-Target Choreography) */}
+      {/* Kinetic Slot Badges (Semantic Phase Switcher: Entrance vs Exit) */}
       {slotsWithCurves.length > 1 ? (
         <LayoutGroup id="audition-slots">
-          <div className="relative flex items-center rounded-[10px] bg-muted p-0.5">
+          <div
+            role="tablist"
+            aria-label="Kinetic phase selection"
+            className="relative flex shrink-0 items-center rounded-[10px] bg-muted p-0.5"
+          >
             {slotsWithCurves.map((slot) => {
               const isSlotActive = activeSlotId === slot.id
               const Icon = getSlotIcon(slot.iconType)
@@ -220,9 +224,11 @@ export function AuditionToolbar() {
                   <TooltipTrigger asChild>
                     <button
                       type="button"
+                      role="tab"
+                      aria-selected={isSlotActive}
                       onClick={() => setActiveSlotId(slot.id)}
                       className={cn(
-                        "relative z-10 flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] px-2.5 font-sans text-[11px] tracking-tight transition-colors",
+                        "relative z-10 flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] px-2.5 font-sans text-[11px] tracking-tight transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring",
                         isSlotActive
                           ? "font-medium text-foreground"
                           : "text-muted-foreground hover:text-foreground"
@@ -249,14 +255,16 @@ export function AuditionToolbar() {
                               : "text-muted-foreground"
                           )}
                         />
-                        <span className="truncate">{slot.curve.name}</span>
+                        <span className="truncate">{slot.label}</span>
                       </span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="text-xs">
                     <span>
-                      {slot.label} ·{" "}
-                      <span className="font-medium">{slot.curve.name}</span>
+                      {slot.label} Phase · Active Curve:{" "}
+                      <span className="font-medium text-foreground">
+                        {slot.curve.name}
+                      </span>
                     </span>
                   </TooltipContent>
                 </Tooltip>
@@ -265,7 +273,11 @@ export function AuditionToolbar() {
           </div>
         </LayoutGroup>
       ) : slotsWithCurves.length === 1 ? (
-        <div className="flex items-center rounded-[10px] bg-muted p-0.5">
+        <div
+          role="tablist"
+          aria-label="Kinetic phase selection"
+          className="flex shrink-0 items-center rounded-[10px] bg-muted p-0.5"
+        >
           {slotsWithCurves.map((slot) => {
             const Icon = getSlotIcon(slot.iconType)
             return (
@@ -273,20 +285,24 @@ export function AuditionToolbar() {
                 <TooltipTrigger asChild>
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={true}
                     onClick={() => setActiveSlotId(slot.id)}
-                    className="flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] bg-background px-2.5 font-sans text-[11px] font-medium tracking-tight text-foreground shadow-xs transition-colors"
+                    className="flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] bg-background px-2.5 font-sans text-[11px] font-medium tracking-tight text-foreground shadow-xs transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   >
                     <HugeiconsIcon
                       icon={Icon}
                       className="size-3 text-foreground"
                     />
-                    <span className="truncate">{slot.curve.name}</span>
+                    <span className="truncate">{slot.label}</span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
                   <span>
-                    {slot.label}:{" "}
-                    <span className="font-medium">{slot.curve.name}</span>
+                    {slot.label} Phase · Active Curve:{" "}
+                    <span className="font-medium text-foreground">
+                      {slot.curve.name}
+                    </span>
                   </span>
                 </TooltipContent>
               </Tooltip>
@@ -298,17 +314,23 @@ export function AuditionToolbar() {
       {/* Kinetic Channel Strip (Multi-Target Property Tuning) */}
       {channelsWithCurves.length > 0 && (
         <>
-          <div className="h-4 w-px bg-border" />
+          <div className="h-4 w-px shrink-0 bg-border" />
           <LayoutGroup id="audition-channels">
-            <div className="relative flex items-center rounded-[10px] bg-muted p-0.5">
+            <div
+              role="tablist"
+              aria-label="Kinetic channel selection"
+              className="relative flex shrink-0 items-center rounded-[10px] bg-muted p-0.5"
+            >
               {/* All (Master) Chip */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={activeChannelId === "all"}
                     onClick={() => setActiveChannelId("all")}
                     className={cn(
-                      "relative z-10 flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] px-2.5 font-sans text-[11px] tracking-tight transition-colors",
+                      "relative z-10 flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] px-2.5 font-sans text-[11px] tracking-tight transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring",
                       activeChannelId === "all"
                         ? "font-medium text-foreground"
                         : "text-muted-foreground hover:text-foreground"
@@ -329,7 +351,9 @@ export function AuditionToolbar() {
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
-                  <span>Master Channel (All Properties)</span>
+                  <span>
+                    Master Channel ({activeSlotDef?.label} · All Properties)
+                  </span>
                 </TooltipContent>
               </Tooltip>
 
@@ -341,9 +365,11 @@ export function AuditionToolbar() {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
+                        role="tab"
+                        aria-selected={isChannelActive}
                         onClick={() => setActiveChannelId(ch.id)}
                         className={cn(
-                          "relative z-10 flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] px-2 font-sans text-[11px] tracking-tight transition-colors",
+                          "relative z-10 flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] px-2 font-sans text-[11px] tracking-tight transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring",
                           isChannelActive
                             ? "font-medium text-foreground"
                             : "text-muted-foreground hover:text-foreground"
@@ -371,7 +397,10 @@ export function AuditionToolbar() {
                     <TooltipContent side="top" className="text-xs">
                       <span>
                         {ch.label} ({ch.property}) ·{" "}
-                        <span className="font-medium">{ch.curve.name}</span>
+                        <span className="font-medium text-foreground">
+                          {ch.curve.name}
+                        </span>
+                        {ch.role ? ` · ${ch.role}` : ""}
                         {ch.delayMs ? ` · ${ch.delayMs}ms delay` : ""}
                       </span>
                     </TooltipContent>
@@ -383,7 +412,7 @@ export function AuditionToolbar() {
         </>
       )}
 
-      <div className="h-4 w-px bg-border" />
+      <div className="h-4 w-px shrink-0 bg-border" />
 
       {/* Replay Animation Action */}
       <Tooltip>
@@ -391,7 +420,7 @@ export function AuditionToolbar() {
           <button
             type="button"
             onClick={triggerAudition}
-            className="flex size-8 cursor-pointer items-center justify-center rounded-[10px] bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[10px] bg-background text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
           >
             <HugeiconsIcon icon={Refresh03Icon} className="size-4" />
           </button>
@@ -411,7 +440,7 @@ export function AuditionToolbar() {
             type="button"
             onClick={toggleTimeline}
             className={cn(
-              "flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
+              "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[10px] transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring",
               isTimelineOpen
                 ? "bg-foreground text-background"
                 : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -438,7 +467,7 @@ export function AuditionToolbar() {
           <button
             type="button"
             onClick={() => setMode("customize")}
-            className="flex size-8 cursor-pointer items-center justify-center rounded-[10px] bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[10px] bg-background text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
           >
             <HugeiconsIcon icon={ArrowUpRight01Icon} className="size-4" />
           </button>
@@ -458,7 +487,7 @@ export function AuditionToolbar() {
             type="button"
             onClick={() => toggleCompare(activeCurveId)}
             className={cn(
-              "relative flex size-8 cursor-pointer items-center justify-center rounded-[10px] transition-colors",
+              "relative flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[10px] transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring",
               isCurrentCurveQueued
                 ? "bg-foreground text-background"
                 : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
