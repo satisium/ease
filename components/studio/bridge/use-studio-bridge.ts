@@ -7,8 +7,10 @@ import {
   ScrubUpdatePayload,
   SetScenarioPayload,
   SetSlotCurvePayload,
+  SetChannelCurvePayload,
   BubbleKeyboardPayload,
   StageActionPayload,
+  SnifferDetectedChannelsPayload,
   postToIframe,
   postToHost,
 } from "./studio-bridge"
@@ -16,6 +18,7 @@ import {
   ArchetypeKey,
   EaseDossier,
   ScenarioSlotsRecord,
+  ScenarioChannelRecord,
 } from "@/components/studio/domain/studio-types"
 
 export interface UseHostBridgeOptions {
@@ -23,6 +26,7 @@ export interface UseHostBridgeOptions {
   getInitPayload: () => HostInitPayload
   onKeyboardEvent?: (event: BubbleKeyboardPayload) => void
   onStageAction?: (action: StageActionPayload) => void
+  onDiscoveredChannels?: (payload: SnifferDetectedChannelsPayload) => void
 }
 
 export function useHostBridge({
@@ -30,6 +34,7 @@ export function useHostBridge({
   getInitPayload,
   onKeyboardEvent,
   onStageAction,
+  onDiscoveredChannels,
 }: UseHostBridgeOptions) {
   const [isStageReady, setIsStageReady] = React.useState(false)
 
@@ -53,12 +58,22 @@ export function useHostBridge({
           onStageAction?.(data.payload as StageActionPayload)
           break
         }
+        case "SNIFFER_DETECTED_CHANNELS": {
+          onDiscoveredChannels?.(data.payload as SnifferDetectedChannelsPayload)
+          break
+        }
       }
     }
 
     window.addEventListener("message", handleMessage)
     return () => window.removeEventListener("message", handleMessage)
-  }, [iframeRef, getInitPayload, onKeyboardEvent, onStageAction])
+  }, [
+    iframeRef,
+    getInitPayload,
+    onKeyboardEvent,
+    onStageAction,
+    onDiscoveredChannels,
+  ])
 
   // Broadcast high-frequency scrub updates
   const sendScrubUpdate = React.useCallback(
@@ -84,6 +99,14 @@ export function useHostBridge({
     [iframeRef]
   )
 
+  // Broadcast channel curve assignment
+  const sendSetChannelCurve = React.useCallback(
+    (payload: SetChannelCurvePayload) => {
+      postToIframe(iframeRef.current, "SET_CHANNEL_CURVE", payload)
+    },
+    [iframeRef]
+  )
+
   // Broadcast theme updates
   const sendSyncTheme = React.useCallback(
     (theme: "dark" | "light") => {
@@ -97,6 +120,7 @@ export function useHostBridge({
     sendScrubUpdate,
     sendSetScenario,
     sendSetSlotCurve,
+    sendSetChannelCurve,
     sendSyncTheme,
   }
 }
@@ -108,6 +132,9 @@ export interface StageBridgeState {
   activeSlotId: string
   activeCurve: EaseDossier | null
   scenarioSlots: ScenarioSlotsRecord
+  scenarioChannelSlots: ScenarioChannelRecord
+  activeChannelId: string | "all"
+  mutedChannels: Record<string, boolean>
   scrubProgress: number
   isPlaying: boolean
   isScrubbing: boolean
@@ -125,6 +152,9 @@ export function useStageBridge() {
     activeSlotId: "enter",
     activeCurve: null,
     scenarioSlots: { modal: {} },
+    scenarioChannelSlots: { dialog: {}, modal: {} },
+    activeChannelId: "all",
+    mutedChannels: {},
     scrubProgress: 0,
     isPlaying: false,
     isScrubbing: false,
@@ -154,6 +184,12 @@ export function useStageBridge() {
             activeSlotId: p.activeSlotId,
             activeCurve: p.activeCurve,
             scenarioSlots: p.scenarioSlots,
+            scenarioChannelSlots: p.scenarioChannelSlots ?? {
+              dialog: {},
+              modal: {},
+            },
+            activeChannelId: p.activeChannelId ?? "all",
+            mutedChannels: p.mutedChannels ?? {},
             scrubProgress: p.scrubProgress,
             isPlaying: p.isPlaying,
             isScrubbing: p.isScrubbing,
@@ -184,6 +220,9 @@ export function useStageBridge() {
             ...(p.scenarioOpen !== undefined
               ? { scenarioOpen: p.scenarioOpen }
               : {}),
+            ...(p.activeChannelId !== undefined
+              ? { activeChannelId: p.activeChannelId }
+              : {}),
           }))
           break
         }
@@ -208,6 +247,29 @@ export function useStageBridge() {
                 [p.scenarioKey]: {
                   ...scenarioMap,
                   [p.slotId]: p.curve.id,
+                },
+              },
+              activeCurve: p.curve,
+            }
+          })
+          break
+        }
+        case "SET_CHANNEL_CURVE": {
+          const p = data.payload as SetChannelCurvePayload
+          setStageState((prev) => {
+            const scenarioChannels =
+              prev.scenarioChannelSlots[p.scenarioKey] || {}
+            const slotChannels = scenarioChannels[p.slotId] || {}
+            return {
+              ...prev,
+              scenarioChannelSlots: {
+                ...prev.scenarioChannelSlots,
+                [p.scenarioKey]: {
+                  ...scenarioChannels,
+                  [p.slotId]: {
+                    ...slotChannels,
+                    [p.channelId]: p.curve.id,
+                  },
                 },
               },
               activeCurve: p.curve,

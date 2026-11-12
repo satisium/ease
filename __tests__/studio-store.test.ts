@@ -475,5 +475,82 @@ describe("Studio Zustand Store", () => {
       expect(store.getState().scenarioOpen).toBe(true)
       expect(store.getState().scenarioPhase).toBe("enter")
     })
+
+    it("manages multi-channel kinetic slots (channel selection, assignment, mute)", () => {
+      const store = createStudioStore()
+      expect(store.getState().activeChannelId).toBe("all")
+
+      // 1. Assign custom curve to specific channel
+      store
+        .getState()
+        .assignCurveToChannel(
+          "material-decelerate",
+          "backdrop",
+          "enter",
+          "dialog"
+        )
+      expect(store.getState().scenarioChannelSlots.dialog.enter.backdrop).toBe(
+        "material-decelerate"
+      )
+
+      // 2. Switch active channel and verify active curve synchronization
+      store.getState().setActiveChannelId("backdrop")
+      expect(store.getState().activeChannelId).toBe("backdrop")
+      expect(store.getState().activeCurveId).toBe("material-decelerate")
+
+      // 3. Switch back to all
+      store.getState().setActiveChannelId("all")
+      expect(store.getState().activeChannelId).toBe("all")
+
+      // 4. Toggle channel mute
+      expect(store.getState().mutedChannels.backdrop).toBeFalsy()
+      store.getState().toggleMuteChannel("backdrop")
+      expect(store.getState().mutedChannels.backdrop).toBe(true)
+      store.getState().toggleMuteChannel("backdrop")
+      expect(store.getState().mutedChannels.backdrop).toBe(false)
+
+      // 5. Set discovered channels from Sniffer Engine
+      store.getState().setDiscoveredChannels("dialog", "enter", [
+        {
+          id: "sniffed-backdrop",
+          label: "Backdrop",
+          property: "opacity",
+          kind: "scalar",
+          unit: "",
+          from: 0,
+          to: 1,
+          role: "Atmospheric Scrim",
+          defaultCurveId: "material-decelerate",
+        },
+      ])
+      expect(store.getState().discoveredChannels.dialog.enter[0].id).toBe(
+        "sniffed-backdrop"
+      )
+    })
+
+    it("ensures passive selection without triggering unwanted auto-playback", () => {
+      const store = createStudioStore()
+      expect(store.getState().isPlaying).toBe(false)
+      expect(store.getState().scenarioOpen).toBe(false)
+
+      // 1. Passive curve selection should not trigger playback
+      store.getState().selectEase("ios-fluid")
+      expect(store.getState().activeCurveId).toBe("ios-fluid")
+      expect(store.getState().isPlaying).toBe(false)
+      expect(store.getState().scenarioOpen).toBe(false)
+
+      // 2. Switching slots (enter -> exit) should not trigger playback
+      store.getState().setActiveSlotId("exit")
+      expect(store.getState().activeSlotId).toBe("exit")
+      expect(store.getState().isPlaying).toBe(false)
+      expect(store.getState().scenarioOpen).toBe(false)
+
+      // 3. Assigning curve to channel should not trigger playback
+      store
+        .getState()
+        .assignCurveToChannel("expo-in", "backdrop", "exit", "dialog")
+      expect(store.getState().isPlaying).toBe(false)
+      expect(store.getState().scenarioOpen).toBe(false)
+    })
   })
 })

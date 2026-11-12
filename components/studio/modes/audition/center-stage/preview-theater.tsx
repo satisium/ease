@@ -23,6 +23,9 @@ export function PreviewTheater() {
   const activeScenarioKey = useStudioStore((s) => s.activeScenarioKey)
   const activeSlotId = useStudioStore((s) => s.activeSlotId)
   const scenarioSlots = useStudioStore((s) => s.scenarioSlots)
+  const scenarioChannelSlots = useStudioStore((s) => s.scenarioChannelSlots)
+  const activeChannelId = useStudioStore((s) => s.activeChannelId)
+  const mutedChannels = useStudioStore((s) => s.mutedChannels)
   const scrubProgress = useStudioStore((s) => s.scrubProgress)
   const isPlaying = useStudioStore((s) => s.isPlaying)
   const isScrubbing = useStudioStore((s) => s.isScrubbing)
@@ -34,6 +37,7 @@ export function PreviewTheater() {
   const openScenario = useStudioStore((s) => s.openScenario)
   const closeScenario = useStudioStore((s) => s.closeScenario)
   const toggleTimeline = useStudioStore((s) => s.toggleTimeline)
+  const setDiscoveredChannels = useStudioStore((s) => s.setDiscoveredChannels)
 
   const activeDossier = useActiveDossier()
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
@@ -41,49 +45,64 @@ export function PreviewTheater() {
   const [isDragging, setIsDragging] = React.useState(false)
 
   // 1. Setup the Universal Studio Bridge with the isolated /stage iframe
-  const { isStageReady, sendScrubUpdate, sendSetScenario, sendSetSlotCurve } =
-    useHostBridge({
-      iframeRef,
-      getInitPayload: () => ({
-        theme:
-          typeof document !== "undefined" &&
-          document.documentElement.classList.contains("dark")
-            ? "dark"
-            : "light",
-        scenarioKey: activeScenarioKey,
-        activeSlotId,
-        activeCurve: activeDossier,
-        scenarioSlots,
-        scrubProgress,
-        isPlaying,
-        isScrubbing,
-        isReducedMotion,
-        scenarioOpen,
-        scenarioPhase,
-        animKey,
-      }),
-      onKeyboardEvent: (e) => {
-        // Hotkey forwarding from inside the iframe to the parent studio
-        if (e.key === " ") {
-          togglePlayback()
-        } else if (e.key === "r" || e.key === "R") {
-          triggerAudition()
-        } else if (e.key === "Escape") {
-          if (scenarioOpen) closeScenario()
-        } else if (e.key === "t" || e.key === "T") {
-          toggleTimeline()
-        }
-      },
-      onStageAction: (act) => {
-        if (act.action === "close") {
-          closeScenario()
-        } else if (act.action === "open") {
-          openScenario()
-        } else if (act.action === "audition") {
-          triggerAudition()
-        }
-      },
-    })
+  const {
+    isStageReady,
+    sendScrubUpdate,
+    sendSetScenario,
+    sendSetSlotCurve,
+    sendSetChannelCurve,
+  } = useHostBridge({
+    iframeRef,
+    getInitPayload: () => ({
+      theme:
+        typeof document !== "undefined" &&
+        document.documentElement.classList.contains("dark")
+          ? "dark"
+          : "light",
+      scenarioKey: activeScenarioKey,
+      activeSlotId,
+      activeCurve: activeDossier,
+      scenarioSlots,
+      scenarioChannelSlots,
+      activeChannelId,
+      mutedChannels,
+      scrubProgress,
+      isPlaying,
+      isScrubbing,
+      isReducedMotion,
+      scenarioOpen,
+      scenarioPhase,
+      animKey,
+    }),
+    onKeyboardEvent: (e) => {
+      // Hotkey forwarding from inside the iframe to the parent studio
+      if (e.key === " ") {
+        togglePlayback()
+      } else if (e.key === "r" || e.key === "R") {
+        triggerAudition()
+      } else if (e.key === "Escape") {
+        if (scenarioOpen) closeScenario()
+      } else if (e.key === "t" || e.key === "T") {
+        toggleTimeline()
+      }
+    },
+    onStageAction: (act) => {
+      if (act.action === "close") {
+        closeScenario()
+      } else if (act.action === "open") {
+        openScenario()
+      } else if (act.action === "audition") {
+        triggerAudition()
+      }
+    },
+    onDiscoveredChannels: (payload) => {
+      setDiscoveredChannels(
+        payload.scenarioKey,
+        payload.slotId,
+        payload.channels
+      )
+    },
+  })
 
   // 2. High-speed 60fps kinetic telemetry broadcast
   React.useEffect(() => {
@@ -137,6 +156,24 @@ export function PreviewTheater() {
     activeSlotId,
     activeDossier,
     sendSetSlotCurve,
+  ])
+
+  // 5. Kinetic channel curve reassignments
+  React.useEffect(() => {
+    if (!isStageReady || activeChannelId === "all") return
+    sendSetChannelCurve({
+      scenarioKey: activeScenarioKey,
+      slotId: activeSlotId,
+      channelId: activeChannelId,
+      curve: activeDossier,
+    })
+  }, [
+    isStageReady,
+    activeScenarioKey,
+    activeSlotId,
+    activeChannelId,
+    activeDossier,
+    sendSetChannelCurve,
   ])
 
   // 5. Drag-to-resize viewport interaction

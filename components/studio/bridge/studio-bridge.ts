@@ -4,6 +4,8 @@ import {
   ArchetypeKey,
   EaseDossier,
   ScenarioSlotsRecord,
+  ScenarioChannelRecord,
+  KineticChannelDef,
 } from "@/components/studio/domain/studio-types"
 
 export const EASE_BRIDGE_VERSION = "1.0.0" as const
@@ -14,10 +16,12 @@ export type EaseBridgeMessageType =
   | "SYNC_THEME"
   | "SET_SCENARIO"
   | "SET_SLOT_CURVE"
+  | "SET_CHANNEL_CURVE"
   | "SCRUB_UPDATE"
   | "TOGGLE_SCENARIO"
   | "BUBBLE_KEYBOARD"
   | "STAGE_ACTION"
+  | "SNIFFER_DETECTED_CHANNELS"
 
 export interface EaseBridgeEnvelope<T = unknown> {
   source: "EASE_HOST" | "EASE_STAGE"
@@ -34,6 +38,9 @@ export interface HostInitPayload {
   activeSlotId: string
   activeCurve: EaseDossier
   scenarioSlots: ScenarioSlotsRecord
+  scenarioChannelSlots?: ScenarioChannelRecord
+  activeChannelId?: string | "all"
+  mutedChannels?: Record<string, boolean>
   scrubProgress: number
   isPlaying: boolean
   isScrubbing: boolean
@@ -50,6 +57,8 @@ export interface ScrubUpdatePayload {
   isPlaying?: boolean
   isScrubbing?: boolean
   scenarioOpen?: boolean
+  channelCurves?: Record<string, EaseDossier>
+  activeChannelId?: string | "all"
 }
 
 export interface SetScenarioPayload {
@@ -61,6 +70,13 @@ export interface SetScenarioPayload {
 export interface SetSlotCurvePayload {
   scenarioKey: string
   slotId: string
+  curve: EaseDossier
+}
+
+export interface SetChannelCurvePayload {
+  scenarioKey: string
+  slotId: string
+  channelId: string
   curve: EaseDossier
 }
 
@@ -79,6 +95,12 @@ export interface BubbleKeyboardPayload {
 export interface StageActionPayload {
   action: "open" | "close" | "toggle" | "audition" | "paginate"
   data?: unknown
+}
+
+export interface SnifferDetectedChannelsPayload {
+  scenarioKey: string
+  slotId: string
+  channels: KineticChannelDef[]
 }
 
 // Message Creators
