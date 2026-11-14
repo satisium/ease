@@ -20,6 +20,7 @@ import {
   MotionEngine,
   SpringDurationMode,
   StudioMode,
+  TrackFrameResult,
   TransitionTrackPlugin,
   ViewportPreset,
 } from "../schema"
@@ -28,13 +29,17 @@ import {
   DEFAULT_FALLBACK_CURVE,
   getCanonicalPresetById,
 } from "../presets/index"
-import { trackRegistry } from "../registry/tracks"
+import { getPairedTrackId, trackRegistry } from "../registry/tracks"
 import {
   compileChannelExport,
   compileTrackExport,
   ExporterId,
 } from "../registry/exporters"
-import { TrackConductor } from "../clock/track-conductor"
+import {
+  PlaybackSpeed,
+  PlaybackState,
+  TrackConductor,
+} from "../clock/track-conductor"
 import {
   cloneCurve,
   commitDraft as commitDraftReducer,
@@ -78,6 +83,7 @@ import { parseCurveString } from "../math/parser"
 import {
   ChannelInterruptSnapshot,
   evaluateChannelAtTime,
+  evaluateCompareTileFrame,
   getChannelEffectiveDurationMs,
   getTrackTotalDurationMs,
 } from "../math/evaluator"
@@ -96,6 +102,7 @@ export interface EaseStoreState {
   // 1. Workspace Slice
   mode: StudioMode
   customizePreviewMode: "component" | "primitives"
+  stashedComponentTrackId: string | null
   viewport: ViewportPreset
   navStack: NavStackState
   isExportOpen: boolean
@@ -103,6 +110,13 @@ export interface EaseStoreState {
   preferredExporter: ExporterId
   isReducedMotion: boolean
   searchQuery: string
+
+  // Low-frequency conductor mirror (Zero 120fps re-render guarantee)
+  playbackState: PlaybackState
+  isPlaying: boolean
+  isLooping: boolean
+  loopDelayMs: number
+  speed: PlaybackSpeed
 
   setMode: (mode: StudioMode) => void
   enterCustomize: () => void
@@ -119,6 +133,14 @@ export interface EaseStoreState {
   setPreferredExporter: (exporter: ExporterId) => void
   setReducedMotion: (reduced: boolean) => void
   setSearchQuery: (query: string) => void
+
+  playScoped: () => void
+  pauseScoped: () => void
+  togglePlayback: () => void
+  seekScoped: (elapsedMs: number) => void
+  setLooping: (loop: boolean) => void
+  setLoopDelayMs: (ms: number) => void
+  setSpeed: (speed: PlaybackSpeed) => void
 
   // 2. Track & Channel Slice
   focusedTrackId: string
@@ -164,6 +186,15 @@ export interface EaseStoreState {
   }
   forkActiveDraftToRoot: (name?: string) => EaseCurve | null
   forkActiveDraftAsVariant: (rootId: string, name?: string) => EaseCurve | null
+  forkPresetToCustom: (
+    presetId: string,
+    customName?: string
+  ) => EaseCurve | null
+  addVariantToRoot: (
+    rootId: string,
+    sourceCurve?: EaseCurve,
+    variantName?: string
+  ) => EaseCurve | null
   promoteVariant: (
     rootId: string,
     variantId: string,
@@ -188,11 +219,16 @@ export interface EaseStoreState {
     override: { trackId?: string; channelId?: string } | null
   ) => void
   applyCompareWinner: (itemId: string) => void
+  evaluateCompareItemFrame: (
+    itemId: string,
+    elapsedMs?: number
+  ) => TrackFrameResult | null
 
   // 5. Export, Persistence & URL Hash
   getActiveExportCode: (
     exporterId?: ExporterId,
-    scope?: "channel" | "track"
+    scope?: "channel" | "track",
+    curveOverride?: EaseCurve
   ) => string
   getShareUrlHash: () => string
   applyUrlHash: (hashOrUrl: string) => boolean
@@ -204,23 +240,6 @@ export type EaseStore = StoreApi<EaseStoreState> & {
 }
 
 const DEFAULT_STORAGE_KEY = "ease_v2_store"
-
-function getPairedTrackId(trackId: string): string | null {
-  const [component, phase] = trackId.split(":")
-  if (!component || !phase) return null
-  const opposites: Record<string, string> = {
-    open: "close",
-    close: "open",
-    enter: "exit",
-    exit: "enter",
-    press: "release",
-    release: "press",
-  }
-  const opposite = opposites[phase]
-  if (!opposite) return null
-  const candidate = `${component}:${opposite}`
-  return trackRegistry.has(candidate) ? candidate : null
-}
 
 export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
   const conductor = options?.conductor ?? new TrackConductor()
@@ -239,6 +258,9 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
         initialCustomCurves = persisted.customCurves
         initialExporter = persisted.preferredExporter
         initialTrackId = persisted.activeTrackId
+        if (persisted.loopDelayMs !== undefined) {
+          conductor.setLoopDelayMs(persisted.loopDelayMs)
+        }
       }
     } catch {
       // safe fallback
@@ -307,6 +329,7 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       // 1. Workspace Slice
       mode: "preview",
       customizePreviewMode: "component",
+      stashedComponentTrackId: null,
       viewport: "desktop",
       navStack: { level: 0 },
       isExportOpen: false,
@@ -314,6 +337,15 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       preferredExporter: initialExporter,
       isReducedMotion: false,
       searchQuery: "",
+
+      // Low-frequency conductor mirror (Zero 120fps re-render guarantee)
+      playbackState: conductor.getSnapshot().playbackState,
+      isPlaying:
+        conductor.getSnapshot().playbackState === "playing" ||
+        conductor.getSnapshot().playbackState === "resting",
+      isLooping: conductor.getSnapshot().isLooping,
+      loopDelayMs: conductor.getSnapshot().loopDelayMs,
+      speed: conductor.getSnapshot().speed,
 
       setMode: (mode) => {
         set({ mode })
@@ -342,7 +374,35 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
         set({ mode: "preview" })
         syncDuration()
       },
-      setCustomizePreviewMode: (mode) => set({ customizePreviewMode: mode }),
+      setCustomizePreviewMode: (mode) => {
+        const state = get()
+        if (mode === "primitives") {
+          const stashed =
+            state.focusedTrackId !== "primitives:all"
+              ? state.focusedTrackId
+              : state.stashedComponentTrackId
+          set({
+            customizePreviewMode: "primitives",
+            stashedComponentTrackId: stashed,
+            focusedTrackId: "primitives:all",
+            focusedChannelId: "all",
+            isSolo: false,
+          })
+          conductor.setSoloActive(false)
+          conductor.focusTrack("primitives:all", computeDuration())
+        } else {
+          const targetTrackId = state.stashedComponentTrackId ?? "dialog:open"
+          set({
+            customizePreviewMode: "component",
+            stashedComponentTrackId: null,
+            focusedTrackId: targetTrackId,
+            focusedChannelId: "all",
+            isSolo: false,
+          })
+          conductor.setSoloActive(false)
+          conductor.focusTrack(targetTrackId, computeDuration())
+        }
+      },
       setViewport: (viewport) => set({ viewport }),
       setNavStack: (navStack) => set({ navStack }),
       drillIntoCurve: (curveId) => set({ navStack: { level: 1, curveId } }),
@@ -358,6 +418,17 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
         syncDuration()
       },
       setSearchQuery: (searchQuery) => set({ searchQuery }),
+
+      playScoped: () => conductor.playScoped(computeDuration()),
+      pauseScoped: () => conductor.pause(),
+      togglePlayback: () => conductor.togglePlay(computeDuration()),
+      seekScoped: (elapsedMs) => conductor.seek(elapsedMs),
+      setLooping: (isLooping) => conductor.setLooping(isLooping),
+      setLoopDelayMs: (ms) => {
+        conductor.setLoopDelayMs(ms)
+        get().persist()
+      },
+      setSpeed: (speed) => conductor.setSpeed(speed),
 
       // 2. Track & Channel Slice
       focusedTrackId: initialTrackId,
@@ -527,6 +598,73 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       interruptActive: () => {
         const state = get()
         const elapsed = conductor.getSnapshot().elapsedMs
+
+        if (state.mode === "compare") {
+          const visible = state.compareQueue.filter((i) => i.visible)
+          const pairedTrackId = getPairedTrackId(
+            state.globalCompareTarget.trackId
+          )
+          const isInversePair =
+            pairedTrackId !== null &&
+            pairedTrackId !== state.globalCompareTarget.trackId
+          const nextTrackId = pairedTrackId ?? state.globalCompareTarget.trackId
+
+          const snapshots: Record<string, ChannelInterruptSnapshot> = {}
+
+          for (const item of visible) {
+            const trackId =
+              item.overrideTrackId ?? state.globalCompareTarget.trackId
+            const track = trackRegistry.get(trackId) ?? trackRegistry.list()[0]
+            const channels = state.trackBindings[track.id] ?? track.channels
+            const targetCh =
+              item.overrideChannelId ?? state.globalCompareTarget.channelId
+
+            for (const ch of channels) {
+              const effectiveCurve =
+                targetCh === "all" || targetCh === ch.id ? item.curve : ch.curve
+              const evalCh = { ...ch, curve: effectiveCurve }
+              const prevSnap =
+                conductor.getSnapshot().interruptions[`${item.id}:${ch.id}`] ??
+                conductor.getSnapshot().interruptions[ch.id]
+
+              const evalRes = evaluateChannelAtTime(evalCh, elapsed, {
+                isReducedMotion: state.isReducedMotion,
+                interruption: prevSnap,
+              })
+
+              const scopedKey = `${item.id}:${ch.id}`
+              if (isInversePair) {
+                snapshots[scopedKey] = {
+                  x0: 1 - evalRes.progress,
+                  v0: -evalRes.velocityPerSec,
+                }
+              } else {
+                snapshots[scopedKey] = {
+                  x0: evalRes.progress,
+                  v0: evalRes.velocityPerSec,
+                }
+              }
+            }
+          }
+
+          if (isInversePair) {
+            set({
+              globalCompareTarget: {
+                ...state.globalCompareTarget,
+                trackId: nextTrackId,
+              },
+            })
+          }
+
+          const nextDuration = computeDuration()
+          conductor.interrupt({
+            nextTrackId,
+            nextDurationMs: nextDuration,
+            snapshots,
+          })
+          return
+        }
+
         const channels = state.trackBindings[state.focusedTrackId] ?? []
         const snapshots: Record<string, ChannelInterruptSnapshot> = {}
 
@@ -665,6 +803,35 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
           set({ customCurves: result.customCurves, draftCurve: nextDraft })
           get().persist()
         }
+        return result.created
+      },
+      forkPresetToCustom: (presetId, customName) => {
+        const source =
+          getCanonicalPresetById(presetId) ??
+          findCurveInCustomTree(get().customCurves, presetId)?.node
+        if (!source) return null
+        const result = forkPresetToRootReducer(
+          get().customCurves,
+          source,
+          customName
+        )
+        set({ customCurves: result.customCurves })
+        get().persist()
+        return result.created
+      },
+      addVariantToRoot: (rootId, sourceCurve, variantName) => {
+        const root = get().customCurves.find((c) => c.id === rootId)
+        if (!root) return null
+        const base = sourceCurve ?? root
+        const result = forkAsVariantReducer(
+          get().customCurves,
+          rootId,
+          base,
+          variantName
+        )
+        if (!result.created) return null
+        set({ customCurves: result.customCurves })
+        get().persist()
         return result.created
       },
       promoteVariant: (rootId, variantId, newName) => {
@@ -823,17 +990,68 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
         set({ mode: "preview" })
         syncDuration()
       },
+      evaluateCompareItemFrame: (itemId, elapsedMs) => {
+        const state = get()
+        const item = state.compareQueue.find((i) => i.id === itemId)
+        if (!item) return null
+
+        const effectiveElapsed =
+          elapsedMs !== undefined
+            ? elapsedMs
+            : conductor.getSnapshot().elapsedMs
+        const trackId =
+          item.overrideTrackId ?? state.globalCompareTarget.trackId
+        const track = trackRegistry.get(trackId) ?? trackRegistry.list()[0]
+        const channels = state.trackBindings[track.id] ?? track.channels
+        const targetChannelId =
+          item.overrideChannelId ?? state.globalCompareTarget.channelId
+
+        const conductorSnap = conductor.getSnapshot()
+        const itemInterrupts: Record<string, ChannelInterruptSnapshot> = {}
+        for (const ch of channels) {
+          const snap =
+            conductorSnap.interruptions[`${item.id}:${ch.id}`] ??
+            conductorSnap.interruptions[ch.id]
+          if (snap) {
+            itemInterrupts[ch.id] = snap
+          }
+        }
+
+        return evaluateCompareTileFrame({
+          itemCurve: item.curve,
+          track: { phase: track.phase, channels },
+          targetChannelId,
+          elapsedMs: effectiveElapsed,
+          soloChannelId: null,
+          isReducedMotion: state.isReducedMotion,
+          interruptions: itemInterrupts,
+        })
+      },
 
       // 5. Export, Persistence & URL Hash
-      getActiveExportCode: (exporterId, scope) => {
+      getActiveExportCode: (exporterId, scope, curveOverride) => {
         const state = get()
         const expId = exporterId ?? state.preferredExporter
         const sc = scope ?? state.exportScope
         if (sc === "channel") {
           const ch = state.getFocusedChannel()
-          return ch ? compileChannelExport(expId, ch) : ""
+          if (!ch) return ""
+          const finalCh = curveOverride ? { ...ch, curve: curveOverride } : ch
+          return compileChannelExport(expId, finalCh)
         }
-        return compileTrackExport(expId, state.getFocusedTrack())
+        const track = state.getFocusedTrack()
+        const finalTrack = curveOverride
+          ? {
+              ...track,
+              channels: track.channels.map((c) =>
+                state.focusedChannelId === "all" ||
+                state.focusedChannelId === c.id
+                  ? { ...c, curve: curveOverride }
+                  : c
+              ),
+            }
+          : track
+        return compileTrackExport(expId, finalTrack)
       },
       getShareUrlHash: () => {
         const state = get()
@@ -910,7 +1128,7 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
                 ? "scale"
                 : state.focusedChannelId,
             preferredExporter: state.preferredExporter,
-            loopDelayMs: 400,
+            loopDelayMs: state.loopDelayMs,
           })
           options.storage.setItem(storageKey, payload)
         } catch {
@@ -922,6 +1140,35 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
 
   const fullStore = store as EaseStore
   fullStore.conductor = conductor
+
+  // Mirror low-frequency conductor state changes into Zustand store (zero 120fps re-render overhead)
+  let prevPlaybackState = conductor.getSnapshot().playbackState
+  let prevIsLooping = conductor.getSnapshot().isLooping
+  let prevLoopDelayMs = conductor.getSnapshot().loopDelayMs
+  let prevSpeed = conductor.getSnapshot().speed
+
+  conductor.subscribe((snap) => {
+    if (
+      snap.playbackState !== prevPlaybackState ||
+      snap.isLooping !== prevIsLooping ||
+      snap.loopDelayMs !== prevLoopDelayMs ||
+      snap.speed !== prevSpeed
+    ) {
+      prevPlaybackState = snap.playbackState
+      prevIsLooping = snap.isLooping
+      prevLoopDelayMs = snap.loopDelayMs
+      prevSpeed = snap.speed
+
+      store.setState({
+        playbackState: snap.playbackState,
+        isPlaying:
+          snap.playbackState === "playing" || snap.playbackState === "resting",
+        isLooping: snap.isLooping,
+        loopDelayMs: snap.loopDelayMs,
+        speed: snap.speed,
+      })
+    }
+  })
 
   // Apply initial hash if supplied
   if (options?.initialHash) {

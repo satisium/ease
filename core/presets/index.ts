@@ -47,3 +47,37 @@ export function getCanonicalPresetById(id: string): EaseCurve | undefined {
  */
 export const DEFAULT_FALLBACK_CURVE: EaseCurve =
   getCanonicalPresetById("expo-out") ?? CANONICAL_BEZIER_PRESETS[0]
+
+/**
+ * Curated list of popular and frequently audited Bézier & Spring preset IDs.
+ * Used for the Left Flank's [ All | Popular ] catalog filter toggle.
+ */
+export const POPULAR_PRESET_IDS: readonly string[] = [
+  "expo-out",
+  "ease-out-quart",
+  "material-decelerate",
+  "material-emphasized",
+  "material-standard",
+  "power4-out",
+  "power2-out",
+  "ease-out",
+  "snappy-spring",
+  "ios-fluid",
+  "button",
+  "toast",
+  "drawer",
+  "gentle",
+  "stiff",
+] as const
+
+const POPULAR_SET = new Set<string>(POPULAR_PRESET_IDS)
+
+/**
+ * Checks whether a preset ID is marked as popular.
+ *
+ * @param id - Preset unique identifier.
+ * @returns True if the preset is in the curated popular catalog.
+ */
+export function isPopularPreset(id: string): boolean {
+  return POPULAR_SET.has(id)
+}
