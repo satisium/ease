@@ -260,3 +260,41 @@ export function sampleBezierCurve(
 
   return result
 }
+
+/**
+ * Nudges a single control handle of a cubic Bézier curve by (dx, dy).
+ *
+ * Invariants:
+ * - handle.x is strictly clamped to [0, 1] per CSS/SVG specification.
+ * - handle.y remains unconstrained to support overshoot and anticipation.
+ * - Coordinates are rounded cleanly to 3 decimal places to prevent floating-point drift.
+ * - Immutably returns a fresh BezierParams object.
+ *
+ * @param bezier - Original Bézier parameters.
+ * @param handle - Control handle to nudge ("p1" | "p2").
+ * @param dx - Delta to apply to the X coordinate.
+ * @param dy - Delta to apply to the Y coordinate.
+ * @returns New immutable BezierParams.
+ */
+export function nudgeBezierHandle(
+  bezier: BezierParams,
+  handle: "p1" | "p2",
+  dx: number,
+  dy: number
+): BezierParams {
+  const current = bezier[handle]
+  const rawX = Math.min(1, Math.max(0, current.x + dx))
+  const rawY = current.y + dy
+
+  const round3 = (v: number) => Math.round(v * 1000) / 1000
+
+  const nudged = {
+    x: round3(rawX),
+    y: round3(rawY),
+  }
+
+  return {
+    p1: handle === "p1" ? nudged : { ...bezier.p1 },
+    p2: handle === "p2" ? nudged : { ...bezier.p2 },
+  }
+}

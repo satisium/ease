@@ -15,9 +15,12 @@
 
 import {
   ChannelBinding,
+  EaseCurve,
   TrackFrameResult,
   TransitionTrackPlugin,
 } from "../schema"
+
+export type { TrackFrameResult }
 import { solveBezierAtTime } from "./bezier"
 import {
   computeSpringSettleTimeMs,
@@ -337,4 +340,57 @@ export function evaluateTrackFrame(
     isComplete,
     elapsedMs,
   }
+}
+
+/** Options provided to evaluate an individual Compare contender tile frame. */
+export interface EvaluateCompareTileOptions {
+  itemCurve: EaseCurve
+  track: Pick<TransitionTrackPlugin, "phase" | "channels">
+  targetChannelId: string | "all"
+  elapsedMs: number
+  soloChannelId?: string | null
+  isReducedMotion?: boolean
+  interruptions?: Record<string, ChannelInterruptSnapshot>
+}
+
+/**
+ * Evaluates an entire choreographed track frame for a Compare Mode contender tile,
+ * substituting the contender's custom/preset curve onto the targeted channel(s).
+ *
+ * @param options - Contender tile curve, track, channel targeting, elapsed time, and interruptions.
+ * @returns TrackFrameResult with computed property values.
+ */
+export function evaluateCompareTileFrame(
+  options: EvaluateCompareTileOptions
+): TrackFrameResult {
+  const {
+    itemCurve,
+    track,
+    targetChannelId,
+    elapsedMs,
+    soloChannelId,
+    isReducedMotion,
+    interruptions,
+  } = options
+
+  const substitutedChannels = track.channels.map((channel) => {
+    if (targetChannelId === "all" || channel.id === targetChannelId) {
+      return {
+        ...channel,
+        curve: itemCurve,
+      }
+    }
+    return channel
+  })
+
+  return evaluateTrackFrame({
+    track: {
+      phase: track.phase,
+      channels: substitutedChannels,
+    },
+    elapsedMs,
+    soloChannelId,
+    isReducedMotion,
+    interruptions,
+  })
 }

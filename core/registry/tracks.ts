@@ -712,3 +712,68 @@ export function getTracksForComponent(
     .list()
     .filter((track) => track.componentId === componentId)
 }
+
+/** Grouped UI component identity with all associated transition tracks. */
+export interface ComponentTrackGroup {
+  componentId: string
+  componentLabel: string
+  tracks: TransitionTrackPlugin[]
+}
+
+/**
+ * Lists all distinct interactive UI components registered in the track registry,
+ * grouped with their associated phase tracks in registration order (excluding "primitives").
+ *
+ * @returns Array of ComponentTrackGroup objects for UI component pickers.
+ */
+export function listComponents(): ComponentTrackGroup[] {
+  const groups: ComponentTrackGroup[] = []
+  const groupMap = new Map<string, ComponentTrackGroup>()
+
+  for (const track of trackRegistry.list()) {
+    if (track.componentId === "primitives") continue
+
+    let existing = groupMap.get(track.componentId)
+    if (!existing) {
+      existing = {
+        componentId: track.componentId,
+        componentLabel: track.componentLabel,
+        tracks: [],
+      }
+      groupMap.set(track.componentId, existing)
+      groups.push(existing)
+    }
+    existing.tracks.push(track)
+  }
+
+  return groups
+}
+
+/**
+ * Resolves the deterministic inverse paired track ID for an interactive phase transition
+ * (e.g. "dialog:open" <-> "dialog:close", "drawer:open" <-> "drawer:close", "dropdown:open" <-> "dropdown:close").
+ *
+ * Returns null if the track has no registered opposite or is a single-phase trigger (e.g. "button:press", "toast:fire").
+ *
+ * @param trackId - Active track identifier (e.g. "dialog:open").
+ * @returns The inverse paired track ID or null if none exists.
+ */
+export function getPairedTrackId(trackId: string): string | null {
+  const [component, phase] = trackId.split(":")
+  if (!component || !phase) return null
+
+  const opposites: Record<string, string> = {
+    open: "close",
+    close: "open",
+    enter: "exit",
+    exit: "enter",
+    press: "release",
+    release: "press",
+  }
+
+  const opposite = opposites[phase]
+  if (!opposite) return null
+
+  const candidate = `${component}:${opposite}`
+  return trackRegistry.has(candidate) ? candidate : null
+}

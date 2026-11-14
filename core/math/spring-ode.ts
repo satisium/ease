@@ -350,3 +350,72 @@ export function sampleSpringCurve(
 
   return result
 }
+
+/**
+ * Converts Apple / Motion perceptual spring parameters (durationMs, bounce)
+ * to exact physical second-order differential equation parameters (mass, stiffness, damping).
+ *
+ * Physics Model:
+ * - Undamped natural frequency: ω_n = 2π / (durationMs / 1000)
+ * - Damping ratio: ζ = 1 - bounce
+ * - Stiffness: k = mass * ω_n²
+ * - Damping: c = 2 * ζ * √(k * mass)
+ *
+ * Clamps:
+ * - mass >= 1e-4
+ * - durationMs >= 20
+ * - bounce in [-0.5, 0.85] (yielding ζ in [0.15, 1.5])
+ *
+ * @param durationMs - Undamped period in milliseconds (>= 20ms).
+ * @param bounce - Perceptual bounciness factor [-0.5, 0.85].
+ * @param mass - System mass (default = 1).
+ * @returns Physical SpringParams ready for solveSpringAtTime.
+ */
+export function bounceAndDurationToSpring(
+  durationMs: number,
+  bounce: number,
+  mass = 1
+): SpringParams {
+  const safeMass = Math.max(1e-4, mass)
+  const safeDurationMs = Math.max(20, durationMs)
+  const safeBounce = Math.max(-0.5, Math.min(0.85, bounce))
+
+  const zeta = 1 - safeBounce
+  const periodSec = safeDurationMs / 1000
+  const omegaN = (2 * Math.PI) / periodSec
+
+  const rawK = safeMass * omegaN * omegaN
+  const rawC = 2 * zeta * Math.sqrt(rawK * safeMass)
+
+  return {
+    mass: safeMass,
+    stiffness: Math.round(rawK * 1000) / 1000,
+    damping: Math.round(rawC * 1000) / 1000,
+    velocity: 0,
+  }
+}
+
+/**
+ * Converts physical second-order spring parameters (mass, stiffness, damping)
+ * into perceptual durationMs and bounce parameters.
+ *
+ * Invariants:
+ * - durationMs = round((2π / ω_n) * 1000)
+ * - bounce = round((1 - ζ) * 1000) / 1000
+ *
+ * @param spring - Physical spring parameters.
+ * @returns Perceptual durationMs and bounce.
+ */
+export function springToBounceAndDuration(spring: SpringParams): {
+  durationMs: number
+  bounce: number
+} {
+  const { omegaN, zeta } = computeSpringConstants(spring)
+  const durationMs = Math.round(((2 * Math.PI) / omegaN) * 1000)
+  const bounce = Math.round((1 - zeta) * 1000) / 1000
+
+  return {
+    durationMs,
+    bounce,
+  }
+}
