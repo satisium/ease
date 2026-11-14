@@ -2,6 +2,12 @@
 
 > Release notes for ease.
 
+## 0.6.0
+
+### Minor Changes
+
+- 607019d: Add Phase A thin React adapter hooks (useEaseStore, useTransitionTrack, useClockRef) for 120fps imperative DOM binding and SSR-safe store hydration
+
 ## 0.5.0
 
 ### Minor Changes
