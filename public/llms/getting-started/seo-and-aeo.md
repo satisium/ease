@@ -23,6 +23,7 @@ Every route automatically generates a 1200×630px social preview card for Twitte
 Use the typed `buildMetadata()` helper from `lib/metadata.ts` on any new route:
 
 ```tsx
+
 export const metadata = buildMetadata({
   title: "Tool Canvas",
   description: "High-performance vector tool canvas.",
