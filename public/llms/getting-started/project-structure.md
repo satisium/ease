@@ -5,7 +5,7 @@
 The template is organized into clear architectural layers adhering to strict placement conventions:
 
 <FileTree
-files={{
+  files={{
     "app/layout.tsx": "Root shell, fonts, and metadata",
     "app/page.tsx": "Landing page and marketing hero",
     "app/docs/[[...slug]]/page.tsx": "Fumadocs documentation engine",

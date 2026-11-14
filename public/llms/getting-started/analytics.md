@@ -9,6 +9,7 @@ Satisium Starter features a unified telemetry architecture that routes events to
 Import `trackEvent` from `lib/analytics.ts`:
 
 ```tsx
+
 export function ExportButton() {
   const handleExport = () => {
     trackEvent("export_artifact", {
