@@ -2,6 +2,12 @@
 
 > Release notes for ease.
 
+## 0.4.0
+
+### Minor Changes
+
+- 17fbf48: Implement complete framework-agnostic headless core foundation with analytical solvers, 120fps track conductor, and pure vanilla Zustand store
+
 ## 0.3.0
 
 ### Minor Changes
