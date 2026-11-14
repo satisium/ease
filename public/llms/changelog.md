@@ -2,6 +2,12 @@
 
 > Release notes for ease.
 
+## 0.5.0
+
+### Minor Changes
+
+- 163b2b4: UI-readiness core polish: perceptual spring conversions, handle nudging, popular presets, component track groupings, compare frame evaluation, zero-re-render conductor mirroring, and direct curve forking.
+
 ## 0.4.0
 
 ### Minor Changes
