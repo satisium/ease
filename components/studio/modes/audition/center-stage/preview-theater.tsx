@@ -185,7 +185,7 @@ export function PreviewTheater() {
           </div>
 
           {/* Centered Floating Kinetic Dock */}
-          <div className="absolute bottom-3 left-1/2 z-30 max-w-[calc(100%-112px)] -translate-x-1/2">
+          <div className="absolute bottom-3 left-1/2 z-50 max-w-[calc(100%-112px)] -translate-x-1/2">
             <AuditionToolbar />
           </div>
 

@@ -9,6 +9,7 @@ export interface UsePairedHabitatOptions {
   enterTrackId: string
   exitTrackId: string
   onFrame?: (result: TrackFrameResult) => void
+  compareItemId?: string
 }
 
 /**
@@ -16,46 +17,131 @@ export interface UsePairedHabitatOptions {
  * cleanly to useTransitionTrack and useEaseStore.
  *
  * Invariant Guarantees:
- * - Deterministic phase routing: resolves activeTrackId based on focusedTrackId.
+ * - Deterministic phase routing: resolves activeTrackId based on focusedTrackId or compareItemId.
  * - Zero React virtual DOM re-renders on 120fps ticks: uses imperative bindRef.
  * - Complete unmount safety: uses `shouldForceMount` so exiting elements remain
  *   mounted and animated until playback completes.
  * - Solo & single-channel scrub retention: component remains mounted and visible
  *   when scrubbing a single channel or soloing.
  * - External synchronization: subscribes to store playback triggers (e.g. Spacebar,
- *   audition toolbar phase switches).
+ *   audition toolbar phase switches, Compare Mode global target changes).
  */
 export function usePairedHabitat({
   enterTrackId,
   exitTrackId,
   onFrame,
+  compareItemId,
 }: UsePairedHabitatOptions) {
   const store = useEaseStoreApi()
   const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
   const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
   const isSolo = useEaseStore((s) => s.isSolo)
+  const playbackState = useEaseStore((s) => s.playbackState)
+  const compareQueue = useEaseStore((s) => s.compareQueue)
+  const globalCompareTarget = useEaseStore((s) => s.globalCompareTarget)
 
-  const activeTrackId =
-    focusedTrackId === exitTrackId ? exitTrackId : enterTrackId
+  const activeTrackId = React.useMemo(() => {
+    if (compareItemId) {
+      const item = compareQueue.find((i) => i.id === compareItemId)
+      const target = item?.overrideTrackId ?? globalCompareTarget.trackId
+      return target === exitTrackId ? exitTrackId : enterTrackId
+    }
+    return focusedTrackId === exitTrackId ? exitTrackId : enterTrackId
+  }, [
+    compareItemId,
+    compareQueue,
+    globalCompareTarget.trackId,
+    focusedTrackId,
+    enterTrackId,
+    exitTrackId,
+  ])
 
-  const isFocused =
-    focusedTrackId === enterTrackId || focusedTrackId === exitTrackId
+  const isFocused = React.useMemo(() => {
+    if (compareItemId) {
+      const item = compareQueue.find((i) => i.id === compareItemId)
+      const target = item?.overrideTrackId ?? globalCompareTarget.trackId
+      return target === enterTrackId || target === exitTrackId
+    }
+    return focusedTrackId === enterTrackId || focusedTrackId === exitTrackId
+  }, [
+    compareItemId,
+    compareQueue,
+    globalCompareTarget.trackId,
+    focusedTrackId,
+    enterTrackId,
+    exitTrackId,
+  ])
 
   const { bindRef, shouldForceMount: baseForceMount } = useTransitionTrack(
     activeTrackId,
-    { onFrame }
+    { compareItemId, onFrame }
   )
 
   // Solo & single-channel scrub retention: keep mounted whenever solo is active or
   // inspecting/scrubbing a single channel on this component family
   const isSoloOrSingleScrub = isSolo || focusedChannelId !== "all"
-  const shouldForceMount = baseForceMount || (isFocused && isSoloOrSingleScrub)
+  const shouldForceMount = compareItemId
+    ? playbackState !== "idle"
+    : baseForceMount || (isFocused && isSoloOrSingleScrub)
 
-  const [isOpen, setIsOpen] = React.useState(false)
+  const [isOpen, setIsOpen] = React.useState(() => {
+    if (compareItemId) {
+      const state = store.getState()
+      const item = state.compareQueue.find((i) => i.id === compareItemId)
+      const target = item?.overrideTrackId ?? state.globalCompareTarget.trackId
+      return target === exitTrackId
+    }
+    return false
+  })
 
-  // Sync external/keyboard Spacebar, Toolbar triggers & scrub-to-end persistence
+  // Sync external/keyboard Spacebar, Toolbar triggers, scrub-to-end persistence & Compare Mode
   React.useEffect(() => {
     const unsubStore = store.subscribe((curr, prev) => {
+      if (compareItemId) {
+        const item = curr.compareQueue.find((i) => i.id === compareItemId)
+        const targetTrackId =
+          item?.overrideTrackId ?? curr.globalCompareTarget.trackId
+        const prevItem = prev.compareQueue.find((i) => i.id === compareItemId)
+        const prevTargetTrackId =
+          prevItem?.overrideTrackId ?? prev.globalCompareTarget.trackId
+
+        // Target switched from enter to exit
+        if (
+          targetTrackId === exitTrackId &&
+          prevTargetTrackId === enterTrackId
+        ) {
+          setIsOpen(true)
+        } else if (
+          targetTrackId === enterTrackId &&
+          prevTargetTrackId === exitTrackId &&
+          curr.playbackState === "idle"
+        ) {
+          setIsOpen(false)
+        }
+
+        // Playback started
+        if (
+          curr.playbackState === "playing" &&
+          prev.playbackState !== "playing"
+        ) {
+          if (targetTrackId === enterTrackId) {
+            setIsOpen(true)
+          } else if (targetTrackId === exitTrackId) {
+            setIsOpen(true)
+          }
+        }
+
+        // Playback completed
+        if (curr.playbackState === "idle" && prev.playbackState === "playing") {
+          if (targetTrackId === exitTrackId) {
+            setIsOpen(false)
+          } else if (targetTrackId === enterTrackId) {
+            setIsOpen(true)
+          }
+        }
+        return
+      }
+
       const isSoloOrSingleCurr =
         curr.isSolo ||
         (curr.playbackState === "scrubbing" && curr.focusedChannelId !== "all")
@@ -79,6 +165,29 @@ export function usePairedHabitat({
 
     const unsubConductor = store.conductor.subscribe((snap) => {
       const state = store.getState()
+      if (compareItemId) {
+        const item = state.compareQueue.find((i) => i.id === compareItemId)
+        const targetTrackId =
+          item?.overrideTrackId ?? state.globalCompareTarget.trackId
+
+        if (snap.playbackState === "scrubbing") {
+          if (snap.progress >= 0.99) {
+            if (targetTrackId === enterTrackId) {
+              setIsOpen(true)
+            } else if (targetTrackId === exitTrackId) {
+              setIsOpen(false)
+            }
+          } else if (snap.progress <= 0.01) {
+            if (targetTrackId === enterTrackId) {
+              setIsOpen(false)
+            } else if (targetTrackId === exitTrackId) {
+              setIsOpen(true)
+            }
+          }
+        }
+        return
+      }
+
       const isSoloOrSingleState =
         state.isSolo ||
         (state.playbackState === "scrubbing" &&
@@ -104,17 +213,43 @@ export function usePairedHabitat({
       unsubStore()
       unsubConductor()
     }
-  }, [store, enterTrackId, exitTrackId])
+  }, [store, enterTrackId, exitTrackId, compareItemId])
 
   const open = React.useCallback(() => {
     setIsOpen(true)
-    store.getState().triggerLive(enterTrackId)
-  }, [store, enterTrackId])
+    if (compareItemId) {
+      const state = store.getState()
+      const item = state.compareQueue.find((i) => i.id === compareItemId)
+      if (item?.overrideTrackId) {
+        store.getState().setCompareTileOverride(compareItemId, {
+          trackId: enterTrackId,
+        })
+      } else if (state.globalCompareTarget.trackId !== enterTrackId) {
+        store.getState().setGlobalCompareTarget({ trackId: enterTrackId })
+      }
+      store.getState().playScoped()
+    } else {
+      store.getState().triggerLive(enterTrackId)
+    }
+  }, [store, enterTrackId, compareItemId])
 
   const close = React.useCallback(() => {
-    setIsOpen(false)
-    store.getState().triggerLive(exitTrackId)
-  }, [store, exitTrackId])
+    if (compareItemId) {
+      const state = store.getState()
+      const item = state.compareQueue.find((i) => i.id === compareItemId)
+      if (item?.overrideTrackId) {
+        store.getState().setCompareTileOverride(compareItemId, {
+          trackId: exitTrackId,
+        })
+      } else if (state.globalCompareTarget.trackId !== exitTrackId) {
+        store.getState().setGlobalCompareTarget({ trackId: exitTrackId })
+      }
+      store.getState().playScoped()
+    } else {
+      setIsOpen(false)
+      store.getState().triggerLive(exitTrackId)
+    }
+  }, [store, exitTrackId, compareItemId])
 
   return {
     bindRef,

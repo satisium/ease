@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { useEaseStore } from "@/hooks/use-ease-store"
 
 export function CompareQueueSlab({ className }: { className?: string }) {
+  const mode = useEaseStore((s) => s.mode)
   const compareQueue = useEaseStore((s) => s.compareQueue)
   const activeCurve = useEaseStore((s) => s.getActiveCurve())
   const stageActiveCurveToCompare = useEaseStore(
@@ -22,6 +23,9 @@ export function CompareQueueSlab({ className }: { className?: string }) {
     (s) => s.toggleCompareItemVisibility
   )
   const enterCompare = useEaseStore((s) => s.enterCompare)
+  const exitCompare = useEaseStore((s) => s.exitCompare)
+
+  const visibleCount = compareQueue.filter((item) => item.visible).length
 
   const isCurrentCurveQueued = compareQueue.some(
     (item) => item.curve.id === activeCurve?.id
@@ -107,15 +111,20 @@ export function CompareQueueSlab({ className }: { className?: string }) {
         className
       )}
     >
-      {/* Header: Title + Staged Counter + Clear all */}
+      {/* Header: Title + Staged Counter + Active Counter (Compare Mode) + Clear all */}
       <div className="flex shrink-0 items-center justify-between pb-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <span className="font-heading text-xs font-semibold text-foreground">
             Compare Queue
           </span>
           <span className="rounded-[5px] bg-secondary px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground">
             {compareQueue.length} Staged
           </span>
+          {mode === "compare" && (
+            <span className="rounded-[5px] bg-foreground px-1.5 py-0.5 font-sans text-[10px] font-medium text-background">
+              {visibleCount} Active
+            </span>
+          )}
         </div>
 
         {compareQueue.length > 0 && (
@@ -178,7 +187,10 @@ export function CompareQueueSlab({ className }: { className?: string }) {
                         ? `Hide ${item.curve.name} in duel`
                         : `Show ${item.curve.name} in duel`
                     }
-                    className="flex size-4 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground active:scale-95"
+                    className={cn(
+                      "flex size-4 cursor-pointer items-center justify-center transition-colors hover:text-foreground active:scale-95",
+                      item.visible ? "text-foreground" : "text-muted-foreground"
+                    )}
                   >
                     <HugeiconsIcon
                       icon={item.visible ? ViewIcon : ViewOffSlashIcon}
@@ -202,7 +214,7 @@ export function CompareQueueSlab({ className }: { className?: string }) {
         )}
       </div>
 
-      {/* Action Row: Queue Current + Duel Button */}
+      {/* Action Row: Queue Current + Duel/Exit Duel Button */}
       <div className="mt-auto flex shrink-0 items-center gap-2 pt-2">
         <button
           type="button"
@@ -219,21 +231,32 @@ export function CompareQueueSlab({ className }: { className?: string }) {
           </span>
         </button>
 
-        <button
-          type="button"
-          disabled={compareQueue.length < 2}
-          onClick={enterCompare}
-          aria-label="Enter compare duel mode"
-          className={cn(
-            "inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] px-3.5 font-heading text-xs font-medium transition-colors active:scale-95",
-            compareQueue.length >= 2
-              ? "bg-foreground text-background hover:opacity-90"
-              : "cursor-not-allowed bg-muted text-muted-foreground"
-          )}
-        >
-          <span>Duel</span>
-          <HugeiconsIcon icon={ArrowRight01Icon} className="size-3" />
-        </button>
+        {mode === "compare" ? (
+          <button
+            type="button"
+            onClick={exitCompare}
+            aria-label="Exit compare duel mode"
+            className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted active:scale-95"
+          >
+            <span>Exit Duel</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={compareQueue.length < 2}
+            onClick={enterCompare}
+            aria-label="Enter compare duel mode"
+            className={cn(
+              "inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] px-3.5 font-heading text-xs font-medium transition-colors active:scale-95",
+              compareQueue.length >= 2
+                ? "bg-foreground text-background hover:opacity-90"
+                : "cursor-not-allowed bg-muted text-muted-foreground"
+            )}
+          >
+            <span>Duel</span>
+            <HugeiconsIcon icon={ArrowRight01Icon} className="size-3" />
+          </button>
+        )}
       </div>
     </section>
   )

@@ -156,4 +156,68 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
     })
     expect(customizeBtn).toBeInTheDocument()
   })
+
+  it("switches across all 7 interactive UI components and closes the menu after each selection", () => {
+    render(
+      <TestWrapper>
+        <AuditionToolbar />
+        <StoreProbe />
+      </TestWrapper>
+    )
+
+    const expectedComponents = [
+      { label: "Drawer Sheet", trackId: "drawer:open" },
+      { label: "Filter Dropdown", trackId: "dropdown:open" },
+      { label: "Tactile Button", trackId: "button:press" },
+      { label: "Status Toast", trackId: "toast:fire" },
+      { label: "Segmented Tabs", trackId: "tabs:switch" },
+      { label: "Inertial Carousel", trackId: "carousel:slide" },
+      { label: "Modal Dialog", trackId: "dialog:open" },
+    ]
+
+    for (const { label, trackId } of expectedComponents) {
+      // 1. Open component menu
+      const pickerTrigger = screen.getByRole("button", {
+        name: /Select interactive component/i,
+      })
+      fireEvent.click(pickerTrigger)
+
+      // 2. Select component option
+      const option = screen.getByRole("button", { name: label })
+      expect(option).toBeInTheDocument()
+      fireEvent.click(option)
+
+      // 3. Verify store focused track updated
+      expect(screen.getByTestId("probe-track").textContent).toBe(trackId)
+
+      // 4. Verify menu is closed
+      expect(screen.queryByText("Components")).toBeNull()
+    }
+  })
+
+  it("closes the Component menu on Escape key and on outside click", () => {
+    render(
+      <TestWrapper>
+        <div data-testid="outside-area">Outside</div>
+        <AuditionToolbar />
+        <StoreProbe />
+      </TestWrapper>
+    )
+
+    const pickerTrigger = screen.getByRole("button", {
+      name: /Select interactive component/i,
+    })
+
+    // Test Escape key dismissal
+    fireEvent.click(pickerTrigger)
+    expect(screen.getByText("Components")).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: "Escape" })
+    expect(screen.queryByText("Components")).toBeNull()
+
+    // Test outside click dismissal
+    fireEvent.click(pickerTrigger)
+    expect(screen.getByText("Components")).toBeInTheDocument()
+    fireEvent.pointerDown(screen.getByTestId("outside-area"))
+    expect(screen.queryByText("Components")).toBeNull()
+  })
 })

@@ -12,7 +12,11 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import type { TrackFrameResult } from "@/core"
 import { usePairedHabitat } from "@/hooks/use-paired-habitat"
 
-export function DropdownHabitat() {
+export interface DropdownHabitatProps {
+  compareItemId?: string
+}
+
+export function DropdownHabitat({ compareItemId }: DropdownHabitatProps = {}) {
   const overlayRef = React.useRef<HTMLDivElement>(null)
 
   // Pointer-Events Guard: Prevent invisible popover from blocking clicks on the trigger
@@ -30,6 +34,7 @@ export function DropdownHabitat() {
     enterTrackId: "dropdown:open",
     exitTrackId: "dropdown:close",
     onFrame: handleFrame,
+    compareItemId,
   })
 
   // Keyboard ergonomics: Escape dismisses dropdown

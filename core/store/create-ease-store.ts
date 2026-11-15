@@ -227,6 +227,7 @@ export interface EaseStoreState {
   ) => TrackFrameResult | null
 
   // 5. Export, Persistence & URL Hash
+  hydrateFromStorage: (rawJson?: string | null) => void
   getActiveExportCode: (
     exporterId?: ExporterId,
     scope?: "channel" | "track",
@@ -241,80 +242,66 @@ export type EaseStore = StoreApi<EaseStoreState> & {
   conductor: TrackConductor
 }
 
-const DEFAULT_STORAGE_KEY = "ease_v2_store"
+const DEFAULT_STORAGE_KEY = "satisium-ease-v3"
 
 export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
   const conductor = options?.conductor ?? new TrackConductor()
   const storageKey = options?.storageKey ?? DEFAULT_STORAGE_KEY
 
+  const defaultBindings = createInitialTrackBindings(trackRegistry.list())
+
   let initialCustomCurves = DEFAULT_CUSTOM_CURVES.map(cloneCurve)
-  let initialExporter: ExporterId = "tailwind"
-  let initialTrackId = "dialog:open"
-  let initialChannelId: string | "all" = "all"
+  let initialDraftCurve: DraftCurveState | null = null
+  let initialBindings = defaultBindings
+  let initialCompareQueue: CompareItem[] = []
+  let initialGlobalCompareTarget: CompareGlobalTarget = {
+    trackId: "dialog:open",
+    channelId: "all",
+  }
   let initialMode: StudioMode = "preview"
   let initialCustomizePreviewMode: "component" | "primitives" = "component"
-  let initialNavStack: NavStackState = { level: 0 }
+  let initialTrackId = "dialog:open"
+  let initialChannelId: string | "all" = "all"
   let initialStashedComponentTrackId: string | null = null
   let initialStashedComponentChannelId: string | null = null
+  let initialNavStack: NavStackState = { level: 0 }
+  let initialActiveLibraryTab: MotionEngine = "bezier"
+  let initialViewport: ViewportPreset = "desktop"
+  let initialExporter: ExporterId = "tailwind"
+  let initialExportScope: "channel" | "track" = "channel"
 
   if (options?.storage) {
     try {
-      const raw = options.storage.getItem(storageKey)
+      let raw = options.storage.getItem(storageKey)
+      if (!raw && storageKey === DEFAULT_STORAGE_KEY) {
+        raw =
+          options.storage.getItem("satisium-ease-v2") ??
+          options.storage.getItem("ease_v2_store")
+      }
       if (raw) {
-        const persisted = deserializeEaseStorage(raw)
+        const persisted = deserializeEaseStorage(raw, defaultBindings)
         initialCustomCurves = persisted.customCurves
+        initialDraftCurve = persisted.draftCurve
+        initialBindings = persisted.trackBindings
+        initialCompareQueue = persisted.compareQueue
+        initialGlobalCompareTarget = persisted.globalCompareTarget
+        initialMode = persisted.mode
+        initialCustomizePreviewMode = persisted.customizePreviewMode
+        initialTrackId = persisted.focusedTrackId
+        initialChannelId = persisted.focusedChannelId
+        initialStashedComponentTrackId = persisted.stashedComponentTrackId
+        initialStashedComponentChannelId = persisted.stashedComponentChannelId
+        initialNavStack = persisted.navStack
+        initialActiveLibraryTab = persisted.activeLibraryTab
+        initialViewport = persisted.viewport
         initialExporter = persisted.preferredExporter
-        initialTrackId = persisted.activeTrackId
-        if (persisted.activeChannelId && persisted.activeChannelId !== "all") {
-          initialChannelId = persisted.activeChannelId
-        }
-        if (persisted.loopDelayMs !== undefined) {
-          conductor.setLoopDelayMs(persisted.loopDelayMs)
-        }
-        if (persisted.mode === "customize") {
-          initialMode = "customize"
-        }
-        if (persisted.customizePreviewMode === "primitives") {
-          initialCustomizePreviewMode = "primitives"
-          initialStashedComponentTrackId =
-            persisted.activeTrackId !== "primitives:all"
-              ? persisted.activeTrackId
-              : "dialog:open"
-          initialStashedComponentChannelId =
-            persisted.activeChannelId !== "all"
-              ? persisted.activeChannelId
-              : "translateY"
-          initialTrackId = "primitives:all"
-          initialChannelId = "all"
-        }
-        if (persisted.navStack) {
-          initialNavStack = persisted.navStack
-        }
-        if (persisted.mode === "customize") {
-          initialMode = "customize"
-        }
-        if (persisted.customizePreviewMode === "primitives") {
-          initialCustomizePreviewMode = "primitives"
-          initialStashedComponentTrackId =
-            persisted.activeTrackId !== "primitives:all"
-              ? persisted.activeTrackId
-              : "dialog:open"
-          initialStashedComponentChannelId =
-            persisted.activeChannelId !== "all"
-              ? persisted.activeChannelId
-              : "translateY"
-          initialTrackId = "primitives:all"
-        }
-        if (persisted.navStack) {
-          initialNavStack = persisted.navStack
-        }
+        initialExportScope = persisted.exportScope
+        conductor.setLoopDelayMs(persisted.loopDelayMs)
       }
     } catch {
       // safe fallback
     }
   }
-
-  const initialBindings = createInitialTrackBindings(trackRegistry.list())
 
   const store = createStore<EaseStoreState>((set, get) => {
     function computeDuration(): number {
@@ -383,10 +370,10 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       customizePreviewMode: initialCustomizePreviewMode,
       stashedComponentTrackId: initialStashedComponentTrackId,
       stashedComponentChannelId: initialStashedComponentChannelId,
-      viewport: "desktop",
+      viewport: initialViewport,
       navStack: initialNavStack,
       isExportOpen: false,
-      exportScope: "channel",
+      exportScope: initialExportScope,
       preferredExporter: initialExporter,
       isReducedMotion: false,
       searchQuery: "",
@@ -871,8 +858,8 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
 
       // 3. Library & 2-Tier Git Tree Slice
       customCurves: initialCustomCurves,
-      activeLibraryTab: "bezier",
-      draftCurve: null,
+      activeLibraryTab: initialActiveLibraryTab,
+      draftCurve: initialDraftCurve,
 
       setActiveLibraryTab: (activeLibraryTab) => set({ activeLibraryTab }),
       updateDraft: (patch) => {
@@ -1108,8 +1095,8 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       },
 
       // 4. Compare Slice
-      compareQueue: [],
-      globalCompareTarget: { trackId: "dialog:open", channelId: "all" },
+      compareQueue: initialCompareQueue,
+      globalCompareTarget: initialGlobalCompareTarget,
 
       stageActiveCurveToCompare: () => {
         const curve = get().getActiveCurve()
@@ -1305,12 +1292,83 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
         if (payload.springMode) state.setFocusedSpringMode(payload.springMode)
         return true
       },
+      hydrateFromStorage: (rawJson?: string | null) => {
+        let raw = rawJson
+        if (raw === undefined && options?.storage) {
+          raw = options.storage.getItem(storageKey)
+          if (!raw && storageKey === DEFAULT_STORAGE_KEY) {
+            raw =
+              options.storage.getItem("satisium-ease-v2") ??
+              options.storage.getItem("ease_v2_store")
+          }
+        }
+        if (!raw) return
+
+        const freshDefaults = createInitialTrackBindings(trackRegistry.list())
+        const p = deserializeEaseStorage(raw, freshDefaults)
+
+        conductor.setLoopDelayMs(p.loopDelayMs)
+        conductor.setSoloActive(false)
+        conductor.setPinned(false)
+        conductor.setSpeed(1)
+        conductor.setLooping(false)
+        conductor.pause()
+        conductor.seek(0)
+
+        set({
+          customCurves: p.customCurves,
+          draftCurve: p.draftCurve,
+          trackBindings: p.trackBindings,
+          compareQueue: p.compareQueue,
+          globalCompareTarget: p.globalCompareTarget,
+          mode: p.mode,
+          customizePreviewMode: p.customizePreviewMode,
+          focusedTrackId: p.focusedTrackId,
+          focusedChannelId: p.focusedChannelId,
+          stashedComponentTrackId: p.stashedComponentTrackId,
+          stashedComponentChannelId: p.stashedComponentChannelId,
+          navStack: p.navStack,
+          activeLibraryTab: p.activeLibraryTab,
+          viewport: p.viewport,
+          preferredExporter: p.preferredExporter,
+          exportScope: p.exportScope,
+          loopDelayMs: p.loopDelayMs,
+          // Diagnostic lenses calm defaults
+          isPlaying: false,
+          playbackState: "idle",
+          isSolo: false,
+          isPinned: false,
+          speed: 1,
+          isReducedMotion: false,
+          isLooping: false,
+          isExportOpen: false,
+          searchQuery: "",
+        })
+
+        syncDuration()
+      },
       persist: () => {
         if (!options?.storage) return
         try {
           const state = get()
           const payload = serializeEaseStorage({
             customCurves: state.customCurves,
+            draftCurve: state.draftCurve,
+            trackBindings: state.trackBindings,
+            compareQueue: state.compareQueue,
+            globalCompareTarget: state.globalCompareTarget,
+            mode: state.mode,
+            customizePreviewMode: state.customizePreviewMode,
+            focusedTrackId: state.focusedTrackId,
+            focusedChannelId: state.focusedChannelId,
+            stashedComponentTrackId: state.stashedComponentTrackId,
+            stashedComponentChannelId: state.stashedComponentChannelId,
+            navStack: state.navStack,
+            activeLibraryTab: state.activeLibraryTab,
+            viewport: state.viewport,
+            preferredExporter: state.preferredExporter,
+            exportScope: state.exportScope,
+            loopDelayMs: state.loopDelayMs,
             activeTrackId:
               state.customizePreviewMode === "primitives" &&
               state.stashedComponentTrackId
@@ -1323,11 +1381,6 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
                 : state.focusedChannelId === "all"
                   ? "scale"
                   : state.focusedChannelId,
-            preferredExporter: state.preferredExporter,
-            loopDelayMs: state.loopDelayMs,
-            mode: state.mode,
-            customizePreviewMode: state.customizePreviewMode,
-            navStack: state.navStack,
           })
           options.storage.setItem(storageKey, payload)
         } catch {
@@ -1386,27 +1439,29 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
   // If initial mode is customize, initialize draftCurve and sync
   if (initialMode === "customize") {
     const st = fullStore.getState()
-    let targetCh = st.focusedChannelId
-    if (targetCh === "all" && st.focusedTrackId !== "primitives:all") {
-      const tr = st.getFocusedTrack()
-      const nonOpacity = tr.channels.find((c) => c.property !== "opacity")
-      targetCh = nonOpacity?.id ?? tr.channels[0]?.id ?? "all"
-      if (targetCh !== "all") {
-        fullStore.setState({ focusedChannelId: targetCh })
+    if (!st.draftCurve) {
+      let targetCh = st.focusedChannelId
+      if (targetCh === "all" && st.focusedTrackId !== "primitives:all") {
+        const tr = st.getFocusedTrack()
+        const nonOpacity = tr.channels.find((c) => c.property !== "opacity")
+        targetCh = nonOpacity?.id ?? tr.channels[0]?.id ?? "all"
+        if (targetCh !== "all") {
+          fullStore.setState({ focusedChannelId: targetCh })
+        }
       }
+      const curve = fullStore.getState().getActiveCurve()
+      const inTree = findCurveInCustomTree(
+        fullStore.getState().customCurves,
+        curve.id
+      )
+      const scope: DraftScope = inTree ? inTree.scope : "preset"
+      const draft = startDraftReducer(curve, scope)
+      fullStore.setState({
+        mode: "customize",
+        draftCurve: draft,
+        activeLibraryTab: curve.engine,
+      })
     }
-    const curve = fullStore.getState().getActiveCurve()
-    const inTree = findCurveInCustomTree(
-      fullStore.getState().customCurves,
-      curve.id
-    )
-    const scope: DraftScope = inTree ? inTree.scope : "preset"
-    const draft = startDraftReducer(curve, scope)
-    fullStore.setState({
-      mode: "customize",
-      draftCurve: draft,
-      activeLibraryTab: curve.engine,
-    })
 
     if (initialCustomizePreviewMode === "primitives") {
       fullStore.getState().setCustomizePreviewMode("primitives")
@@ -1421,6 +1476,74 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
   )
   conductor.setTotalDurationMs(initialDuration)
   fullStore.setState({ totalDurationMs: initialDuration })
+
+  // Single-subscriber persistence watcher (ignores 120fps clock/playback/lens ticks)
+  if (options?.storage) {
+    let prevSnapshot = {
+      customCurves: fullStore.getState().customCurves,
+      draftCurve: fullStore.getState().draftCurve,
+      trackBindings: fullStore.getState().trackBindings,
+      compareQueue: fullStore.getState().compareQueue,
+      globalCompareTarget: fullStore.getState().globalCompareTarget,
+      mode: fullStore.getState().mode,
+      customizePreviewMode: fullStore.getState().customizePreviewMode,
+      focusedTrackId: fullStore.getState().focusedTrackId,
+      focusedChannelId: fullStore.getState().focusedChannelId,
+      stashedComponentTrackId: fullStore.getState().stashedComponentTrackId,
+      stashedComponentChannelId: fullStore.getState().stashedComponentChannelId,
+      navStack: fullStore.getState().navStack,
+      activeLibraryTab: fullStore.getState().activeLibraryTab,
+      viewport: fullStore.getState().viewport,
+      preferredExporter: fullStore.getState().preferredExporter,
+      exportScope: fullStore.getState().exportScope,
+      loopDelayMs: fullStore.getState().loopDelayMs,
+    }
+
+    fullStore.subscribe((state) => {
+      if (
+        state.customCurves !== prevSnapshot.customCurves ||
+        state.draftCurve !== prevSnapshot.draftCurve ||
+        state.trackBindings !== prevSnapshot.trackBindings ||
+        state.compareQueue !== prevSnapshot.compareQueue ||
+        state.globalCompareTarget !== prevSnapshot.globalCompareTarget ||
+        state.mode !== prevSnapshot.mode ||
+        state.customizePreviewMode !== prevSnapshot.customizePreviewMode ||
+        state.focusedTrackId !== prevSnapshot.focusedTrackId ||
+        state.focusedChannelId !== prevSnapshot.focusedChannelId ||
+        state.stashedComponentTrackId !==
+          prevSnapshot.stashedComponentTrackId ||
+        state.stashedComponentChannelId !==
+          prevSnapshot.stashedComponentChannelId ||
+        state.navStack !== prevSnapshot.navStack ||
+        state.activeLibraryTab !== prevSnapshot.activeLibraryTab ||
+        state.viewport !== prevSnapshot.viewport ||
+        state.preferredExporter !== prevSnapshot.preferredExporter ||
+        state.exportScope !== prevSnapshot.exportScope ||
+        state.loopDelayMs !== prevSnapshot.loopDelayMs
+      ) {
+        prevSnapshot = {
+          customCurves: state.customCurves,
+          draftCurve: state.draftCurve,
+          trackBindings: state.trackBindings,
+          compareQueue: state.compareQueue,
+          globalCompareTarget: state.globalCompareTarget,
+          mode: state.mode,
+          customizePreviewMode: state.customizePreviewMode,
+          focusedTrackId: state.focusedTrackId,
+          focusedChannelId: state.focusedChannelId,
+          stashedComponentTrackId: state.stashedComponentTrackId,
+          stashedComponentChannelId: state.stashedComponentChannelId,
+          navStack: state.navStack,
+          activeLibraryTab: state.activeLibraryTab,
+          viewport: state.viewport,
+          preferredExporter: state.preferredExporter,
+          exportScope: state.exportScope,
+          loopDelayMs: state.loopDelayMs,
+        }
+        state.persist()
+      }
+    })
+  }
 
   return fullStore
 }

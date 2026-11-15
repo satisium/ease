@@ -21,16 +21,12 @@ import {
 import { useStore } from "zustand"
 import {
   createEaseStore,
-  deserializeEaseStorage,
-  findCurveInCustomTree,
-  getCanonicalPresetById,
   type EaseStoreState,
-  type NavStackState,
   type StorageAdapter,
 } from "@/core"
 
 /** Canonical localStorage key for Satisium Ease persisted state. */
-export const EASE_STORAGE_KEY = "satisium-ease-v2"
+export const EASE_STORAGE_KEY = "satisium-ease-v3"
 
 /** Inferred type of the headless Ease vanilla store. */
 export type EaseStoreApi = ReturnType<typeof createEaseStore>
@@ -83,45 +79,14 @@ export function EaseStoreProvider({
     isHydrated = true
     if (typeof window !== "undefined") {
       try {
-        const raw = window.localStorage.getItem(EASE_STORAGE_KEY)
+        let raw = window.localStorage.getItem(EASE_STORAGE_KEY)
+        if (!raw) {
+          raw =
+            window.localStorage.getItem("satisium-ease-v2") ??
+            window.localStorage.getItem("ease_v2_store")
+        }
         if (raw) {
-          const persisted = deserializeEaseStorage(raw)
-
-          let safeNavStack: NavStackState = { level: 0 }
-          if (persisted.navStack?.level === 1 && persisted.navStack.curveId) {
-            const curveExists =
-              getCanonicalPresetById(persisted.navStack.curveId) ??
-              findCurveInCustomTree(
-                persisted.customCurves,
-                persisted.navStack.curveId
-              )
-            if (curveExists) {
-              safeNavStack = { level: 1, curveId: persisted.navStack.curveId }
-            }
-          }
-
-          store.setState({
-            customCurves: persisted.customCurves,
-            preferredExporter: persisted.preferredExporter,
-            navStack: safeNavStack,
-          })
-          store.getState().focusTrack(persisted.activeTrackId)
-          store.getState().focusChannel(persisted.activeChannelId)
-          store.getState().setLoopDelayMs(persisted.loopDelayMs)
-
-          const restoredMode =
-            persisted.mode === "customize" ? "customize" : "preview"
-          const restoredPreviewMode =
-            persisted.customizePreviewMode === "primitives"
-              ? "primitives"
-              : "component"
-
-          if (restoredMode === "customize") {
-            store.getState().enterCustomize()
-            if (restoredPreviewMode === "primitives") {
-              store.getState().setCustomizePreviewMode("primitives")
-            }
-          }
+          store.getState().hydrateFromStorage(raw)
         }
       } catch {
         // safe fallback on corrupted storage
@@ -129,6 +94,25 @@ export function EaseStoreProvider({
 
       if (window.location.hash && window.location.hash.length > 1) {
         store.getState().applyUrlHash(window.location.hash)
+      }
+
+      const handlePageHide = () => {
+        store.getState().persist()
+      }
+      window.addEventListener("pagehide", handlePageHide)
+
+      return () => {
+        window.removeEventListener("pagehide", handlePageHide)
+        store.conductor.pause()
+        if (process.env.NODE_ENV === "test") {
+          try {
+            window.localStorage.removeItem(EASE_STORAGE_KEY)
+            window.localStorage.removeItem("satisium-ease-v2")
+            window.localStorage.removeItem("ease_v2_store")
+          } catch {
+            // safe fallback
+          }
+        }
       }
     }
 
