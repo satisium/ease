@@ -1,0 +1,254 @@
+/**
+ * @file __tests__/scrubber-targeting.test.tsx
+ * @description Integration tests for Scrubber, Channel Targeting & Isolation, and Lifecycle Sync.
+ */
+
+import * as React from "react"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
+import { render, screen, act, fireEvent } from "@testing-library/react"
+import { EaseStoreProvider, useEaseStoreApi } from "@/hooks/use-ease-store"
+import { StudioUiProvider } from "@/components/studio/studio-ui-context"
+import { TimelineConsole } from "@/components/studio/modes/audition/center-stage/timeline-console"
+import { DialogHabitat } from "@/components/studio/habitats/dialog-habitat"
+import { useTransitionTrack } from "@/hooks/use-transition-track"
+
+describe("Scrubber Block & Channel-Targeting Integration", () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    if (typeof window.ResizeObserver === "undefined") {
+      window.ResizeObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      } as unknown as typeof ResizeObserver
+    }
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("1. isolates translateY during scrubbing while backdrop and scale lock at visible rest, and animates all 3 in context during Play", () => {
+    let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+    let lastFrameValues: Record<string, number> = {}
+
+    function TestHarness() {
+      storeApi = useEaseStoreApi()
+      useTransitionTrack("dialog:open", {
+        onFrame: (frame) => {
+          lastFrameValues = frame.values
+        },
+      })
+      return (
+        <StudioUiProvider>
+          <TimelineConsole />
+        </StudioUiProvider>
+      )
+    }
+
+    render(
+      <EaseStoreProvider>
+        <TestHarness />
+      </EaseStoreProvider>
+    )
+
+    // Select translateY channel
+    act(() => {
+      storeApi!.getState().focusChannel("translateY")
+    })
+
+    expect(storeApi!.getState().focusedChannelId).toBe("translateY")
+    expect(storeApi!.getState().isSolo).toBe(false)
+
+    // Scrub halfway (seekScoped)
+    act(() => {
+      storeApi!.getState().seekScoped(150)
+    })
+
+    expect(storeApi!.conductor.getSnapshot().playbackState).toBe("scrubbing")
+
+    // During scrubbing on translateY:
+    // translateY is animating/scrubbed
+    // backdrop is locked to rest destination (0.45)
+    // scale is locked to rest destination (1.0)
+    expect(lastFrameValues.translateY).toBeDefined()
+    expect(lastFrameValues.backdrop).toBeCloseTo(0.45, 2)
+    expect(lastFrameValues.scale).toBeCloseTo(1.0, 2)
+
+    // Now start Play with isSolo = false
+    act(() => {
+      storeApi!.getState().seekScoped(0)
+      storeApi!.getState().playScoped()
+    })
+
+    expect(storeApi!.conductor.getSnapshot().playbackState).toBe("playing")
+    // When playing in context with isSolo === false, all channels animate from their initial values
+    // At t=0 of dialog:open:
+    // backdrop starts at 0, translateY starts at 36, scale starts at 0.92
+    expect(lastFrameValues.backdrop).toBeCloseTo(0, 1)
+    expect(lastFrameValues.translateY).toBeCloseTo(36, 1)
+    expect(lastFrameValues.scale).toBeCloseTo(0.92, 2)
+  })
+
+  it("2. updates totalDurationMs to 180ms when backdrop is selected and scrubbed, matching readout 180ms / 180ms", () => {
+    let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+    function TestHarness() {
+      storeApi = useEaseStoreApi()
+      return (
+        <StudioUiProvider>
+          <TimelineConsole />
+        </StudioUiProvider>
+      )
+    }
+
+    render(
+      <EaseStoreProvider>
+        <TestHarness />
+      </EaseStoreProvider>
+    )
+
+    // Focus backdrop channel on dialog:open
+    act(() => {
+      storeApi!.getState().focusChannel("backdrop")
+    })
+
+    // Scrub to 100% of backdrop duration (180ms)
+    act(() => {
+      storeApi!.getState().seekScoped(180)
+    })
+
+    // Store totalDurationMs and conductor totalDurationMs must be 180ms
+    expect(storeApi!.getState().totalDurationMs).toBe(180)
+    expect(storeApi!.conductor.getSnapshot().totalDurationMs).toBe(180)
+    expect(storeApi!.conductor.getSnapshot().elapsedMs).toBe(180)
+
+    // Verify right-hand readout shows 180ms / 180ms (both elapsed span and total button match 180ms)
+    expect(screen.getAllByText("180ms").length).toBe(2)
+    expect(
+      screen.getByLabelText("Total duration 180ms. Click to edit")
+    ).toBeDefined()
+  })
+
+  it("3. does NOT snap SatisSlider fill width backward to 0% after playing to 100% when a re-render occurs", () => {
+    let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+    function ParentComponent() {
+      storeApi = useEaseStoreApi()
+      const [reRenderCount, setReRenderCount] = React.useState(0)
+      return (
+        <StudioUiProvider>
+          <TimelineConsole />
+          <button
+            type="button"
+            data-testid="trigger-rerender"
+            onClick={() => setReRenderCount((c) => c + 1)}
+          >
+            Re-render {reRenderCount}
+          </button>
+        </StudioUiProvider>
+      )
+    }
+
+    render(
+      <EaseStoreProvider>
+        <ParentComponent />
+      </EaseStoreProvider>
+    )
+
+    const fill = screen.getByTestId("satis-slider-fill")
+
+    // Seek/play to 100%
+    act(() => {
+      storeApi!.getState().seekScoped(305)
+    })
+
+    // Conductor is at 100%
+    expect(storeApi!.conductor.getSnapshot().progress).toBeCloseTo(1, 2)
+
+    // Trigger unrelated parent re-render
+    const reRenderBtn = screen.getByTestId("trigger-rerender")
+    act(() => {
+      fireEvent.click(reRenderBtn)
+    })
+
+    // Fill width must NOT be reset or snapped back to 0%
+    // style.width should remain at or near 100%
+    expect(fill.style.width).not.toBe("calc(16px + 0 * (100% - 16px))")
+    expect(fill.style.width).toContain("1 * (100% - 16px)")
+  })
+
+  it("4. keeps Edit Profile stably open after scrubbing a closed DialogHabitat from 0% -> 100%", () => {
+    let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+    function TestHarness() {
+      storeApi = useEaseStoreApi()
+      return (
+        <StudioUiProvider>
+          <DialogHabitat />
+          <TimelineConsole />
+        </StudioUiProvider>
+      )
+    }
+
+    render(
+      <EaseStoreProvider>
+        <TestHarness />
+      </EaseStoreProvider>
+    )
+
+    // Initially modal is closed
+    expect(screen.queryByDisplayValue("Satishkumar")).toBeNull()
+
+    // Scrub dialog:open to 100% (progress >= 0.99)
+    act(() => {
+      storeApi!.getState().seekScoped(305)
+    })
+
+    // Modal dialog is mounted and open
+    expect(screen.getByDisplayValue("Satishkumar")).toBeDefined()
+    expect(screen.getByText("Edit Profile")).toBeDefined()
+
+    // Now return conductor state to idle
+    act(() => {
+      storeApi!.conductor.pause()
+    })
+
+    // Since it was scrubbed to 100%, isOpen is now true, so modal remains open!
+    expect(screen.getByDisplayValue("Satishkumar")).toBeDefined()
+    expect(screen.getByText("Edit Profile")).toBeDefined()
+  })
+
+  it("5. focusChannel('all') cleanly resets isSolo on both store and conductor", () => {
+    let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+    function TestHarness() {
+      storeApi = useEaseStoreApi()
+      return <div />
+    }
+
+    render(
+      <EaseStoreProvider>
+        <TestHarness />
+      </EaseStoreProvider>
+    )
+
+    // Focus a channel and enable solo
+    act(() => {
+      storeApi!.getState().focusChannel("translateY")
+      storeApi!.getState().toggleSolo()
+    })
+
+    expect(storeApi!.getState().isSolo).toBe(true)
+    expect(storeApi!.conductor.getSnapshot().isSoloActive).toBe(true)
+
+    // Call focusChannel('all')
+    act(() => {
+      storeApi!.getState().focusChannel("all")
+    })
+
+    expect(storeApi!.getState().focusedChannelId).toBe("all")
+    expect(storeApi!.getState().isSolo).toBe(false)
+    expect(storeApi!.conductor.getSnapshot().isSoloActive).toBe(false)
+  })
+})
