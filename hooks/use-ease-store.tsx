@@ -22,7 +22,10 @@ import { useStore } from "zustand"
 import {
   createEaseStore,
   deserializeEaseStorage,
+  findCurveInCustomTree,
+  getCanonicalPresetById,
   type EaseStoreState,
+  type NavStackState,
   type StorageAdapter,
 } from "@/core"
 
@@ -83,13 +86,42 @@ export function EaseStoreProvider({
         const raw = window.localStorage.getItem(EASE_STORAGE_KEY)
         if (raw) {
           const persisted = deserializeEaseStorage(raw)
+
+          let safeNavStack: NavStackState = { level: 0 }
+          if (persisted.navStack?.level === 1 && persisted.navStack.curveId) {
+            const curveExists =
+              getCanonicalPresetById(persisted.navStack.curveId) ??
+              findCurveInCustomTree(
+                persisted.customCurves,
+                persisted.navStack.curveId
+              )
+            if (curveExists) {
+              safeNavStack = { level: 1, curveId: persisted.navStack.curveId }
+            }
+          }
+
           store.setState({
             customCurves: persisted.customCurves,
             preferredExporter: persisted.preferredExporter,
+            navStack: safeNavStack,
           })
           store.getState().focusTrack(persisted.activeTrackId)
           store.getState().focusChannel(persisted.activeChannelId)
           store.getState().setLoopDelayMs(persisted.loopDelayMs)
+
+          const restoredMode =
+            persisted.mode === "customize" ? "customize" : "preview"
+          const restoredPreviewMode =
+            persisted.customizePreviewMode === "primitives"
+              ? "primitives"
+              : "component"
+
+          if (restoredMode === "customize") {
+            store.getState().enterCustomize()
+            if (restoredPreviewMode === "primitives") {
+              store.getState().setCustomizePreviewMode("primitives")
+            }
+          }
         }
       } catch {
         // safe fallback on corrupted storage

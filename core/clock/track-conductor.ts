@@ -326,9 +326,7 @@ export class TrackConductor {
    */
   setTotalDurationMs(durationMs: number): void {
     this.totalDurationMs = Math.max(0, durationMs)
-    if (this.elapsedMs > this.totalDurationMs) {
-      this.elapsedMs = this.totalDurationMs
-    }
+    this.elapsedMs = Math.min(this.elapsedMs, this.totalDurationMs)
     this.notify()
   }
 
