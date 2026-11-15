@@ -117,6 +117,7 @@ export interface EaseStoreState {
   isLooping: boolean
   loopDelayMs: number
   speed: PlaybackSpeed
+  totalDurationMs: number
 
   setMode: (mode: StudioMode) => void
   enterCustomize: () => void
@@ -310,8 +311,9 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       }
 
       const channels = state.trackBindings[state.focusedTrackId] ?? []
+      const isScrubbing = conductor.getSnapshot().playbackState === "scrubbing"
       const soloId =
-        state.isSolo && state.focusedChannelId !== "all"
+        (state.isSolo || isScrubbing) && state.focusedChannelId !== "all"
           ? state.focusedChannelId
           : null
       return getTrackTotalDurationMs(
@@ -322,7 +324,11 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
     }
 
     function syncDuration(): void {
-      conductor.setTotalDurationMs(computeDuration())
+      const nextDuration = computeDuration()
+      conductor.setTotalDurationMs(nextDuration)
+      if (get().totalDurationMs !== nextDuration) {
+        set({ totalDurationMs: nextDuration })
+      }
     }
 
     return {
@@ -346,6 +352,7 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       isLooping: conductor.getSnapshot().isLooping,
       loopDelayMs: conductor.getSnapshot().loopDelayMs,
       speed: conductor.getSnapshot().speed,
+      totalDurationMs: conductor.getSnapshot().totalDurationMs,
 
       setMode: (mode) => {
         set({ mode })
@@ -422,7 +429,26 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       playScoped: () => conductor.playScoped(computeDuration()),
       pauseScoped: () => conductor.pause(),
       togglePlayback: () => conductor.togglePlay(computeDuration()),
-      seekScoped: (elapsedMs) => conductor.seek(elapsedMs),
+      seekScoped: (elapsedMs) => {
+        const state = get()
+        if (state.mode !== "compare" && state.focusedChannelId !== "all") {
+          const channels = state.trackBindings[state.focusedTrackId] ?? []
+          const channelDuration = getTrackTotalDurationMs(
+            { channels },
+            state.isReducedMotion,
+            state.focusedChannelId
+          )
+          if (conductor.getSnapshot().totalDurationMs !== channelDuration) {
+            conductor.setTotalDurationMs(channelDuration)
+            if (get().totalDurationMs !== channelDuration) {
+              set({ totalDurationMs: channelDuration })
+            }
+          }
+        }
+        const maxDuration = conductor.getSnapshot().totalDurationMs
+        const clamped = Math.max(0, Math.min(elapsedMs, maxDuration))
+        conductor.seek(clamped)
+      },
       setLooping: (isLooping) => conductor.setLooping(isLooping),
       setLoopDelayMs: (ms) => {
         conductor.setLoopDelayMs(ms)
@@ -1146,18 +1172,21 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
   let prevIsLooping = conductor.getSnapshot().isLooping
   let prevLoopDelayMs = conductor.getSnapshot().loopDelayMs
   let prevSpeed = conductor.getSnapshot().speed
+  let prevTotalDurationMs = conductor.getSnapshot().totalDurationMs
 
   conductor.subscribe((snap) => {
     if (
       snap.playbackState !== prevPlaybackState ||
       snap.isLooping !== prevIsLooping ||
       snap.loopDelayMs !== prevLoopDelayMs ||
-      snap.speed !== prevSpeed
+      snap.speed !== prevSpeed ||
+      snap.totalDurationMs !== prevTotalDurationMs
     ) {
       prevPlaybackState = snap.playbackState
       prevIsLooping = snap.isLooping
       prevLoopDelayMs = snap.loopDelayMs
       prevSpeed = snap.speed
+      prevTotalDurationMs = snap.totalDurationMs
 
       store.setState({
         playbackState: snap.playbackState,
@@ -1166,6 +1195,7 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
         isLooping: snap.isLooping,
         loopDelayMs: snap.loopDelayMs,
         speed: snap.speed,
+        totalDurationMs: snap.totalDurationMs,
       })
     }
   })
@@ -1176,12 +1206,12 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
   }
 
   // Initial duration sync
-  conductor.setTotalDurationMs(
-    getTrackTotalDurationMs(
-      { channels: fullStore.getState().trackBindings[initialTrackId] ?? [] },
-      false
-    )
+  const initialDuration = getTrackTotalDurationMs(
+    { channels: fullStore.getState().trackBindings[initialTrackId] ?? [] },
+    false
   )
+  conductor.setTotalDurationMs(initialDuration)
+  fullStore.setState({ totalDurationMs: initialDuration })
 
   return fullStore
 }
