@@ -8,6 +8,10 @@ export type TickItem =
   number | { value: number; label?: string; major?: boolean }
 export type TicksProp = TickPreset | TickItem[]
 
+export interface SliderImperativeHandle {
+  setProgress: (pct: number) => void
+}
+
 export interface SliderProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
   "onChange" | "defaultValue" | "value"
@@ -37,6 +41,7 @@ export interface SliderProps extends Omit<
   fillVariant?: "foreground" | "subdued"
   showValue?: boolean
   disableTransition?: boolean
+  imperativeRef?: React.Ref<SliderImperativeHandle>
 }
 
 export interface NormalizedTick {
@@ -113,6 +118,7 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
       fillVariant = "foreground",
       showValue = true,
       disableTransition = false,
+      imperativeRef,
       className,
       ...props
     },
@@ -122,6 +128,7 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
     const safeMin = Number.isFinite(min) ? min : 0
     const safeMax = Number.isFinite(max) && max > safeMin ? max : safeMin + 100
     const safeStep = Number.isFinite(step) && step > 0 ? step : 1
+    const sizeConfig = SIZE_CONFIGS[size]
 
     // 2. Controlled vs Uncontrolled State
     const isControlled = propValue !== undefined
@@ -136,15 +143,18 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
     const [containerWidth, setContainerWidth] = React.useState<number>(0)
 
     const internalRef = React.useRef<HTMLDivElement>(null)
+    const fillRef = React.useRef<HTMLDivElement>(null)
     const inputRef = React.useRef<HTMLInputElement>(null)
     const dragStartPos = React.useRef<{ x: number; y: number } | null>(null)
     const rectRef = React.useRef<DOMRect | null>(null)
     const lastSnappedTickRef = React.useRef<number | null>(null)
+    const isDraggingRef = React.useRef(false)
+    const isInitializedRef = React.useRef(false)
 
     React.useImperativeHandle(forwardedRef, () => internalRef.current!)
 
     React.useEffect(() => {
-      if (!internalRef.current) return
+      if (!internalRef.current || typeof ResizeObserver === "undefined") return
       const observer = new ResizeObserver((entries) => {
         if (entries[0]) {
           setContainerWidth(entries[0].contentRect.width)
@@ -173,6 +183,52 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
         return Number(clamp(rounded).toFixed(precision))
       },
       [safeStep, precision, clamp]
+    )
+
+    // Set initial imperative fill width on mount or when controlled value changes
+    React.useEffect(() => {
+      if (!imperativeRef || !fillRef.current) return
+      if (!isInitializedRef.current || isControlled) {
+        isInitializedRef.current = true
+        const val = isControlled
+          ? (propValue ?? safeMin)
+          : (defaultValue ?? safeMin)
+        const r = Math.min(
+          Math.max((val - safeMin) / (safeMax - safeMin), 0),
+          1
+        )
+        fillRef.current.style.width = `calc(${sizeConfig.minPillWidth}px + ${r} * (100% - ${sizeConfig.minPillWidth}px))`
+      }
+    }, [
+      imperativeRef,
+      isControlled,
+      propValue,
+      defaultValue,
+      safeMin,
+      safeMax,
+      sizeConfig.minPillWidth,
+    ])
+
+    React.useImperativeHandle(
+      imperativeRef,
+      () => ({
+        setProgress: (pct: number) => {
+          const clampedPct = Math.min(Math.max(pct, 0), 100)
+          const currentRatio = clampedPct / 100
+          if (fillRef.current) {
+            fillRef.current.style.transition = "none"
+            fillRef.current.style.width = `calc(${sizeConfig.minPillWidth}px + ${currentRatio} * (100% - ${sizeConfig.minPillWidth}px))`
+          }
+          if (internalRef.current) {
+            const val = safeMin + currentRatio * (safeMax - safeMin)
+            internalRef.current.setAttribute(
+              "aria-valuenow",
+              String(roundToStep(val))
+            )
+          }
+        },
+      }),
+      [sizeConfig.minPillWidth, safeMin, safeMax, roundToStep]
     )
 
     // 3. Normalize Ticks & Presets
@@ -215,7 +271,6 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
       Math.max((currentValue - safeMin) / (safeMax - safeMin), 0),
       1
     )
-    const sizeConfig = SIZE_CONFIGS[size]
 
     // Active Snapped Tick
     const activeSnappedTick = React.useMemo(() => {
@@ -325,6 +380,12 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
 
         const rawValue = safeMin + effectiveRatio * (safeMax - safeMin)
         const activeStep = isFineStep ? safeStep / 10 : safeStep
+
+        if (fillRef.current) {
+          fillRef.current.style.transition = "none"
+          fillRef.current.style.width = `calc(${sizeConfig.minPillWidth}px + ${effectiveRatio} * (100% - ${sizeConfig.minPillWidth}px))`
+        }
+
         updateValue(roundToStep(rawValue, activeStep))
       },
       [
@@ -338,6 +399,7 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
         normalizedTicks,
         updateValue,
         roundToStep,
+        sizeConfig.minPillWidth,
       ]
     )
 
@@ -349,23 +411,16 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
         e.currentTarget.setPointerCapture(e.pointerId)
       } catch {}
 
+      isDraggingRef.current = true
+      setIsDragging(true)
       rectRef.current = internalRef.current.getBoundingClientRect()
       dragStartPos.current = { x: e.clientX, y: e.clientY }
       handlePointerUpdate(e.clientX, e.shiftKey, e.altKey)
     }
 
     const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!dragStartPos.current || disabled || readOnly) return
-      if (!isDragging) {
-        const dist = Math.hypot(
-          e.clientX - dragStartPos.current.x,
-          e.clientY - dragStartPos.current.y
-        )
-        if (dist > 3) setIsDragging(true)
-      }
-      if (isDragging) {
-        handlePointerUpdate(e.clientX, e.shiftKey, e.altKey)
-      }
+      if (!isDraggingRef.current || disabled || readOnly) return
+      handlePointerUpdate(e.clientX, e.shiftKey, e.altKey)
     }
 
     const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -374,9 +429,10 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
           e.currentTarget.releasePointerCapture(e.pointerId)
         }
       } catch {}
+      isDraggingRef.current = false
+      setIsDragging(false)
       dragStartPos.current = null
       rectRef.current = null
-      setIsDragging(false)
     }
 
     // 5. Keyboard Navigation
@@ -657,6 +713,8 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
 
               {/* LAYER 3: SOLID FILL (Clipping Mask Window) */}
               <div
+                ref={fillRef}
+                data-testid="satis-slider-fill"
                 className={cn(
                   "pointer-events-none absolute inset-y-0 left-0 overflow-hidden",
                   fillVariant === "subdued"
@@ -665,7 +723,11 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
                   sizeConfig.fillRadius
                 )}
                 style={{
-                  width: `calc(${sizeConfig.minPillWidth}px + ${ratio} * (100% - ${sizeConfig.minPillWidth}px))`,
+                  ...(imperativeRef
+                    ? {}
+                    : {
+                        width: `calc(${sizeConfig.minPillWidth}px + ${ratio} * (100% - ${sizeConfig.minPillWidth}px))`,
+                      }),
                   transition:
                     isDragging || disableTransition
                       ? "none"

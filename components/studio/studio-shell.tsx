@@ -1,152 +1,145 @@
 "use client"
 
 import * as React from "react"
-import { useStudioStore, useActiveDossier } from "@/store/useStudioStore"
-import { resolveEase } from "@/components/studio/domain/studio-kinetics"
+import { useEaseStore } from "@/hooks/use-ease-store"
+import { StudioUiProvider, useStudioUi } from "./studio-ui-context"
 import { AuditionView } from "./modes/audition/audition-view"
+import { ExportDialog } from "./export-dialog"
 
-export function StudioShell() {
-  const mode = useStudioStore((s) => s.mode)
-  const isPlaying = useStudioStore((s) => s.isPlaying)
-  const isScrubbing = useStudioStore((s) => s.isScrubbing)
-  const scrubProgress = useStudioStore((s) => s.scrubProgress)
-  const setScrubProgress = useStudioStore((s) => s.setScrubProgress)
-  const setIsPlaying = useStudioStore((s) => s.setIsPlaying)
-  const triggerAudition = useStudioStore((s) => s.triggerAudition)
-  const togglePlayback = useStudioStore((s) => s.togglePlayback)
-  const toggleTimeline = useStudioStore((s) => s.toggleTimeline)
-  const toggleCompare = useStudioStore((s) => s.toggleCompare)
-  const activeCurveId = useStudioStore((s) => s.activeCurveId)
-  const navStack = useStudioStore((s) => s.navStack)
-  const setNavStack = useStudioStore((s) => s.setNavStack)
-  const setMode = useStudioStore((s) => s.setMode)
-  const playbackSpeed = useStudioStore((s) => s.playbackSpeed)
-  const isLooping = useStudioStore((s) => s.isLooping)
-  const scenarioPhase = useStudioStore((s) => s.scenarioPhase)
-  const activeScenarioKey = useStudioStore((s) => s.activeScenarioKey)
-  const scenarioSlots = useStudioStore((s) => s.scenarioSlots)
-  const customCurves = useStudioStore((s) => s.customCurves)
+function StudioShellInner() {
+  const isPlaying = useEaseStore((s) => s.isPlaying)
+  const isLooping = useEaseStore((s) => s.isLooping)
+  const pauseScoped = useEaseStore((s) => s.pauseScoped)
+  const playScoped = useEaseStore((s) => s.playScoped)
+  const triggerLive = useEaseStore((s) => s.triggerLive)
+  const interruptActive = useEaseStore((s) => s.interruptActive)
+  const setLooping = useEaseStore((s) => s.setLooping)
+  const toggleSolo = useEaseStore((s) => s.toggleSolo)
+  const stageActiveCurveToCompare = useEaseStore(
+    (s) => s.stageActiveCurveToCompare
+  )
+  const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
+  const isExportOpen = useEaseStore((s) => s.isExportOpen)
+  const setExportOpen = useEaseStore((s) => s.setExportOpen)
+  const mode = useEaseStore((s) => s.mode)
+  const enterCustomize = useEaseStore((s) => s.enterCustomize)
+  const exitCustomize = useEaseStore((s) => s.exitCustomize)
+  const enterCompare = useEaseStore((s) => s.enterCompare)
+  const exitCompare = useEaseStore((s) => s.exitCompare)
+  const compareQueue = useEaseStore((s) => s.compareQueue)
+  const navStack = useEaseStore((s) => s.navStack)
+  const backToPresets = useEaseStore((s) => s.backToPresets)
 
-  const activeDossier = useActiveDossier()
-  const currentSlot = scenarioSlots[activeScenarioKey]
-  const exitCurveId = currentSlot?.exit ?? currentSlot?.exitId
-  const currentPhaseCurve = React.useMemo(() => {
-    if (scenarioPhase === "exit" && exitCurveId) {
-      return resolveEase(exitCurveId, customCurves)
-    }
-    return activeDossier
-  }, [scenarioPhase, exitCurveId, customCurves, activeDossier])
+  const { toggleTimeline } = useStudioUi()
 
-  const duration = currentPhaseCurve.duration || 320
-
-  // Scrub progress ref for stable RAF reading
-  const scrubProgressRef = React.useRef(scrubProgress)
-  React.useEffect(() => {
-    scrubProgressRef.current = scrubProgress
-  }, [scrubProgress])
-
-  // Central 60fps RAF Playback Engine
-  React.useEffect(() => {
-    if (!isPlaying || isScrubbing) return
-
-    let animationFrameId: number
-    const totalDuration = duration / playbackSpeed
-    const pauseDuration = 600
-
-    const currentProgress = scrubProgressRef.current
-    const currentElapsed =
-      currentProgress >= 100 ? 0 : (currentProgress / 100) * totalDuration
-    let startTime = performance.now() - currentElapsed
-
-    const tick = (now: number) => {
-      const elapsed = now - startTime
-      if (elapsed < totalDuration) {
-        setScrubProgress((elapsed / totalDuration) * 100)
-        animationFrameId = requestAnimationFrame(tick)
-      } else if (isLooping) {
-        if (elapsed < totalDuration + pauseDuration) {
-          setScrubProgress(100)
-          animationFrameId = requestAnimationFrame(tick)
-        } else {
-          startTime = performance.now()
-          triggerAudition()
-          animationFrameId = requestAnimationFrame(tick)
-        }
-      } else {
-        setScrubProgress(100)
-        setIsPlaying(false)
-      }
-    }
-
-    animationFrameId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(animationFrameId)
-  }, [
-    isPlaying,
-    isScrubbing,
-    isLooping,
-    playbackSpeed,
-    duration,
-    setScrubProgress,
-    setIsPlaying,
-    triggerAudition,
-  ])
-
-  // Global Ergonomic Hotkeys
+  // Global Ergonomic Hotkeys (EASE_USER_FLOW.md §9)
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement
       const isInput =
         activeEl?.tagName === "INPUT" ||
         activeEl?.tagName === "TEXTAREA" ||
+        activeEl?.tagName === "SELECT" ||
         (activeEl instanceof HTMLElement && activeEl.isContentEditable)
 
+      // Escape is permitted even when inside an input
       if (e.key === "Escape") {
-        setNavStack(
-          navStack.level === 2
-            ? { level: 1, curveId: navStack.curveId }
-            : navStack.level === 1
-              ? { level: 0 }
-              : navStack
-        )
+        if (isExportOpen) {
+          setExportOpen(false)
+          return
+        }
+        if (mode !== "preview") {
+          if (mode === "customize") exitCustomize()
+          else if (mode === "compare") exitCompare()
+          return
+        }
+        if (navStack.level === 1) {
+          backToPresets()
+          return
+        }
       }
 
+      // Suppress remaining shortcuts inside form inputs
       if (isInput) return
+
+      // Export Shortcut: ⌘E or Ctrl+E
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e") {
+        e.preventDefault()
+        setExportOpen(!isExportOpen)
+        return
+      }
 
       if (e.key === " ") {
         e.preventDefault()
-        togglePlayback()
-      } else if (e.key === "r" || e.key === "R") {
-        triggerAudition()
-      } else if (e.key === "1") {
-        setMode("audition")
-      } else if (e.key === "2") {
-        setMode("customize")
-      } else if (e.key === "3") {
-        setMode("compare")
+        if (isPlaying) {
+          pauseScoped()
+        } else if (isLooping || mode === "compare") {
+          playScoped()
+        } else {
+          triggerLive(focusedTrackId)
+        }
+      } else if (e.key === "i" || e.key === "I") {
+        interruptActive()
+      } else if (e.key === "l" || e.key === "L") {
+        setLooping(!isLooping)
+      } else if (e.key === "s" || e.key === "S") {
+        toggleSolo()
+      } else if (e.key === "c" || e.key === "C") {
+        stageActiveCurveToCompare()
       } else if (e.key === "t" || e.key === "T") {
         toggleTimeline()
-      } else if (e.key === "c" || e.key === "C") {
-        toggleCompare(activeCurveId)
+      } else if (e.key === "r" || e.key === "R") {
+        triggerLive(focusedTrackId)
+      } else if (e.key === "1") {
+        if (mode === "customize") exitCustomize()
+        else if (mode === "compare") exitCompare()
+      } else if (e.key === "2") {
+        enterCustomize()
+      } else if (e.key === "3") {
+        if (compareQueue.length >= 2) {
+          enterCompare()
+        }
       }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [
-    navStack,
-    activeCurveId,
-    togglePlayback,
-    triggerAudition,
-    setMode,
+    isPlaying,
+    isLooping,
+    pauseScoped,
+    playScoped,
+    triggerLive,
+    interruptActive,
+    setLooping,
+    toggleSolo,
+    stageActiveCurveToCompare,
+    focusedTrackId,
+    isExportOpen,
+    setExportOpen,
+    mode,
+    enterCustomize,
+    exitCustomize,
+    enterCompare,
+    exitCompare,
+    compareQueue.length,
+    navStack.level,
+    backToPresets,
     toggleTimeline,
-    toggleCompare,
-    setNavStack,
   ])
 
   return (
     <div className="h-dvh w-full overflow-hidden bg-muted p-2 font-sans select-none">
-      {mode === "audition" && <AuditionView />}
-      {mode !== "audition" && <AuditionView />}
+      <AuditionView />
+      <ExportDialog />
     </div>
+  )
+}
+
+export function StudioShell() {
+  return (
+    <StudioUiProvider>
+      <StudioShellInner />
+    </StudioUiProvider>
   )
 }

@@ -7,6 +7,8 @@ import {
   Refresh03Icon,
   RepeatIcon,
   AccessibilityIcon,
+  PinIcon,
+  RotateLeft01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { motion, AnimatePresence } from "motion/react"
@@ -17,46 +19,88 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { useStudioStore, useActiveDossier } from "@/store/useStudioStore"
-import { Slider as SatisSlider } from "./satis-slider"
+import { useEaseStore, useEaseStoreApi } from "@/hooks/use-ease-store"
+import { useClockRef } from "@/hooks/use-clock-ref"
+import { useStudioUi } from "@/components/studio/studio-ui-context"
+import {
+  Slider as SatisSlider,
+  type SliderImperativeHandle,
+} from "./satis-slider"
 
 export function TimelineConsole() {
-  const isTimelineOpen = useStudioStore((s) => s.isTimelineOpen)
-  const isPlaying = useStudioStore((s) => s.isPlaying)
-  const setIsPlaying = useStudioStore((s) => s.setIsPlaying)
-  const togglePlayback = useStudioStore((s) => s.togglePlayback)
-  const triggerAudition = useStudioStore((s) => s.triggerAudition)
-  const scrubProgress = useStudioStore((s) => s.scrubProgress)
-  const setScrubProgress = useStudioStore((s) => s.setScrubProgress)
-  const setIsScrubbing = useStudioStore((s) => s.setIsScrubbing)
-  const isLooping = useStudioStore((s) => s.isLooping)
-  const setIsLooping = useStudioStore((s) => s.setIsLooping)
-  const playbackSpeed = useStudioStore((s) => s.playbackSpeed)
-  const setPlaybackSpeed = useStudioStore((s) => s.setPlaybackSpeed)
-  const isReducedMotion = useStudioStore((s) => s.isReducedMotion)
-  const setIsReducedMotion = useStudioStore((s) => s.setIsReducedMotion)
+  const store = useEaseStoreApi()
 
-  const activeDossier = useActiveDossier()
-  const duration = activeDossier.duration || 320
+  // Low-frequency studio shell visibility
+  const { isTimelineOpen } = useStudioUi()
 
-  const currentMs = Math.round((scrubProgress / 100) * duration)
-  const totalMs = duration
+  // Low-frequency store states
+  const isPlaying = useEaseStore((s) => s.isPlaying)
+  const isLooping = useEaseStore((s) => s.isLooping)
+  const loopDelayMs = useEaseStore((s) => s.loopDelayMs)
+  const speed = useEaseStore((s) => s.speed)
+  const isReducedMotion = useEaseStore((s) => s.isReducedMotion)
+  const isPinned = useEaseStore((s) => s.isPinned)
+  const setPinned = useEaseStore((s) => s.setPinned)
+  const resetFocusedTrack = useEaseStore((s) => s.resetFocusedTrack)
+  const setFocusedDurationMs = useEaseStore((s) => s.setFocusedDurationMs)
+  const setFocusedSpringMode = useEaseStore((s) => s.setFocusedSpringMode)
+  const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
+  const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
+  const trackBindings = useEaseStore((s) => s.trackBindings)
+  const totalDurationMs = useEaseStore((s) => s.totalDurationMs)
 
-  const handleScrubChange = React.useCallback(
-    (val: number) => {
-      setScrubProgress(val)
-    },
-    [setScrubProgress]
-  )
+  // Focused channel resolution
+  const currentChannels = trackBindings[focusedTrackId] ?? []
+  const focusedChannel =
+    focusedChannelId !== "all"
+      ? (currentChannels.find((c) => c.id === focusedChannelId) ?? null)
+      : null
+
+  // 120fps imperative refs for zero-re-render scrubbing & readout
+  const sliderImperativeRef = React.useRef<SliderImperativeHandle>(null)
+  const elapsedRef = React.useRef<HTMLSpanElement>(null)
+
+  // Inline duration editing state
+  const [isEditingDuration, setIsEditingDuration] = React.useState(false)
+
+  // Initial snapshot fallback for static rendering
+  const initialSnap = store.conductor.getSnapshot()
+  const initialElapsedMs = Math.round(initialSnap.elapsedMs)
+
+  // 120fps conductor subscriber (ZERO component re-renders)
+  useClockRef((snap) => {
+    sliderImperativeRef.current?.setProgress(snap.progress * 100)
+    if (elapsedRef.current) {
+      elapsedRef.current.textContent = `${Math.round(snap.elapsedMs)}ms`
+    }
+  })
+
+  // Pointer drag coordination
+  const wasPlayingOnDragRef = React.useRef(false)
 
   const handlePointerDown = React.useCallback(() => {
-    setIsScrubbing(true)
-    setIsPlaying(false)
-  }, [setIsScrubbing, setIsPlaying])
+    wasPlayingOnDragRef.current =
+      store.conductor.getSnapshot().playbackState === "playing"
+    if (wasPlayingOnDragRef.current) {
+      store.getState().pauseScoped()
+    }
+  }, [store])
 
   const handlePointerUp = React.useCallback(() => {
-    setIsScrubbing(false)
-  }, [setIsScrubbing])
+    if (wasPlayingOnDragRef.current) {
+      store.getState().playScoped()
+    }
+    wasPlayingOnDragRef.current = false
+  }, [store])
+
+  const handleScrubChange = React.useCallback(
+    (pct: number) => {
+      const snap = store.conductor.getSnapshot()
+      const targetMs = (pct / 100) * snap.totalDurationMs
+      store.getState().seekScoped(targetMs)
+    },
+    [store]
+  )
 
   return (
     <AnimatePresence initial={false}>
@@ -106,14 +150,15 @@ export function TimelineConsole() {
               aria-label="Master Precision Timeline Dock"
               className="flex w-full shrink-0 flex-col gap-3 rounded-[20px] bg-background p-3.5 px-4 transition-colors select-none"
             >
-              {/* Row 1: Full-Width Satisium Reimagined Slider */}
+              {/* Row 1: Full-Width Satisium Reimagined Slider (120fps Imperative Driver) */}
               <div
                 className="flex w-full items-center"
                 onPointerDown={handlePointerDown}
                 onPointerUp={handlePointerUp}
               >
                 <SatisSlider
-                  value={scrubProgress}
+                  imperativeRef={sliderImperativeRef}
+                  defaultValue={initialSnap.progress * 100}
                   onChange={handleScrubChange}
                   min={0}
                   max={100}
@@ -136,7 +181,7 @@ export function TimelineConsole() {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={togglePlayback}
+                        onClick={() => store.getState().togglePlayback()}
                         aria-label={
                           isPlaying ? "Pause animation" : "Play animation"
                         }
@@ -164,7 +209,10 @@ export function TimelineConsole() {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={triggerAudition}
+                        onClick={() => {
+                          store.getState().seekScoped(0)
+                          store.getState().playScoped()
+                        }}
                         aria-label="Replay from Origin"
                         className="flex size-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
                       >
@@ -190,7 +238,7 @@ export function TimelineConsole() {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => setIsLooping(!isLooping)}
+                        onClick={() => store.getState().setLooping(!isLooping)}
                         aria-label="Toggle continuous loop"
                         className={cn(
                           "flex size-7 cursor-pointer items-center justify-center rounded-[8px] transition-colors active:scale-95",
@@ -209,36 +257,145 @@ export function TimelineConsole() {
                     </TooltipContent>
                   </Tooltip>
 
+                  {/* Loop Delay Breather Selector Pill */}
+                  {isLooping && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextDelay =
+                              loopDelayMs === 0
+                                ? 400
+                                : loopDelayMs === 400
+                                  ? 800
+                                  : 0
+                            store.getState().setLoopDelayMs(nextDelay)
+                          }}
+                          aria-label={`Loop delay breather: ${loopDelayMs}ms. Click to cycle`}
+                          className="flex h-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted px-2 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
+                        >
+                          <span>{loopDelayMs}ms</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        <span>
+                          Loop Delay: {loopDelayMs}ms · Click to cycle (0ms ·
+                          400ms · 800ms)
+                        </span>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+
                   <div className="mx-0.5 h-3.5 w-px bg-border" />
 
                   {/* Speed Multiplier Segment */}
                   <div className="flex h-7 items-center rounded-[8px] bg-muted p-0.5 font-sans text-xs">
-                    {([1, 0.5, 0.25] as const).map((speed) => (
+                    {([1, 0.5, 0.25] as const).map((s) => (
                       <button
-                        key={speed}
+                        key={s}
                         type="button"
-                        onClick={() => setPlaybackSpeed(speed)}
+                        onClick={() => store.getState().setSpeed(s)}
+                        aria-label={`Set playback speed to ${s}x`}
                         className={cn(
                           "cursor-pointer rounded-[6px] px-2 py-0.5 font-mono text-[11px] transition-colors",
-                          playbackSpeed === speed
+                          speed === s
                             ? "bg-background font-semibold text-foreground shadow-xs"
                             : "text-muted-foreground hover:text-foreground"
                         )}
                       >
-                        {speed}x
+                        {s}x
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Right: A11y Suite & Sharp Readout */}
+                {/* Right: Spring Mode, Pin, Reset, A11y Suite & Clickable Duration Readout */}
                 <div className="flex items-center gap-2">
+                  {/* Spring Fit | Natural Mode Switcher */}
+                  {focusedChannel?.curve.engine === "spring" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFocusedSpringMode(
+                              focusedChannel.springMode === "fit"
+                                ? "natural"
+                                : "fit"
+                            )
+                          }
+                          aria-label={`Spring mode: ${focusedChannel.springMode}. Click to toggle`}
+                          className="flex h-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted px-2 font-mono text-[10px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
+                        >
+                          {focusedChannel.springMode === "fit"
+                            ? "Fit to Time"
+                            : "Natural Settle"}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        <span>
+                          Spring Mode:{" "}
+                          {focusedChannel.springMode === "fit"
+                            ? "Fit (scaled to timeline duration)"
+                            : "Natural (unconstrained physics settling)"}
+                        </span>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+
+                  {/* Pin Active Curve */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setPinned(!isPinned)}
+                        aria-label={
+                          isPinned ? "Unpin active curve" : "Pin active curve"
+                        }
+                        className={cn(
+                          "flex size-7 cursor-pointer items-center justify-center rounded-[8px] transition-colors active:scale-95",
+                          isPinned
+                            ? "bg-foreground text-background"
+                            : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        )}
+                      >
+                        <HugeiconsIcon icon={PinIcon} className="size-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      <span>{isPinned ? "Curve Pinned" : "Pin Curve"}</span>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* Reset Track Channels */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={resetFocusedTrack}
+                        aria-label="Reset track channels to defaults"
+                        className="flex size-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
+                      >
+                        <HugeiconsIcon
+                          icon={RotateLeft01Icon}
+                          className="size-3.5"
+                        />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      <span>Reset Track Channels</span>
+                    </TooltipContent>
+                  </Tooltip>
+
                   {/* Reduced Motion Toggle */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => setIsReducedMotion(!isReducedMotion)}
+                        onClick={() =>
+                          store.getState().setReducedMotion(!isReducedMotion)
+                        }
                         aria-label="Toggle reduced motion accessibility simulation"
                         className={cn(
                           "flex size-7 cursor-pointer items-center justify-center rounded-[8px] transition-colors active:scale-95",
@@ -262,15 +419,51 @@ export function TimelineConsole() {
 
                   <div className="h-3.5 w-px bg-border" />
 
-                  {/* Sharp Mono Timestamp */}
+                  {/* 120fps Safe Timestamp & Clickable Duration Control */}
                   <div className="flex items-baseline gap-1 font-mono text-xs select-none">
-                    <span className="font-semibold text-foreground tabular-nums">
-                      {currentMs}ms
+                    <span
+                      ref={elapsedRef}
+                      className="font-semibold text-foreground tabular-nums"
+                    >
+                      {initialElapsedMs}ms
                     </span>
                     <span className="text-muted-foreground">/</span>
-                    <span className="text-muted-foreground tabular-nums">
-                      {totalMs}ms
-                    </span>
+                    {isEditingDuration ? (
+                      <input
+                        type="number"
+                        autoFocus
+                        defaultValue={totalDurationMs}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const val = Number(e.currentTarget.value)
+                            if (!isNaN(val) && val > 0) {
+                              setFocusedDurationMs(val)
+                            }
+                            setIsEditingDuration(false)
+                          } else if (e.key === "Escape") {
+                            setIsEditingDuration(false)
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const val = Number(e.currentTarget.value)
+                          if (!isNaN(val) && val > 0) {
+                            setFocusedDurationMs(val)
+                          }
+                          setIsEditingDuration(false)
+                        }}
+                        className="h-6 w-16 rounded-[6px] bg-secondary px-1.5 font-mono text-xs text-foreground focus:outline-none"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingDuration(true)}
+                        title="Click to edit duration (Enter to commit)"
+                        aria-label={`Total duration ${totalDurationMs}ms. Click to edit`}
+                        className="cursor-pointer rounded-[6px] bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground tabular-nums transition-colors hover:bg-secondary hover:text-foreground"
+                      >
+                        {totalDurationMs}ms
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
