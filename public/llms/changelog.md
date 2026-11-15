@@ -2,6 +2,12 @@
 
 > Release notes for ease.
 
+## 0.7.0
+
+### Minor Changes
+
+- e0454be: Overhaul Preview Mode with 120fps timeline scrubbing, in-process paired habitats, 2-tier git cassette catalog, and export dialog
+
 ## 0.6.0
 
 ### Minor Changes
