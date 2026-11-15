@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { PresetCurveStage } from "./preset-curve-stage"
 
 export function CatalogLevel1() {
+  const mode = useEaseStore((s) => s.mode)
   const navStack = useEaseStore((s) => s.navStack)
   const customCurves = useEaseStore((s) => s.customCurves)
   const backToPresets = useEaseStore((s) => s.backToPresets)
@@ -159,7 +160,7 @@ export function CatalogLevel1() {
               <HugeiconsIcon icon={Delete02Icon} className="size-3.5" />
             </button>
           )}
-          <span className="rounded-[6px] bg-secondary px-2 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
+          <span className="rounded-[6px] bg-secondary px-2 py-0.5 font-sans text-[11px] font-medium text-muted-foreground tabular-nums">
             {Math.round(telemetry.settlingTimeMs)}ms
           </span>
         </div>
@@ -173,8 +174,10 @@ export function CatalogLevel1() {
         style={detailMaskStyle}
         className="no-scrollbar flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-0.5"
       >
-        {/* 1:1 Kinetic Curve Stage */}
-        <PresetCurveStage key={curve.id} curve={curve} />
+        {/* 1:1 Kinetic Curve Stage (Preview Mode only) */}
+        {mode !== "customize" && (
+          <PresetCurveStage key={curve.id} curve={curve} />
+        )}
 
         {/* Title, Lineage & Description */}
         <div className="flex shrink-0 flex-col gap-1 text-left">
@@ -239,102 +242,112 @@ export function CatalogLevel1() {
           )}
         </div>
 
-        {/* Unified Parameter & Telemetry Slab */}
-        <div className="flex flex-col gap-2 rounded-[12px] bg-secondary p-3">
-          {/* Parameters: Spring (3-col) or Bézier (2-col Anchors) */}
-          {curve.engine === "spring" ? (
-            <div className="grid grid-cols-3 divide-x divide-muted font-sans text-xs">
-              <div className="flex flex-col items-start gap-0.5 pr-2 text-left">
-                <span className="text-[10px] text-muted-foreground">Mass</span>
-                <span className="font-mono text-xs font-medium text-foreground">
-                  {curve.spring.mass ?? 1}
-                </span>
+        {/* Unified Parameter & Telemetry Slab (Preview Mode only) */}
+        {mode !== "customize" && (
+          <div className="flex flex-col gap-2 rounded-[12px] bg-secondary p-3">
+            {/* Parameters: Spring (3-col) or Bézier (2-col Anchors) */}
+            {curve.engine === "spring" ? (
+              <div className="grid grid-cols-3 divide-x divide-muted font-sans text-xs">
+                <div className="flex flex-col items-start gap-0.5 pr-2 text-left">
+                  <span className="text-[10px] text-muted-foreground">
+                    Mass
+                  </span>
+                  <span className="font-sans text-xs font-medium text-foreground tabular-nums">
+                    {curve.spring.mass ?? 1}
+                  </span>
+                </div>
+                <div className="flex flex-col items-center gap-0.5 px-2 text-center">
+                  <span className="text-[10px] text-muted-foreground">
+                    Stiffness
+                  </span>
+                  <span className="font-sans text-xs font-medium text-foreground tabular-nums">
+                    {curve.spring.stiffness}
+                  </span>
+                </div>
+                <div className="flex flex-col items-end gap-0.5 pl-2 text-right">
+                  <span className="text-[10px] text-muted-foreground">
+                    Damping
+                  </span>
+                  <span className="font-sans text-xs font-medium text-foreground tabular-nums">
+                    {curve.spring.damping}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col items-center gap-0.5 px-2 text-center">
-                <span className="text-[10px] text-muted-foreground">
-                  Stiffness
-                </span>
-                <span className="font-mono text-xs font-medium text-foreground">
-                  {curve.spring.stiffness}
-                </span>
+            ) : (
+              <div className="grid grid-cols-2 divide-x divide-muted font-sans">
+                <div className="flex flex-col items-start gap-0.5 pr-3 text-left">
+                  <span className="text-[10px] text-muted-foreground">
+                    Anchor P1
+                  </span>
+                  <span className="font-sans text-xs font-medium text-foreground tabular-nums">
+                    {curve.bezier.p1.x.toFixed(2)},{" "}
+                    {curve.bezier.p1.y.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex flex-col items-end gap-0.5 pl-3 text-right">
+                  <span className="text-[10px] text-muted-foreground">
+                    Anchor P2
+                  </span>
+                  <span className="font-sans text-xs font-medium text-foreground tabular-nums">
+                    {curve.bezier.p2.x.toFixed(2)},{" "}
+                    {curve.bezier.p2.y.toFixed(2)}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col items-end gap-0.5 pl-2 text-right">
-                <span className="text-[10px] text-muted-foreground">
-                  Damping
-                </span>
-                <span className="font-mono text-xs font-medium text-foreground">
-                  {curve.spring.damping}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 divide-x divide-muted font-sans">
-              <div className="flex flex-col items-start gap-0.5 pr-3 text-left">
-                <span className="text-[10px] text-muted-foreground">
-                  Anchor P1
-                </span>
-                <span className="font-mono text-xs font-medium text-foreground">
-                  {curve.bezier.p1.x.toFixed(2)}, {curve.bezier.p1.y.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex flex-col items-end gap-0.5 pl-3 text-right">
-                <span className="text-[10px] text-muted-foreground">
-                  Anchor P2
-                </span>
-                <span className="font-mono text-xs font-medium text-foreground">
-                  {curve.bezier.p2.x.toFixed(2)}, {curve.bezier.p2.y.toFixed(2)}
-                </span>
-              </div>
-            </div>
-          )}
+            )}
 
-          <div className="border-t border-muted" />
+            <div className="border-t border-muted" />
 
-          {/* Kinetic Telemetry Rows */}
-          <div className="flex flex-col gap-1.5 font-sans text-xs">
-            <div className="flex items-center justify-between gap-2">
-              <span className="shrink-0 text-muted-foreground">
-                t95 Arrival
-              </span>
-              <span className="truncate font-mono font-medium text-foreground">
-                {telemetry.timeTo95Ms}ms
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="shrink-0 text-muted-foreground">Overshoot</span>
-              <span className="truncate font-mono font-medium text-foreground">
-                {telemetry.overshootPercent}%
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="shrink-0 text-muted-foreground">
-                Classification
-              </span>
-              <span className="truncate font-medium text-foreground">
-                {telemetry.classification}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Recommended For Use Cases */}
-        {curve.useCases && curve.useCases.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            <span className="font-sans text-[10px] font-medium text-muted-foreground">
-              Recommended for
-            </span>
-            <div className="flex flex-wrap gap-1">
-              {curve.useCases.map((uc) => (
-                <span
-                  key={uc}
-                  className="rounded-[6px] bg-secondary px-2 py-0.5 font-sans text-[11px] text-muted-foreground"
-                >
-                  {uc}
+            {/* Kinetic Telemetry Rows */}
+            <div className="flex flex-col gap-1.5 font-sans text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="shrink-0 text-muted-foreground">
+                  t95 Arrival
                 </span>
-              ))}
+                <span className="truncate font-sans font-medium text-foreground tabular-nums">
+                  {telemetry.timeTo95Ms}ms
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="shrink-0 text-muted-foreground">
+                  Overshoot
+                </span>
+                <span className="truncate font-sans font-medium text-foreground tabular-nums">
+                  {telemetry.overshootPercent}%
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="shrink-0 text-muted-foreground">
+                  Classification
+                </span>
+                <span className="truncate font-medium text-foreground">
+                  {telemetry.classification}
+                </span>
+              </div>
             </div>
           </div>
         )}
+
+        {/* Recommended For Use Cases (Preview Mode only) */}
+        {mode !== "customize" &&
+          curve.useCases &&
+          curve.useCases.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="font-sans text-[10px] font-medium text-muted-foreground">
+                Recommended for
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {curve.useCases.map((uc) => (
+                  <span
+                    key={uc}
+                    className="rounded-[6px] bg-secondary px-2 py-0.5 font-sans text-[11px] text-muted-foreground"
+                  >
+                    {uc}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
         {/* Custom Variants Grid (If Custom Root) */}
         {isRootCustom && (

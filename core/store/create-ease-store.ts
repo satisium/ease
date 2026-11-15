@@ -103,6 +103,7 @@ export interface EaseStoreState {
   mode: StudioMode
   customizePreviewMode: "component" | "primitives"
   stashedComponentTrackId: string | null
+  stashedComponentChannelId: string | null
   viewport: ViewportPreset
   navStack: NavStackState
   isExportOpen: boolean
@@ -249,7 +250,12 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
   let initialCustomCurves = DEFAULT_CUSTOM_CURVES.map(cloneCurve)
   let initialExporter: ExporterId = "tailwind"
   let initialTrackId = "dialog:open"
-  const initialChannelId: string | "all" = "all"
+  let initialChannelId: string | "all" = "all"
+  let initialMode: StudioMode = "preview"
+  let initialCustomizePreviewMode: "component" | "primitives" = "component"
+  let initialNavStack: NavStackState = { level: 0 }
+  let initialStashedComponentTrackId: string | null = null
+  let initialStashedComponentChannelId: string | null = null
 
   if (options?.storage) {
     try {
@@ -259,8 +265,48 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
         initialCustomCurves = persisted.customCurves
         initialExporter = persisted.preferredExporter
         initialTrackId = persisted.activeTrackId
+        if (persisted.activeChannelId && persisted.activeChannelId !== "all") {
+          initialChannelId = persisted.activeChannelId
+        }
         if (persisted.loopDelayMs !== undefined) {
           conductor.setLoopDelayMs(persisted.loopDelayMs)
+        }
+        if (persisted.mode === "customize") {
+          initialMode = "customize"
+        }
+        if (persisted.customizePreviewMode === "primitives") {
+          initialCustomizePreviewMode = "primitives"
+          initialStashedComponentTrackId =
+            persisted.activeTrackId !== "primitives:all"
+              ? persisted.activeTrackId
+              : "dialog:open"
+          initialStashedComponentChannelId =
+            persisted.activeChannelId !== "all"
+              ? persisted.activeChannelId
+              : "translateY"
+          initialTrackId = "primitives:all"
+          initialChannelId = "all"
+        }
+        if (persisted.navStack) {
+          initialNavStack = persisted.navStack
+        }
+        if (persisted.mode === "customize") {
+          initialMode = "customize"
+        }
+        if (persisted.customizePreviewMode === "primitives") {
+          initialCustomizePreviewMode = "primitives"
+          initialStashedComponentTrackId =
+            persisted.activeTrackId !== "primitives:all"
+              ? persisted.activeTrackId
+              : "dialog:open"
+          initialStashedComponentChannelId =
+            persisted.activeChannelId !== "all"
+              ? persisted.activeChannelId
+              : "translateY"
+          initialTrackId = "primitives:all"
+        }
+        if (persisted.navStack) {
+          initialNavStack = persisted.navStack
         }
       }
     } catch {
@@ -333,11 +379,12 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
 
     return {
       // 1. Workspace Slice
-      mode: "preview",
-      customizePreviewMode: "component",
-      stashedComponentTrackId: null,
+      mode: initialMode,
+      customizePreviewMode: initialCustomizePreviewMode,
+      stashedComponentTrackId: initialStashedComponentTrackId,
+      stashedComponentChannelId: initialStashedComponentChannelId,
       viewport: "desktop",
-      navStack: { level: 0 },
+      navStack: initialNavStack,
       isExportOpen: false,
       exportScope: "channel",
       preferredExporter: initialExporter,
@@ -347,8 +394,9 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       // Low-frequency conductor mirror (Zero 120fps re-render guarantee)
       playbackState: conductor.getSnapshot().playbackState,
       isPlaying:
-        conductor.getSnapshot().playbackState === "playing" ||
-        conductor.getSnapshot().playbackState === "resting",
+        conductor.getSnapshot().interactionMode === "scrub" &&
+        (conductor.getSnapshot().playbackState === "playing" ||
+          conductor.getSnapshot().playbackState === "resting"),
       isLooping: conductor.getSnapshot().isLooping,
       loopDelayMs: conductor.getSnapshot().loopDelayMs,
       speed: conductor.getSnapshot().speed,
@@ -357,8 +405,25 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       setMode: (mode) => {
         set({ mode })
         syncDuration()
+        get().persist()
       },
       enterCustomize: () => {
+        const state = get()
+        let targetChannelId = state.focusedChannelId
+        if (
+          targetChannelId === "all" &&
+          state.focusedTrackId !== "primitives:all"
+        ) {
+          const currentTrack = state.getFocusedTrack()
+          const nonOpacity = currentTrack.channels.find(
+            (c) => c.property !== "opacity"
+          )
+          targetChannelId =
+            nonOpacity?.id ?? currentTrack.channels[0]?.id ?? "all"
+          if (targetChannelId !== "all") {
+            set({ focusedChannelId: targetChannelId })
+          }
+        }
         const curve = get().getActiveCurve()
         const inTree = findCurveInCustomTree(get().customCurves, curve.id)
         const scope: DraftScope = inTree ? inTree.scope : "preset"
@@ -368,52 +433,109 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
           activeLibraryTab: curve.engine,
         })
         syncDuration()
+        get().persist()
       },
       exitCustomize: () => {
         set({ mode: "preview", draftCurve: null })
         syncDuration()
+        get().persist()
       },
       enterCompare: () => {
         set({ mode: "compare" })
         syncDuration()
+        get().persist()
       },
       exitCompare: () => {
         set({ mode: "preview" })
         syncDuration()
+        get().persist()
       },
       setCustomizePreviewMode: (mode) => {
         const state = get()
         if (mode === "primitives") {
-          const stashed =
+          const stashedTrack =
             state.focusedTrackId !== "primitives:all"
               ? state.focusedTrackId
-              : state.stashedComponentTrackId
+              : (state.stashedComponentTrackId ?? "dialog:open")
+          const stashedChannel =
+            state.focusedTrackId !== "primitives:all"
+              ? state.focusedChannelId
+              : (state.stashedComponentChannelId ?? "all")
+
+          const workingCurve = state.draftCurve
+            ? state.draftCurve.workingCurve
+            : state.getActiveCurve()
+
+          const basePrimitives =
+            state.trackBindings["primitives:all"] ??
+            trackRegistry.get("primitives:all")?.channels ??
+            []
+          const updatedPrimitivesChannels = basePrimitives.map((ch) => ({
+            ...ch,
+            curve: cloneCurve(workingCurve),
+            durationMs: workingCurve.suggestedDurationMs,
+            springMode: (workingCurve.engine === "spring"
+              ? "natural"
+              : "fit") as SpringDurationMode,
+          }))
+
+          const nextBindings = {
+            ...state.trackBindings,
+            "primitives:all": updatedPrimitivesChannels,
+          }
+
           set({
             customizePreviewMode: "primitives",
-            stashedComponentTrackId: stashed,
+            stashedComponentTrackId: stashedTrack,
+            stashedComponentChannelId: stashedChannel,
             focusedTrackId: "primitives:all",
             focusedChannelId: "all",
             isSolo: false,
+            trackBindings: nextBindings,
           })
           conductor.setSoloActive(false)
           conductor.focusTrack("primitives:all", computeDuration())
+          syncDuration()
+          get().persist()
         } else {
           const targetTrackId = state.stashedComponentTrackId ?? "dialog:open"
+          let targetChannelId = state.stashedComponentChannelId ?? "all"
+          if (targetChannelId === "all" || !targetChannelId) {
+            const tr = trackRegistry.get(targetTrackId)
+            if (tr) {
+              const nonOpacity = tr.channels.find(
+                (c) => c.property !== "opacity"
+              )
+              targetChannelId = nonOpacity?.id ?? tr.channels[0]?.id ?? "all"
+            }
+          }
           set({
             customizePreviewMode: "component",
             stashedComponentTrackId: null,
+            stashedComponentChannelId: null,
             focusedTrackId: targetTrackId,
-            focusedChannelId: "all",
+            focusedChannelId: targetChannelId,
             isSolo: false,
           })
           conductor.setSoloActive(false)
           conductor.focusTrack(targetTrackId, computeDuration())
+          syncDuration()
+          get().persist()
         }
       },
       setViewport: (viewport) => set({ viewport }),
-      setNavStack: (navStack) => set({ navStack }),
-      drillIntoCurve: (curveId) => set({ navStack: { level: 1, curveId } }),
-      backToPresets: () => set({ navStack: { level: 0 } }),
+      setNavStack: (navStack) => {
+        set({ navStack })
+        get().persist()
+      },
+      drillIntoCurve: (curveId) => {
+        set({ navStack: { level: 1, curveId } })
+        get().persist()
+      },
+      backToPresets: () => {
+        set({ navStack: { level: 0 } })
+        get().persist()
+      },
       setExportOpen: (isExportOpen) => set({ isExportOpen }),
       setExportScope: (exportScope) => set({ exportScope }),
       setPreferredExporter: (preferredExporter) => {
@@ -522,12 +644,27 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
           findCurveInCustomTree(customCurves, curveId)?.node
         if (!curve) return
 
-        const nextBindings = applyCurveToChannel(
+        let nextBindings = applyCurveToChannel(
           trackBindings,
           focusedTrackId,
           focusedChannelId,
           curve
         )
+
+        if (focusedTrackId === "primitives:all") {
+          const primChannels = nextBindings["primitives:all"] ?? []
+          nextBindings = {
+            ...nextBindings,
+            "primitives:all": primChannels.map((ch) => ({
+              ...ch,
+              durationMs: curve.suggestedDurationMs,
+              springMode: (curve.engine === "spring"
+                ? "natural"
+                : "fit") as SpringDurationMode,
+            })),
+          }
+        }
+
         const inTree = findCurveInCustomTree(customCurves, curve.id)
         const scope: DraftScope = inTree ? inTree.scope : "preset"
 
@@ -743,12 +880,25 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
           get()
         if (!draftCurve) return
         const nextDraft = updateDraftMath(draftCurve, patch)
-        const nextBindings = applyCurveToChannel(
+        let nextBindings = applyCurveToChannel(
           trackBindings,
           focusedTrackId,
           focusedChannelId,
           nextDraft.workingCurve
         )
+        if (focusedTrackId === "primitives:all") {
+          const primChannels = nextBindings["primitives:all"] ?? []
+          nextBindings = {
+            ...nextBindings,
+            "primitives:all": primChannels.map((ch) => ({
+              ...ch,
+              durationMs: nextDraft.workingCurve.suggestedDurationMs,
+              springMode: (nextDraft.workingCurve.engine === "spring"
+                ? "natural"
+                : "fit") as SpringDurationMode,
+            })),
+          }
+        }
         set({
           draftCurve: nextDraft,
           trackBindings: nextBindings,
@@ -761,12 +911,25 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
           get()
         if (!draftCurve) return
         const reverted = revertDraftReducer(draftCurve)
-        const nextBindings = applyCurveToChannel(
+        let nextBindings = applyCurveToChannel(
           trackBindings,
           focusedTrackId,
           focusedChannelId,
           reverted.workingCurve
         )
+        if (focusedTrackId === "primitives:all") {
+          const primChannels = nextBindings["primitives:all"] ?? []
+          nextBindings = {
+            ...nextBindings,
+            "primitives:all": primChannels.map((ch) => ({
+              ...ch,
+              durationMs: reverted.workingCurve.suggestedDurationMs,
+              springMode: (reverted.workingCurve.engine === "spring"
+                ? "natural"
+                : "fit") as SpringDurationMode,
+            })),
+          }
+        }
         set({
           draftCurve: reverted,
           trackBindings: nextBindings,
@@ -1148,13 +1311,23 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
           const state = get()
           const payload = serializeEaseStorage({
             customCurves: state.customCurves,
-            activeTrackId: state.focusedTrackId,
+            activeTrackId:
+              state.customizePreviewMode === "primitives" &&
+              state.stashedComponentTrackId
+                ? state.stashedComponentTrackId
+                : state.focusedTrackId,
             activeChannelId:
-              state.focusedChannelId === "all"
-                ? "scale"
-                : state.focusedChannelId,
+              state.customizePreviewMode === "primitives" &&
+              state.stashedComponentChannelId
+                ? state.stashedComponentChannelId
+                : state.focusedChannelId === "all"
+                  ? "scale"
+                  : state.focusedChannelId,
             preferredExporter: state.preferredExporter,
             loopDelayMs: state.loopDelayMs,
+            mode: state.mode,
+            customizePreviewMode: state.customizePreviewMode,
+            navStack: state.navStack,
           })
           options.storage.setItem(storageKey, payload)
         } catch {
@@ -1169,6 +1342,7 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
 
   // Mirror low-frequency conductor state changes into Zustand store (zero 120fps re-render overhead)
   let prevPlaybackState = conductor.getSnapshot().playbackState
+  let prevInteractionMode = conductor.getSnapshot().interactionMode
   let prevIsLooping = conductor.getSnapshot().isLooping
   let prevLoopDelayMs = conductor.getSnapshot().loopDelayMs
   let prevSpeed = conductor.getSnapshot().speed
@@ -1177,12 +1351,14 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
   conductor.subscribe((snap) => {
     if (
       snap.playbackState !== prevPlaybackState ||
+      snap.interactionMode !== prevInteractionMode ||
       snap.isLooping !== prevIsLooping ||
       snap.loopDelayMs !== prevLoopDelayMs ||
       snap.speed !== prevSpeed ||
       snap.totalDurationMs !== prevTotalDurationMs
     ) {
       prevPlaybackState = snap.playbackState
+      prevInteractionMode = snap.interactionMode
       prevIsLooping = snap.isLooping
       prevLoopDelayMs = snap.loopDelayMs
       prevSpeed = snap.speed
@@ -1191,7 +1367,9 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       store.setState({
         playbackState: snap.playbackState,
         isPlaying:
-          snap.playbackState === "playing" || snap.playbackState === "resting",
+          snap.interactionMode === "scrub" &&
+          (snap.playbackState === "playing" ||
+            snap.playbackState === "resting"),
         isLooping: snap.isLooping,
         loopDelayMs: snap.loopDelayMs,
         speed: snap.speed,
@@ -1205,10 +1383,41 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
     fullStore.getState().applyUrlHash(options.initialHash)
   }
 
+  // If initial mode is customize, initialize draftCurve and sync
+  if (initialMode === "customize") {
+    const st = fullStore.getState()
+    let targetCh = st.focusedChannelId
+    if (targetCh === "all" && st.focusedTrackId !== "primitives:all") {
+      const tr = st.getFocusedTrack()
+      const nonOpacity = tr.channels.find((c) => c.property !== "opacity")
+      targetCh = nonOpacity?.id ?? tr.channels[0]?.id ?? "all"
+      if (targetCh !== "all") {
+        fullStore.setState({ focusedChannelId: targetCh })
+      }
+    }
+    const curve = fullStore.getState().getActiveCurve()
+    const inTree = findCurveInCustomTree(
+      fullStore.getState().customCurves,
+      curve.id
+    )
+    const scope: DraftScope = inTree ? inTree.scope : "preset"
+    const draft = startDraftReducer(curve, scope)
+    fullStore.setState({
+      mode: "customize",
+      draftCurve: draft,
+      activeLibraryTab: curve.engine,
+    })
+
+    if (initialCustomizePreviewMode === "primitives") {
+      fullStore.getState().setCustomizePreviewMode("primitives")
+    }
+  }
+
   // Initial duration sync
+  const finalState = fullStore.getState()
   const initialDuration = getTrackTotalDurationMs(
-    { channels: fullStore.getState().trackBindings[initialTrackId] ?? [] },
-    false
+    { channels: finalState.trackBindings[finalState.focusedTrackId] ?? [] },
+    finalState.isReducedMotion
   )
   conductor.setTotalDurationMs(initialDuration)
   fullStore.setState({ totalDurationMs: initialDuration })

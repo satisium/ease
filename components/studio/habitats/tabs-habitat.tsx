@@ -127,7 +127,7 @@ export function TabsHabitat() {
               </p>
             </div>
           </div>
-          <span className="font-mono text-[10px] text-muted-foreground">
+          <span className="font-sans text-[10px] text-muted-foreground">
             tabs:switch
           </span>
         </div>
@@ -171,7 +171,7 @@ export function TabsHabitat() {
 
         {/* Dynamic Content Panel */}
         <div className="mt-4 rounded-[14px] bg-secondary p-4">
-          <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
+          <span className="font-sans text-[10px] tracking-wider text-muted-foreground uppercase">
             Active Segment
           </span>
           <h5 className="mt-1 font-heading text-sm font-semibold text-foreground">
@@ -185,7 +185,7 @@ export function TabsHabitat() {
             <span className="font-sans text-[11px] text-muted-foreground">
               {currentTabData.metricLabel}
             </span>
-            <span className="font-mono text-[11px] font-semibold text-foreground">
+            <span className="font-sans text-[11px] font-semibold text-foreground tabular-nums">
               {currentTabData.metricValue}
             </span>
           </div>

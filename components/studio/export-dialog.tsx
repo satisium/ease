@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from "react"
+import { useTheme } from "next-themes"
+import { codeToHtml } from "shiki"
 import {
   Copy01Icon,
   Link01Icon,
@@ -24,7 +26,15 @@ const EXPORTERS: { id: ExporterId; label: string }[] = [
   { id: "gsap", label: "GSAP" },
 ]
 
+const LANG_MAP: Record<ExporterId, string> = {
+  css: "css",
+  tailwind: "html",
+  motion: "tsx",
+  gsap: "ts",
+}
+
 export function ExportDialog() {
+  const { resolvedTheme } = useTheme()
   const isExportOpen = useEaseStore((s) => s.isExportOpen)
   const setExportOpen = useEaseStore((s) => s.setExportOpen)
   const exportScope = useEaseStore((s) => s.exportScope)
@@ -38,6 +48,9 @@ export function ExportDialog() {
 
   const [hasCopiedCode, setHasCopiedCode] = React.useState(false)
   const [hasCopiedUrl, setHasCopiedUrl] = React.useState(false)
+  const [highlightedHtml, setHighlightedHtml] = React.useState<string | null>(
+    null
+  )
 
   const activeCurve = React.useMemo(() => getActiveCurve(), [getActiveCurve])
   const focusedTrack = React.useMemo(() => getFocusedTrack(), [getFocusedTrack])
@@ -45,6 +58,37 @@ export function ExportDialog() {
   const code = React.useMemo(() => {
     return getActiveExportCode(preferredExporter, exportScope)
   }, [getActiveExportCode, preferredExporter, exportScope])
+
+  React.useEffect(() => {
+    let isMounted = true
+
+    async function highlight() {
+      try {
+        const lang = LANG_MAP[preferredExporter] ?? "ts"
+        const theme =
+          resolvedTheme === "dark"
+            ? "github-dark-default"
+            : "github-light-default"
+        const html = await codeToHtml(code, {
+          lang,
+          theme,
+        })
+        if (isMounted) {
+          setHighlightedHtml(html)
+        }
+      } catch {
+        if (isMounted) {
+          setHighlightedHtml(null)
+        }
+      }
+    }
+
+    highlight()
+
+    return () => {
+      isMounted = false
+    }
+  }, [code, preferredExporter, resolvedTheme])
 
   const handleCopyCode = React.useCallback(async () => {
     try {
@@ -75,7 +119,7 @@ export function ExportDialog() {
     <Dialog open={isExportOpen} onOpenChange={setExportOpen}>
       <DialogContent
         showCloseButton
-        className="max-w-[560px] gap-4 rounded-[20px] bg-background p-6 shadow-none"
+        className="w-full gap-4 rounded-[20px] border-none bg-background p-5 shadow-none sm:max-w-[640px]"
       >
         <DialogHeader className="gap-1 text-left">
           <DialogTitle className="font-heading text-sm font-semibold text-foreground">
@@ -158,10 +202,17 @@ export function ExportDialog() {
         </div>
 
         {/* Generated Code Area (Borderless Squircle) */}
-        <div className="relative">
-          <pre className="no-scrollbar max-h-[260px] overflow-x-auto rounded-[14px] bg-muted p-4 font-mono text-xs leading-relaxed text-foreground select-text">
-            <code>{code}</code>
-          </pre>
+        <div className="relative max-h-[360px] min-h-[160px] overflow-auto rounded-[14px] bg-muted p-4">
+          {highlightedHtml ? (
+            <div
+              className="font-mono text-[13px] leading-relaxed select-text [&_code]:!bg-transparent [&_code]:break-all [&_code]:whitespace-pre-wrap [&_pre]:!m-0 [&_pre]:!bg-transparent [&_pre]:!p-0 [&_pre]:break-all [&_pre]:whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+            />
+          ) : (
+            <pre className="font-mono text-[13px] leading-relaxed break-all whitespace-pre-wrap text-foreground select-text">
+              <code className="break-all whitespace-pre-wrap">{code}</code>
+            </pre>
+          )}
         </div>
 
         {/* Footer Actions */}

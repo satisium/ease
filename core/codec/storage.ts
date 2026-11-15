@@ -9,8 +9,8 @@
  */
 
 import { DEFAULT_CUSTOM_CURVES } from "../presets/default-customs"
-import { BezierParams, EaseCurve, SpringParams } from "../schema"
-import { cloneCurve } from "../state/curve-tree-reducers"
+import { BezierParams, EaseCurve, SpringParams, StudioMode } from "../schema"
+import { cloneCurve, NavStackState } from "../state/curve-tree-reducers"
 import { parseCurveString } from "../math/parser"
 
 /** Active schema version for persisted local storage. */
@@ -30,6 +30,9 @@ export interface PersistedEaseData {
   activeChannelId: string
   preferredExporter: "css" | "tailwind" | "motion" | "gsap"
   loopDelayMs: number
+  mode?: StudioMode
+  customizePreviewMode?: "component" | "primitives"
+  navStack?: NavStackState
 }
 
 interface RawLegacyItem {
@@ -298,6 +301,9 @@ export function serializeEaseStorage(
     activeChannelId: data.activeChannelId,
     preferredExporter: data.preferredExporter,
     loopDelayMs: Math.max(0, Math.round(data.loopDelayMs)),
+    mode: data.mode ?? "preview",
+    customizePreviewMode: data.customizePreviewMode ?? "component",
+    navStack: data.navStack ?? { level: 0 },
   }
   return JSON.stringify(payload)
 }
@@ -319,6 +325,9 @@ export function deserializeEaseStorage(
     activeChannelId: "scale",
     preferredExporter: "css",
     loopDelayMs: 400,
+    mode: "preview",
+    customizePreviewMode: "component",
+    navStack: { level: 0 },
   }
 
   if (!rawJson || typeof rawJson !== "string") {
@@ -366,6 +375,27 @@ export function deserializeEaseStorage(
         ? Math.max(0, Math.round(parsed.loopDelayMs))
         : fallback.loopDelayMs
 
+    let mode: StudioMode = "preview"
+    if (parsed.mode === "customize") {
+      mode = "customize"
+    } else if (parsed.mode === "compare") {
+      mode = "preview"
+    }
+
+    const customizePreviewMode: "component" | "primitives" =
+      parsed.customizePreviewMode === "primitives" ? "primitives" : "component"
+
+    let navStack: NavStackState = { level: 0 }
+    if (
+      parsed.navStack &&
+      typeof parsed.navStack === "object" &&
+      parsed.navStack.level === 1 &&
+      typeof parsed.navStack.curveId === "string" &&
+      parsed.navStack.curveId.trim()
+    ) {
+      navStack = { level: 1, curveId: parsed.navStack.curveId.trim() }
+    }
+
     return {
       version: EASE_STORAGE_VERSION,
       customCurves,
@@ -373,6 +403,9 @@ export function deserializeEaseStorage(
       activeChannelId,
       preferredExporter,
       loopDelayMs,
+      mode,
+      customizePreviewMode,
+      navStack,
     }
   } catch {
     return fallback

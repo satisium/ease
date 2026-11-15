@@ -13,7 +13,7 @@ import { useEaseStore } from "@/hooks/use-ease-store"
 
 export function CompareQueueSlab({ className }: { className?: string }) {
   const compareQueue = useEaseStore((s) => s.compareQueue)
-  const getActiveCurve = useEaseStore((s) => s.getActiveCurve)
+  const activeCurve = useEaseStore((s) => s.getActiveCurve())
   const stageActiveCurveToCompare = useEaseStore(
     (s) => s.stageActiveCurveToCompare
   )
@@ -23,7 +23,6 @@ export function CompareQueueSlab({ className }: { className?: string }) {
   )
   const enterCompare = useEaseStore((s) => s.enterCompare)
 
-  const activeCurve = React.useMemo(() => getActiveCurve(), [getActiveCurve])
   const isCurrentCurveQueued = compareQueue.some(
     (item) => item.curve.id === activeCurve?.id
   )
@@ -139,13 +138,13 @@ export function CompareQueueSlab({ className }: { className?: string }) {
         className="no-scrollbar flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pr-0.5"
       >
         {compareQueue.length === 0 ? (
-          <div className="flex flex-col pt-3 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center text-center">
             <span className="font-sans text-xs text-muted-foreground">
               Queue is empty
             </span>
             <span className="mt-1 font-sans text-[11px] text-muted-foreground">
               Press{" "}
-              <kbd className="rounded bg-secondary px-1 py-0.5 font-mono text-[9px] text-foreground">
+              <kbd className="rounded bg-secondary px-1 py-0.5 font-sans text-[10px] text-foreground">
                 C
               </kbd>{" "}
               to stage current curve

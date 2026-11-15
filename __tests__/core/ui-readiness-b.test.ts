@@ -95,8 +95,13 @@ describe("UI-Readiness Pass B: Store Ergonomics & 120fps Invariants", () => {
 
     // Finish animation
     clock.advance(500)
-    // When playback transitions to "resting" (breather delay), isPlaying stays true
+    // When playback transitions to "resting" (breather delay), playbackState updates
     expect(store.getState().playbackState).toBe("resting")
+    // Scrubber isolation invariant: triggerLive interactionMode is "live", so isPlaying is false
+    expect(store.getState().isPlaying).toBe(false)
+
+    // When scrub playback is started via playScoped, isPlaying becomes true
+    store.getState().playScoped()
     expect(store.getState().isPlaying).toBe(true)
 
     // When explicitly paused, playback transitions to "idle" and isPlaying becomes false
@@ -105,6 +110,27 @@ describe("UI-Readiness Pass B: Store Ergonomics & 120fps Invariants", () => {
     expect(store.getState().isPlaying).toBe(false)
 
     unsubscribe()
+  })
+
+  it("isolates live interaction from scrubber isPlaying: triggerLive keeps isPlaying false while playScoped sets isPlaying true", () => {
+    const clock = createMockClockDriver()
+    const conductor = new TrackConductor(clock.driver)
+    const store = createEaseStore({ conductor })
+
+    // 1. Direct live trigger (e.g. clicking Open Dialog in Habitat)
+    store.getState().triggerLive("dialog:open")
+    expect(store.getState().playbackState).toBe("playing")
+    expect(store.getState().isPlaying).toBe(false)
+
+    // 2. Playback started from TimelineConsole transport (playScoped)
+    store.getState().playScoped()
+    expect(store.getState().playbackState).toBe("playing")
+    expect(store.getState().isPlaying).toBe(true)
+
+    // 3. Paused
+    store.getState().pauseScoped()
+    expect(store.getState().playbackState).toBe("idle")
+    expect(store.getState().isPlaying).toBe(false)
   })
 
   it("handles playback actions: playScoped, pauseScoped, togglePlayback, seekScoped, setLoopDelayMs", () => {

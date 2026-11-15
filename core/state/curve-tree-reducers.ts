@@ -88,11 +88,55 @@ export function startDraft(
 }
 
 /**
- * Immutably updates the working curve math or name and marks the draft dirty (`*`).
+ * Compares two ease curves for mathematical and identifier equivalence.
+ * Uses numerical tolerances for floating-point values (1e-4 for bezier handles,
+ * 1e-3 for physical spring parameters).
+ *
+ * @param a - First EaseCurve.
+ * @param b - Second EaseCurve.
+ * @returns True if both curves are mathematically and semantically identical.
+ */
+export function areCurvesMathEqual(a: EaseCurve, b: EaseCurve): boolean {
+  if (a.engine !== b.engine) return false
+  if (a.name !== b.name) return false
+
+  if (
+    a.suggestedDurationMs !== undefined &&
+    b.suggestedDurationMs !== undefined &&
+    Math.abs(a.suggestedDurationMs - b.suggestedDurationMs) > 1e-2
+  ) {
+    return false
+  }
+
+  if (a.engine === "bezier") {
+    const EPS = 1e-4
+    return (
+      Math.abs(a.bezier.p1.x - b.bezier.p1.x) <= EPS &&
+      Math.abs(a.bezier.p1.y - b.bezier.p1.y) <= EPS &&
+      Math.abs(a.bezier.p2.x - b.bezier.p2.x) <= EPS &&
+      Math.abs(a.bezier.p2.y - b.bezier.p2.y) <= EPS
+    )
+  }
+
+  if (a.engine === "spring") {
+    const EPS = 1e-3
+    return (
+      Math.abs(a.spring.mass - b.spring.mass) <= EPS &&
+      Math.abs(a.spring.stiffness - b.spring.stiffness) <= EPS &&
+      Math.abs(a.spring.damping - b.spring.damping) <= EPS
+    )
+  }
+
+  return false
+}
+
+/**
+ * Immutably updates the working curve math or name and evaluates whether
+ * the draft differs from the parent baseline (honest `isDirty` flag).
  *
  * @param draft - Active draft state.
  * @param patch - Parameter or metadata patch.
- * @returns Updated DraftCurveState with `isDirty: true`.
+ * @returns Updated DraftCurveState with dynamic `isDirty` evaluation.
  */
 export function updateDraftMath(
   draft: DraftCurveState,
@@ -135,10 +179,12 @@ export function updateDraftMath(
     }
   }
 
+  const isDirty = !areCurvesMathEqual(nextWorking, draft.parentCurve)
+
   return {
     ...draft,
     workingCurve: nextWorking,
-    isDirty: true,
+    isDirty,
   }
 }
 

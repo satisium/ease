@@ -110,7 +110,7 @@ export function AuditionToolbar() {
 
         {isComponentMenuOpen && (
           <div className="absolute bottom-full left-0 z-50 mb-2 flex w-48 flex-col gap-0.5 rounded-[14px] bg-card p-1 shadow-lg">
-            <span className="px-2.5 py-1 font-mono text-[10px] text-muted-foreground uppercase">
+            <span className="px-2.5 py-1 font-sans text-[10px] text-muted-foreground uppercase">
               Components
             </span>
             {components.map((comp) => {
@@ -362,7 +362,7 @@ export function AuditionToolbar() {
                 ? "Solo Active: Isolating channel"
                 : "Solo Channel"}
           </span>
-          <kbd className="rounded bg-muted px-1 py-0.5 font-mono text-[9px] text-muted-foreground">
+          <kbd className="rounded bg-muted px-1 py-0.5 font-sans text-[10px] text-muted-foreground">
             S
           </kbd>
         </TooltipContent>
@@ -385,7 +385,7 @@ export function AuditionToolbar() {
           className="flex items-center gap-1.5 text-xs"
         >
           <span>Customize curve in Canvas</span>
-          <kbd className="rounded bg-muted px-1 py-0.5 font-mono text-[9px] text-muted-foreground">
+          <kbd className="rounded bg-muted px-1 py-0.5 font-sans text-[10px] text-muted-foreground">
             2
           </kbd>
         </TooltipContent>

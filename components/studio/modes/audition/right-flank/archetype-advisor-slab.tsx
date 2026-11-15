@@ -143,7 +143,7 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
         </p>
 
         {/* Quiet, Borderless Active Curve & Duration Line */}
-        <div className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1 font-sans text-[10px] text-muted-foreground tabular-nums">
           <span>{channel.curve.name}</span>
           <span>·</span>
           <span>{channel.durationMs}ms</span>
@@ -158,7 +158,7 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
                 Recommended
               </span>
               {channel.semanticContext?.recommendedRangeMs && (
-                <span className="font-mono text-[10px] text-muted-foreground">
+                <span className="font-sans text-[10px] text-muted-foreground tabular-nums">
                   {channel.semanticContext.recommendedRangeMs[0]}–
                   {channel.semanticContext.recommendedRangeMs[1]}ms
                 </span>
@@ -208,7 +208,7 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
                   {pairedTrack.phaseLabel ?? "Exit"} Recommended
                 </span>
                 {pairedChannel.semanticContext?.recommendedRangeMs && (
-                  <span className="font-mono text-[10px] text-muted-foreground">
+                  <span className="font-sans text-[10px] text-muted-foreground tabular-nums">
                     {pairedChannel.semanticContext.recommendedRangeMs[0]}–
                     {pairedChannel.semanticContext.recommendedRangeMs[1]}ms
                   </span>
