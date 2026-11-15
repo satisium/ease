@@ -75,7 +75,7 @@ trackRegistry.register({
   channels: [
     createChannel({
       id: "backdrop",
-      label: "Backdrop Scrim",
+      label: "Backdrop",
       property: "opacity",
       from: 0,
       to: 0.45,
@@ -141,7 +141,7 @@ trackRegistry.register({
   channels: [
     createChannel({
       id: "backdrop",
-      label: "Backdrop Scrim",
+      label: "Backdrop",
       property: "opacity",
       from: 0.45,
       to: 0,
@@ -200,7 +200,7 @@ trackRegistry.register({
   channels: [
     createChannel({
       id: "backdrop",
-      label: "Scrim Opacity",
+      label: "Backdrop",
       property: "opacity",
       from: 0,
       to: 0.4,
@@ -246,7 +246,7 @@ trackRegistry.register({
   channels: [
     createChannel({
       id: "backdrop",
-      label: "Scrim Opacity",
+      label: "Backdrop",
       property: "opacity",
       from: 0.4,
       to: 0,

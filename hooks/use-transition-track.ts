@@ -142,6 +142,11 @@ export function useTransitionTrack(
   const currentChannels: readonly ChannelBinding[] =
     trackBindings[effectiveTrackId] ?? baseTrack.channels
 
+  const effectiveSoloChannelId =
+    (isSolo || playbackState === "scrubbing") && focusedChannelId !== "all"
+      ? focusedChannelId
+      : null
+
   // Evaluator function for this specific track
   const evaluateFrame = useCallback(
     (elapsedMs: number): TrackFrameResult | null => {
@@ -158,8 +163,7 @@ export function useTransitionTrack(
           channels: [...currentChannels],
         },
         elapsedMs,
-        soloChannelId:
-          isSolo && focusedChannelId !== "all" ? focusedChannelId : null,
+        soloChannelId: effectiveSoloChannelId,
         isReducedMotion,
         protectOpacityOvershoot,
         interruptions: conductorSnap.interruptions,
@@ -171,8 +175,7 @@ export function useTransitionTrack(
       protectOpacityOvershoot,
       baseTrack.phase,
       currentChannels,
-      isSolo,
-      focusedChannelId,
+      effectiveSoloChannelId,
       isReducedMotion,
     ]
   )

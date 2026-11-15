@@ -152,7 +152,7 @@ describe("core/registry/exporters", () => {
     it("compiles multi-channel dialog:open track to CSS", () => {
       const code = compileTrackExport("css", dialogOpen)
       expect(code).toContain("/* --- Modal Dialog (Entrance) --- */")
-      expect(code).toContain("/* Backdrop Scrim */")
+      expect(code).toContain("/* Backdrop */")
       expect(code).toContain(".dialog-backdrop {")
       expect(code).toContain(".dialog-translateY {")
       expect(code).toContain(".dialog-scale {")
@@ -160,7 +160,7 @@ describe("core/registry/exporters", () => {
 
     it("compiles multi-channel dialog:open track to Tailwind", () => {
       const code = compileTrackExport("tailwind", dialogOpen)
-      expect(code).toContain("/* Backdrop Scrim */")
+      expect(code).toContain("/* Backdrop */")
       expect(code).toContain(
         "transition-opacity duration-[180ms] ease-[cubic-bezier(0,0,0.2,1)]"
       )

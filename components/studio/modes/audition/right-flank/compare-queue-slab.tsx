@@ -1,22 +1,32 @@
 "use client"
 
 import * as React from "react"
-import { Cancel01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons"
+import {
+  Cancel01Icon,
+  ArrowRight01Icon,
+  ViewIcon,
+  ViewOffSlashIcon,
+} from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "@/lib/utils"
-import { resolveEase } from "@/components/studio/domain/studio-kinetics"
-import { useStudioStore } from "@/store/useStudioStore"
+import { useEaseStore } from "@/hooks/use-ease-store"
 
 export function CompareQueueSlab({ className }: { className?: string }) {
-  const compareQueue = useStudioStore((s) => s.compareQueue)
-  const activePresetId = useStudioStore((s) => s.activeCurveId)
-  const customCurves = useStudioStore((s) => s.customCurves)
-  const toggleCompare = useStudioStore((s) => s.toggleCompare)
-  const removeFromCompare = useStudioStore((s) => s.removeFromCompare)
-  const clearCompareQueue = useStudioStore((s) => s.clearCompareQueue)
-  const setMode = useStudioStore((s) => s.setMode)
+  const compareQueue = useEaseStore((s) => s.compareQueue)
+  const getActiveCurve = useEaseStore((s) => s.getActiveCurve)
+  const stageActiveCurveToCompare = useEaseStore(
+    (s) => s.stageActiveCurveToCompare
+  )
+  const removeCompareItem = useEaseStore((s) => s.removeCompareItem)
+  const toggleCompareItemVisibility = useEaseStore(
+    (s) => s.toggleCompareItemVisibility
+  )
+  const enterCompare = useEaseStore((s) => s.enterCompare)
 
-  const isCurrentCurveQueued = compareQueue.includes(activePresetId)
+  const activeCurve = React.useMemo(() => getActiveCurve(), [getActiveCurve])
+  const isCurrentCurveQueued = compareQueue.some(
+    (item) => item.curve.id === activeCurve?.id
+  )
 
   const listRef = React.useRef<HTMLDivElement>(null)
   const [scrollState, setScrollState] = React.useState<{
@@ -51,6 +61,8 @@ export function CompareQueueSlab({ className }: { className?: string }) {
 
     updateScrollState()
 
+    if (typeof ResizeObserver === "undefined") return
+
     const ro = new ResizeObserver(() => {
       updateScrollState()
     })
@@ -82,9 +94,11 @@ export function CompareQueueSlab({ className }: { className?: string }) {
     }
   }, [scrollState])
 
-  const handleClearAll = () => {
-    clearCompareQueue()
-  }
+  const handleClearAll = React.useCallback(() => {
+    for (const item of compareQueue) {
+      removeCompareItem(item.id)
+    }
+  }, [compareQueue, removeCompareItem])
 
   return (
     <section
@@ -94,7 +108,7 @@ export function CompareQueueSlab({ className }: { className?: string }) {
         className
       )}
     >
-      {/* Header: Fixed at top with clean bottom padding */}
+      {/* Header: Title + Staged Counter + Clear all */}
       <div className="flex shrink-0 items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <span className="font-heading text-xs font-semibold text-foreground">
@@ -109,6 +123,7 @@ export function CompareQueueSlab({ className }: { className?: string }) {
           <button
             type="button"
             onClick={handleClearAll}
+            aria-label="Clear all queued curves"
             className="cursor-pointer font-sans text-[10px] text-muted-foreground transition-colors hover:text-foreground"
           >
             Clear all
@@ -116,7 +131,7 @@ export function CompareQueueSlab({ className }: { className?: string }) {
         )}
       </div>
 
-      {/* Top-Justified Curves List Area: Dynamic scroll fade via CSS mask-image */}
+      {/* Curves List: Dynamic scroll fade via CSS mask-image */}
       <div
         ref={listRef}
         onScroll={updateScrollState}
@@ -137,14 +152,12 @@ export function CompareQueueSlab({ className }: { className?: string }) {
             </span>
           </div>
         ) : (
-          compareQueue.map((curveId) => {
-            const dossier = resolveEase(curveId, customCurves)
-            const name = dossier?.name ?? curveId
-            const isCurrent = curveId === activePresetId
+          compareQueue.map((item) => {
+            const isCurrent = item.curve.id === activeCurve?.id
 
             return (
               <div
-                key={curveId}
+                key={item.id}
                 className={cn(
                   "flex h-6 shrink-0 items-center justify-between px-1",
                   isCurrent
@@ -152,27 +165,54 @@ export function CompareQueueSlab({ className }: { className?: string }) {
                     : "text-muted-foreground"
                 )}
               >
-                <span className="truncate font-sans text-xs">{name}</span>
+                <span className="truncate font-sans text-xs">
+                  {item.curve.name}
+                </span>
 
-                <button
-                  type="button"
-                  onClick={() => removeFromCompare(curveId)}
-                  aria-label={`Remove ${name} from queue`}
-                  className="flex size-3.5 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground active:scale-95"
-                >
-                  <HugeiconsIcon icon={Cancel01Icon} className="size-2.5" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {/* Visibility Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => toggleCompareItemVisibility(item.id)}
+                    aria-label={
+                      item.visible
+                        ? `Hide ${item.curve.name} in duel`
+                        : `Show ${item.curve.name} in duel`
+                    }
+                    className="flex size-4 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground active:scale-95"
+                  >
+                    <HugeiconsIcon
+                      icon={item.visible ? ViewIcon : ViewOffSlashIcon}
+                      className="size-3"
+                    />
+                  </button>
+
+                  {/* Remove Item */}
+                  <button
+                    type="button"
+                    onClick={() => removeCompareItem(item.id)}
+                    aria-label={`Remove ${item.curve.name} from queue`}
+                    className="flex size-4 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground active:scale-95"
+                  >
+                    <HugeiconsIcon icon={Cancel01Icon} className="size-3" />
+                  </button>
+                </div>
               </div>
             )
           })
         )}
       </div>
 
-      {/* Action Row: Firmly anchored at bottom */}
+      {/* Action Row: Queue Current + Duel Button */}
       <div className="mt-auto flex shrink-0 items-center gap-2 pt-2">
         <button
           type="button"
-          onClick={() => toggleCompare(activePresetId)}
+          onClick={stageActiveCurveToCompare}
+          aria-label={
+            isCurrentCurveQueued
+              ? "Current curve already queued"
+              : "Queue current curve for comparison"
+          }
           className="inline-flex h-8 flex-1 cursor-pointer items-center justify-center rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted active:scale-95"
         >
           <span>
@@ -182,8 +222,15 @@ export function CompareQueueSlab({ className }: { className?: string }) {
 
         <button
           type="button"
-          onClick={() => setMode("compare")}
-          className="inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted active:scale-95"
+          disabled={compareQueue.length < 2}
+          onClick={enterCompare}
+          aria-label="Enter compare duel mode"
+          className={cn(
+            "inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] px-3.5 font-heading text-xs font-medium transition-colors active:scale-95",
+            compareQueue.length >= 2
+              ? "bg-foreground text-background hover:opacity-90"
+              : "cursor-not-allowed bg-muted text-muted-foreground"
+          )}
         >
           <span>Duel</span>
           <HugeiconsIcon icon={ArrowRight01Icon} className="size-3" />

@@ -8,70 +8,112 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { useStudioStore } from "@/store/useStudioStore"
 import {
-  BEST_PRACTICES,
-  BestPracticeSpec,
-  KINETIC_ROLE_LAWS,
-} from "./archetype-laws"
+  getCanonicalPresetById,
+  getPairedTrackId,
+  getTrackPlugin,
+  trackRegistry,
+} from "@/core"
+import { useEaseStore } from "@/hooks/use-ease-store"
+
+const SHORT_PRESET_NAMES: Record<string, string> = {
+  "ease-out-quart": "Quart Out",
+  "material-emphasized": "Emphasized",
+  "material-decelerate": "Decel",
+  "material-accelerate": "Accel",
+  "snappy-spring": "Snappy",
+  "expo-out": "Expo Out",
+  "expo-in": "Expo In",
+  "ios-fluid": "Fluid (iOS)",
+  "power1-out": "Power1 Out",
+  "power2-out": "Power2 Out",
+  "power3-out": "Power3 Out",
+  "power4-out": "Power4 Out",
+  "power1-in": "Power1 In",
+  "power2-in": "Power2 In",
+  "power3-in": "Power3 In",
+  "power4-in": "Power4 In",
+  "circ-out": "Circ Out",
+  "circ-in": "Circ In",
+  "back-out": "Back Out",
+  "back-in": "Back In",
+  "back-in-out": "Back InOut",
+  "react-default": "React",
+  "material-pop": "Pop",
+  "mechanical-arm": "Mechanical",
+  "soap-bubble": "Bubble",
+  "rubber-band": "Rubber",
+  "super-bouncy": "Bouncy",
+  "elastic-out": "Elastic Out",
+  "elastic-soft": "Elastic Soft",
+  "elastic-hard": "Elastic Hard",
+  gentle: "Gentle",
+  stiff: "Stiff",
+  heavy: "Heavy",
+  button: "Button",
+  toast: "Toast",
+  drawer: "Drawer",
+}
+
+function getShortPresetName(id: string, fullName: string): string {
+  return SHORT_PRESET_NAMES[id] ?? fullName
+}
 
 export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
-  const activePresetId = useStudioStore((s) => s.activeCurveId)
-  const activeScenarioKey = useStudioStore((s) => s.activeScenarioKey)
-  const scenarioSlots = useStudioStore((s) => s.scenarioSlots)
-  const scenarioChannelSlots = useStudioStore((s) => s.scenarioChannelSlots)
-  const activeSlot = useStudioStore((s) => s.activeSlot)
-  const activeSlotId = useStudioStore((s) => s.activeSlotId)
-  const activeChannelId = useStudioStore((s) => s.activeChannelId)
-  const discoveredChannels = useStudioStore((s) => s.discoveredChannels)
-  const selectEase = useStudioStore((s) => s.selectEase)
-  const assignCurveToSlot = useStudioStore((s) => s.assignCurveToSlot)
-  const assignCurveToChannel = useStudioStore((s) => s.assignCurveToChannel)
+  const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
+  const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
+  const trackBindings = useEaseStore((s) => s.trackBindings)
+  const focusTrack = useEaseStore((s) => s.focusTrack)
+  const selectCurveForFocused = useEaseStore((s) => s.selectCurveForFocused)
 
-  // 1. Check if a specific Kinetic Channel is selected in Center Stage
-  const channels = discoveredChannels?.[activeScenarioKey]?.[activeSlotId] || []
-  const activeChannel =
-    activeChannelId !== "all"
-      ? channels.find((c) => c.id === activeChannelId)
-      : null
+  // 1. Resolve active track and channel
+  const focusedTrack = React.useMemo(() => {
+    return getTrackPlugin(focusedTrackId) ?? trackRegistry.list()[0]
+  }, [focusedTrackId])
 
-  const roleSpec = activeChannel?.role
-    ? KINETIC_ROLE_LAWS[activeChannel.role]
-    : null
+  const currentChannels = React.useMemo(() => {
+    return trackBindings[focusedTrackId] ?? focusedTrack.channels
+  }, [trackBindings, focusedTrackId, focusedTrack])
 
-  // 2. Resolve guidance spec (Adaptive Kinetic Role vs Scenario Macro Law)
-  const currentSlot = scenarioSlots[activeScenarioKey]
-  const macroSpec: BestPracticeSpec =
-    BEST_PRACTICES[activeScenarioKey] ?? BEST_PRACTICES.dialog
-
-  const guidelineText = roleSpec ? roleSpec.guideline : macroSpec.guideline
-  const sectionTitle = roleSpec
-    ? `Motion Guide · ${activeChannel?.label || roleSpec.label}`
-    : "Motion Guide"
-
-  const recommendedIn = roleSpec?.recommendedIn ?? macroSpec.recommendedIn
-  const recommendedOut = roleSpec?.recommendedOut ?? macroSpec.recommendedOut
-  const targetDurationIn =
-    roleSpec?.targetDurationIn ?? macroSpec.targetDurationIn ?? "220–320ms"
-  const targetDurationOut =
-    roleSpec?.targetDurationOut ?? macroSpec.targetDurationOut ?? "160–220ms"
-
-  // 3. Curve assignment dispatcher
-  const handleAssignIn = (curveId: string) => {
-    if (activeChannelId !== "all") {
-      assignCurveToChannel(curveId, activeChannelId, "enter", activeScenarioKey)
-    } else {
-      assignCurveToSlot(curveId, "enter", activeScenarioKey)
+  const channel = React.useMemo(() => {
+    if (focusedChannelId !== "all") {
+      const found = currentChannels.find((c) => c.id === focusedChannelId)
+      if (found) return found
     }
-  }
+    // When "all", pick the primary non-opacity channel—or channels[0] if all are opacity
+    return (
+      currentChannels.find((c) => c.property !== "opacity") ??
+      currentChannels[0]
+    )
+  }, [currentChannels, focusedChannelId])
 
-  const handleAssignOut = (curveId: string) => {
-    if (activeChannelId !== "all") {
-      assignCurveToChannel(curveId, activeChannelId, "exit", activeScenarioKey)
-    } else {
-      assignCurveToSlot(curveId, "exit", activeScenarioKey)
-    }
-  }
+  // 2. Paired phase resolution (e.g. Entrance vs Exit)
+  const pairedTrackId = React.useMemo(() => {
+    return getPairedTrackId(focusedTrackId)
+  }, [focusedTrackId])
+
+  const pairedTrack = React.useMemo(() => {
+    if (!pairedTrackId) return null
+    return getTrackPlugin(pairedTrackId) ?? null
+  }, [pairedTrackId])
+
+  const pairedChannel = React.useMemo(() => {
+    if (!pairedTrack || !channel) return null
+    const pairedBindings = trackBindings[pairedTrack.id] ?? pairedTrack.channels
+    return (
+      pairedBindings.find((c) => c.property === channel.property) ??
+      pairedBindings[0]
+    )
+  }, [pairedTrack, channel, trackBindings])
+
+  if (!channel) return null
+
+  const activePresets = (
+    channel.semanticContext?.recommendedPresetIds ?? []
+  ).slice(0, 3)
+  const pairedPresets = (
+    pairedChannel?.semanticContext?.recommendedPresetIds ?? []
+  ).slice(0, 3)
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -82,182 +124,74 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
           className
         )}
       >
-        {/* Header: Clean, confident title with contextual channel pill if active */}
+        {/* Header: Title + Semantic Role Badge */}
         <div className="flex shrink-0 items-center justify-between">
           <span className="font-heading text-xs font-semibold text-foreground">
-            {sectionTitle}
+            Motion Guide · {channel.label}
           </span>
-          {roleSpec && (
+          {channel.semanticContext?.roleTitle && (
             <span className="rounded-[6px] bg-secondary px-2 py-0.5 font-sans text-[10px] font-medium text-muted-foreground">
-              {roleSpec.role}
+              {channel.semanticContext.roleTitle}
             </span>
           )}
         </div>
 
-        {/* Motion Guideline: Adaptive Kinetic Role Advice */}
+        {/* Semantic Role Guidance Text */}
         <p className="font-sans text-xs leading-relaxed text-muted-foreground">
-          {guidelineText}
+          {channel.semanticContext?.guidance ??
+            "Calibrate arrival timing and deceleration to communicate spatial physical continuity."}
         </p>
 
+        {/* Quiet, Borderless Active Curve & Duration Line */}
+        <div className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+          <span>{channel.curve.name}</span>
+          <span>·</span>
+          <span>{channel.durationMs}ms</span>
+        </div>
+
         {/* Curated Recommendations Anchored to Bottom of Block (mt-auto) */}
-        {recommendedIn && recommendedOut ? (
-          <div className="mt-auto flex flex-col gap-3 pt-2">
-            {/* Entrance Section with Contextual Target Timing */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <span className="font-heading text-xs font-medium text-foreground">
-                  Recommended Entrance
-                </span>
-                <span className="font-mono text-[10px] text-muted-foreground">
-                  {targetDurationIn}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-1.5">
-                {recommendedIn.map((rec) => {
-                  let isAssigned = false
-                  if (activeChannelId !== "all") {
-                    const assignedChannelCurve =
-                      scenarioChannelSlots?.[activeScenarioKey]?.["enter"]?.[
-                        activeChannelId
-                      ]
-                    isAssigned =
-                      assignedChannelCurve === rec.id ||
-                      (!assignedChannelCurve &&
-                        activePresetId === rec.id &&
-                        activeSlot === "enter")
-                  } else {
-                    const enterAssigned =
-                      currentSlot?.enter ?? currentSlot?.enterId
-                    isAssigned =
-                      enterAssigned === rec.id ||
-                      (!enterAssigned &&
-                        activePresetId === rec.id &&
-                        activeSlot === "enter")
-                  }
-
-                  return (
-                    <Tooltip key={rec.id}>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={() => handleAssignIn(rec.id)}
-                          className={cn(
-                            "flex h-8 cursor-pointer items-center justify-center rounded-[8px] px-1 font-sans text-xs transition-colors active:scale-95",
-                            isAssigned
-                              ? "border border-border bg-background font-medium text-foreground shadow-xs"
-                              : "bg-muted font-normal text-muted-foreground hover:bg-secondary hover:text-foreground"
-                          )}
-                        >
-                          <span className="truncate">{rec.label}</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="text-xs">
-                        <span>
-                          {rec.label} · {rec.why}
-                        </span>
-                      </TooltipContent>
-                    </Tooltip>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Exit Section with Contextual Target Timing */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <span className="font-heading text-xs font-medium text-foreground">
-                  Recommended Exit
-                </span>
-                <span className="font-mono text-[10px] text-muted-foreground">
-                  {targetDurationOut}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-1.5">
-                {recommendedOut.map((rec) => {
-                  let isAssigned = false
-                  if (activeChannelId !== "all") {
-                    const assignedChannelCurve =
-                      scenarioChannelSlots?.[activeScenarioKey]?.["exit"]?.[
-                        activeChannelId
-                      ]
-                    isAssigned =
-                      assignedChannelCurve === rec.id ||
-                      (!assignedChannelCurve &&
-                        activePresetId === rec.id &&
-                        activeSlot === "exit")
-                  } else {
-                    const exitAssigned =
-                      currentSlot?.exit ?? currentSlot?.exitId
-                    isAssigned =
-                      exitAssigned === rec.id ||
-                      (!exitAssigned &&
-                        activePresetId === rec.id &&
-                        activeSlot === "exit")
-                  }
-
-                  return (
-                    <Tooltip key={rec.id}>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={() => handleAssignOut(rec.id)}
-                          className={cn(
-                            "flex h-8 cursor-pointer items-center justify-center rounded-[8px] px-1 font-sans text-xs transition-colors active:scale-95",
-                            isAssigned
-                              ? "border border-border bg-background font-medium text-foreground shadow-xs"
-                              : "bg-muted font-normal text-muted-foreground hover:bg-secondary hover:text-foreground"
-                          )}
-                        >
-                          <span className="truncate">{rec.label}</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="text-xs">
-                        <span>
-                          {rec.label} · {rec.why}
-                        </span>
-                      </TooltipContent>
-                    </Tooltip>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        ) : macroSpec.recommended ? (
-          <div className="mt-auto flex flex-col gap-1.5 pt-2">
+        <div className="mt-auto flex flex-col gap-3 pt-2">
+          {/* Active Phase Recommendations */}
+          <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="font-heading text-xs font-medium text-foreground">
                 Recommended
               </span>
-              <span className="font-mono text-[10px] text-muted-foreground">
-                {macroSpec.targetDuration}
-              </span>
+              {channel.semanticContext?.recommendedRangeMs && (
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {channel.semanticContext.recommendedRangeMs[0]}–
+                  {channel.semanticContext.recommendedRangeMs[1]}ms
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-1.5">
-              {macroSpec.recommended.map((rec) => {
-                const isSelected = activePresetId === rec.id
+              {activePresets.map((presetId) => {
+                const preset = getCanonicalPresetById(presetId)
+                if (!preset) return null
+                const isSelected = channel.curve.id === preset.id
+                const shortLabel = getShortPresetName(preset.id, preset.name)
 
                 return (
-                  <Tooltip key={rec.id}>
+                  <Tooltip key={preset.id}>
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => selectEase(rec.id)}
+                        onClick={() => selectCurveForFocused(preset.id)}
+                        aria-label={`Apply ${preset.name} preset`}
                         className={cn(
                           "flex h-8 cursor-pointer items-center justify-center rounded-[8px] px-1 font-sans text-xs transition-colors active:scale-95",
                           isSelected
-                            ? "border border-border bg-background font-medium text-foreground shadow-xs"
+                            ? "bg-background font-medium text-foreground"
                             : "bg-muted font-normal text-muted-foreground hover:bg-secondary hover:text-foreground"
                         )}
                       >
-                        <span className="truncate">{rec.label}</span>
+                        <span className="truncate">{shortLabel}</span>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs">
                       <span>
-                        {rec.label} · {rec.why}
+                        {preset.name} · {preset.description || preset.engine}
                       </span>
                     </TooltipContent>
                   </Tooltip>
@@ -265,7 +199,61 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
               })}
             </div>
           </div>
-        ) : null}
+
+          {/* Paired Phase Recommendations (if paired track exists) */}
+          {pairedTrack && pairedChannel && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-heading text-xs font-medium text-foreground">
+                  {pairedTrack.phaseLabel ?? "Exit"} Recommended
+                </span>
+                {pairedChannel.semanticContext?.recommendedRangeMs && (
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    {pairedChannel.semanticContext.recommendedRangeMs[0]}–
+                    {pairedChannel.semanticContext.recommendedRangeMs[1]}ms
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5">
+                {pairedPresets.map((presetId) => {
+                  const preset = getCanonicalPresetById(presetId)
+                  if (!preset) return null
+                  const isSelected = pairedChannel.curve.id === preset.id
+                  const shortLabel = getShortPresetName(preset.id, preset.name)
+
+                  return (
+                    <Tooltip key={preset.id}>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            focusTrack(pairedTrack.id)
+                            selectCurveForFocused(preset.id)
+                          }}
+                          aria-label={`Switch to ${pairedTrack.phaseLabel} and apply ${preset.name}`}
+                          className={cn(
+                            "flex h-8 cursor-pointer items-center justify-center rounded-[8px] px-1 font-sans text-xs transition-colors active:scale-95",
+                            isSelected
+                              ? "bg-background font-medium text-foreground"
+                              : "bg-muted font-normal text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          )}
+                        >
+                          <span className="truncate">{shortLabel}</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        <span>
+                          {preset.name} · {preset.description || preset.engine}
+                        </span>
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </section>
     </TooltipProvider>
   )

@@ -2,181 +2,52 @@
 
 import * as React from "react"
 import { motion } from "motion/react"
-import { ChevronDoubleCloseIcon } from "@hugeicons/core-free-icons"
+import {
+  ChevronDoubleCloseIcon,
+  LaptopIcon,
+  Tablet01Icon,
+  SmartPhone01Icon,
+  SlidersHorizontalIcon,
+} from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { PreviewBackground } from "@/components/previewer/preview-background"
 import { cn } from "@/lib/utils"
-import { ROUTES } from "@/lib/routes"
-import { useStudioStore, useActiveDossier } from "@/store/useStudioStore"
-import { useHostBridge } from "@/components/studio/bridge"
+import { useEaseStore } from "@/hooks/use-ease-store"
+import { useStudioUi } from "@/components/studio/studio-ui-context"
+import { HabitatStage } from "@/components/studio/habitats/habitat-stage"
 import { AuditionToolbar } from "./audition-toolbar"
 
 /** Smallest usable preview stage, in px. Also the hit area of the drag handle. */
 const MIN_STAGE_W = 320
 
 export function PreviewTheater() {
-  const previewWidth = useStudioStore((s) => s.previewWidth)
-  const setPreviewWidth = useStudioStore((s) => s.setPreviewWidth)
-  const setViewportMode = useStudioStore((s) => s.setViewportMode)
-  const animKey = useStudioStore((s) => s.animKey)
-  const activeScenarioKey = useStudioStore((s) => s.activeScenarioKey)
-  const activeSlotId = useStudioStore((s) => s.activeSlotId)
-  const scenarioSlots = useStudioStore((s) => s.scenarioSlots)
-  const scenarioChannelSlots = useStudioStore((s) => s.scenarioChannelSlots)
-  const activeChannelId = useStudioStore((s) => s.activeChannelId)
-  const mutedChannels = useStudioStore((s) => s.mutedChannels)
-  const scrubProgress = useStudioStore((s) => s.scrubProgress)
-  const isPlaying = useStudioStore((s) => s.isPlaying)
-  const isScrubbing = useStudioStore((s) => s.isScrubbing)
-  const isReducedMotion = useStudioStore((s) => s.isReducedMotion)
-  const scenarioOpen = useStudioStore((s) => s.scenarioOpen)
-  const scenarioPhase = useStudioStore((s) => s.scenarioPhase)
-  const togglePlayback = useStudioStore((s) => s.togglePlayback)
-  const triggerAudition = useStudioStore((s) => s.triggerAudition)
-  const openScenario = useStudioStore((s) => s.openScenario)
-  const closeScenario = useStudioStore((s) => s.closeScenario)
-  const toggleTimeline = useStudioStore((s) => s.toggleTimeline)
-  const setDiscoveredChannels = useStudioStore((s) => s.setDiscoveredChannels)
+  const viewport = useEaseStore((s) => s.viewport)
+  const setViewport = useEaseStore((s) => s.setViewport)
+  const { isTimelineOpen, toggleTimeline } = useStudioUi()
 
-  const activeDossier = useActiveDossier()
-  const iframeRef = React.useRef<HTMLIFrameElement>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = React.useState(false)
+  const [customDrag, setCustomDrag] = React.useState<{
+    viewport: string
+    width: number
+  } | null>(null)
 
-  // 1. Setup the Universal Studio Bridge with the isolated /stage iframe
-  const {
-    isStageReady,
-    sendScrubUpdate,
-    sendSetScenario,
-    sendSetSlotCurve,
-    sendSetChannelCurve,
-  } = useHostBridge({
-    iframeRef,
-    getInitPayload: () => ({
-      theme:
-        typeof document !== "undefined" &&
-        document.documentElement.classList.contains("dark")
-          ? "dark"
-          : "light",
-      scenarioKey: activeScenarioKey,
-      activeSlotId,
-      activeCurve: activeDossier,
-      scenarioSlots,
-      scenarioChannelSlots,
-      activeChannelId,
-      mutedChannels,
-      scrubProgress,
-      isPlaying,
-      isScrubbing,
-      isReducedMotion,
-      scenarioOpen,
-      scenarioPhase,
-      animKey,
-    }),
-    onKeyboardEvent: (e) => {
-      // Hotkey forwarding from inside the iframe to the parent studio
-      if (e.key === " ") {
-        togglePlayback()
-      } else if (e.key === "r" || e.key === "R") {
-        triggerAudition()
-      } else if (e.key === "Escape") {
-        if (scenarioOpen) closeScenario()
-      } else if (e.key === "t" || e.key === "T") {
-        toggleTimeline()
-      }
-    },
-    onStageAction: (act) => {
-      if (act.action === "close") {
-        closeScenario()
-      } else if (act.action === "open") {
-        openScenario()
-      } else if (act.action === "audition") {
-        triggerAudition()
-      }
-    },
-    onDiscoveredChannels: (payload) => {
-      setDiscoveredChannels(
-        payload.scenarioKey,
-        payload.slotId,
-        payload.channels
-      )
-    },
-  })
+  const previewWidth =
+    customDrag && customDrag.viewport === viewport
+      ? customDrag.width
+      : viewport === "mobile"
+        ? 375
+        : viewport === "tablet"
+          ? 768
+          : "100%"
 
-  // 2. High-speed 60fps kinetic telemetry broadcast
-  React.useEffect(() => {
-    if (!isStageReady) return
-    sendScrubUpdate({
-      progress: scrubProgress,
-      animKey,
-      phase: scenarioPhase,
-      isPlaying,
-      isScrubbing,
-      scenarioOpen,
-    })
-  }, [
-    isStageReady,
-    scrubProgress,
-    animKey,
-    scenarioPhase,
-    isPlaying,
-    isScrubbing,
-    scenarioOpen,
-    sendScrubUpdate,
-  ])
-
-  // 3. Scenario selection changes
-  React.useEffect(() => {
-    if (!isStageReady) return
-    sendSetScenario({
-      scenarioKey: activeScenarioKey,
-      activeSlotId,
-      activeCurve: activeDossier,
-    })
-  }, [
-    isStageReady,
-    activeScenarioKey,
-    activeSlotId,
-    activeDossier,
-    sendSetScenario,
-  ])
-
-  // 4. Kinetic slot curve reassignments
-  React.useEffect(() => {
-    if (!isStageReady) return
-    sendSetSlotCurve({
-      scenarioKey: activeScenarioKey,
-      slotId: activeSlotId,
-      curve: activeDossier,
-    })
-  }, [
-    isStageReady,
-    activeScenarioKey,
-    activeSlotId,
-    activeDossier,
-    sendSetSlotCurve,
-  ])
-
-  // 5. Kinetic channel curve reassignments
-  React.useEffect(() => {
-    if (!isStageReady || activeChannelId === "all") return
-    sendSetChannelCurve({
-      scenarioKey: activeScenarioKey,
-      slotId: activeSlotId,
-      channelId: activeChannelId,
-      curve: activeDossier,
-    })
-  }, [
-    isStageReady,
-    activeScenarioKey,
-    activeSlotId,
-    activeChannelId,
-    activeDossier,
-    sendSetChannelCurve,
-  ])
-
-  // 5. Drag-to-resize viewport interaction
+  // Drag-to-resize viewport interaction
   const handlePointerDown = React.useCallback((e: React.PointerEvent) => {
     e.preventDefault()
     setIsDragging(true)
@@ -192,8 +63,7 @@ export function PreviewTheater() {
         Math.max(raw, MIN_STAGE_W),
         containerRect.width
       )
-      setPreviewWidth(nextWidth)
-      setViewportMode("custom")
+      setCustomDrag({ viewport, width: nextWidth })
     }
 
     const handlePointerUp = () => {
@@ -213,7 +83,7 @@ export function PreviewTheater() {
         document.body.style.cursor = ""
       }
     }
-  }, [isDragging, setPreviewWidth, setViewportMode])
+  }, [isDragging, viewport])
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -225,6 +95,52 @@ export function PreviewTheater() {
         <div className="relative flex h-full w-full overflow-hidden rounded-[16px]">
           {/* Workbench Cutting-Mat Substrate */}
           <PreviewBackground />
+
+          {/* Top-Right Viewport Switcher */}
+          <div
+            role="tablist"
+            aria-label="Preview viewport modes"
+            className="absolute top-3 right-3 z-30 flex items-center rounded-[10px] bg-background p-0.5 select-none"
+          >
+            {[
+              { mode: "desktop" as const, icon: LaptopIcon, label: "Desktop" },
+              { mode: "tablet" as const, icon: Tablet01Icon, label: "Tablet" },
+              {
+                mode: "mobile" as const,
+                icon: SmartPhone01Icon,
+                label: "Mobile",
+              },
+            ].map((item) => {
+              const isActive = viewport === item.mode
+              return (
+                <Tooltip key={item.mode}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-label={`${item.label} viewport`}
+                      onClick={() => {
+                        setCustomDrag(null)
+                        setViewport(item.mode)
+                      }}
+                      className={cn(
+                        "relative flex size-7 cursor-pointer items-center justify-center rounded-[8px] transition-colors outline-none",
+                        isActive
+                          ? "bg-muted font-medium text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <HugeiconsIcon icon={item.icon} className="size-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    <span>{item.label} View</span>
+                  </TooltipContent>
+                </Tooltip>
+              )
+            })}
+          </div>
 
           {/* Resizable Playground Canvas */}
           <div
@@ -239,29 +155,11 @@ export function PreviewTheater() {
                 bounce: 0,
                 duration: isDragging ? 0 : 0.4,
               }}
-              className="pointer-events-auto relative flex h-full max-w-full flex-row overflow-hidden rounded-2xl bg-muted"
+              className="pointer-events-auto relative flex h-full max-w-full flex-row overflow-hidden rounded-2xl bg-background"
             >
-              {/* Isolated Iframe Stage Sandbox */}
-              <div className="relative flex h-full min-w-0 flex-1 overflow-hidden rounded-2xl bg-muted">
-                {!isStageReady && (
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2.5 bg-muted">
-                    <div className="size-4 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
-                    <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-                      Initializing Stage…
-                    </span>
-                  </div>
-                )}
-
-                <iframe
-                  ref={iframeRef}
-                  src={ROUTES.stage}
-                  title="Component Motion Theater Stage"
-                  className={cn(
-                    "h-full w-full border-none bg-transparent transition-opacity duration-200",
-                    isStageReady ? "opacity-100" : "opacity-0",
-                    isDragging && "pointer-events-none select-none"
-                  )}
-                />
+              {/* In-Process Habitat Stage */}
+              <div className="relative flex h-full min-w-0 flex-1 overflow-hidden rounded-2xl bg-background contain-paint">
+                <HabitatStage />
               </div>
 
               {/* Absolutely positioned right-edge col-resize handle */}
@@ -286,8 +184,46 @@ export function PreviewTheater() {
             </motion.div>
           </div>
 
-          {/* Floating Audition Toolbar */}
-          <AuditionToolbar />
+          {/* Centered Floating Kinetic Dock */}
+          <div className="absolute bottom-3 left-1/2 z-30 max-w-[calc(100%-112px)] -translate-x-1/2">
+            <AuditionToolbar />
+          </div>
+
+          {/* Bottom-Right Master Timeline Toggle Squircle */}
+          <div className="absolute right-3 bottom-3 z-30">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={toggleTimeline}
+                  aria-label={
+                    isTimelineOpen
+                      ? "Hide Timeline Scrubber"
+                      : "Reveal Timeline Scrubber"
+                  }
+                  className={cn(
+                    "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[10px] transition-colors outline-none",
+                    isTimelineOpen
+                      ? "bg-foreground text-background"
+                      : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <HugeiconsIcon
+                    icon={SlidersHorizontalIcon}
+                    className="size-4"
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="flex items-center gap-2">
+                <span>
+                  {isTimelineOpen ? "Hide Timeline" : "Reveal Timeline"}
+                </span>
+                <kbd className="rounded bg-muted px-1 py-0.5 font-mono text-[10px] text-muted-foreground">
+                  T
+                </kbd>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       </section>
     </TooltipProvider>
