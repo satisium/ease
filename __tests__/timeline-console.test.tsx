@@ -9,6 +9,7 @@ import { render, screen, act, fireEvent } from "@testing-library/react"
 import { EaseStoreProvider, useEaseStoreApi } from "@/hooks/use-ease-store"
 import { StudioUiProvider } from "@/components/studio/studio-ui-context"
 import { TimelineConsole } from "@/components/studio/modes/audition/center-stage/timeline-console"
+import { ModeSwitcherSlab } from "@/components/studio/modes/audition/right-flank/mode-switcher-slab"
 
 describe("TimelineConsole & 120fps SatisSlider (Step B-1)", () => {
   beforeEach(() => {
@@ -306,5 +307,104 @@ describe("TimelineConsole & 120fps SatisSlider (Step B-1)", () => {
 
     // Commits duration
     expect(screen.getByText("350ms")).toBeDefined()
+  })
+
+  it("isolates live component interactions from scrubber: triggerLive keeps isPlaying false and leaves elapsed untouched, while playScoped activates playback", () => {
+    let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+    function TestHarness() {
+      storeApi = useEaseStoreApi()
+      return <TimelineConsole />
+    }
+
+    render(
+      <StudioUiProvider>
+        <EaseStoreProvider>
+          <TestHarness />
+        </EaseStoreProvider>
+      </StudioUiProvider>
+    )
+
+    // Initial state: not playing, 0ms
+    expect(storeApi!.getState().isPlaying).toBe(false)
+    expect(screen.getByText("0ms")).toBeDefined()
+
+    // 1. triggerLive (simulating clicking Open Dialog in Habitat)
+    act(() => {
+      storeApi!.getState().triggerLive("dialog:open")
+    })
+
+    // Invariant: isPlaying stays false, Play animation button stays "Play" (not Pause)
+    expect(storeApi!.getState().isPlaying).toBe(false)
+    expect(screen.getByLabelText("Play animation")).toBeDefined()
+
+    // 2. Play via TimelineConsole transport
+    act(() => {
+      storeApi!.getState().playScoped()
+    })
+    expect(storeApi!.getState().isPlaying).toBe(true)
+    expect(screen.getByLabelText("Pause animation")).toBeDefined()
+  })
+
+  it("renders timestamp controls with fixed-width classes (w-[46px] / w-[48px]) and zero font-mono", () => {
+    const { container } = render(
+      <StudioUiProvider>
+        <EaseStoreProvider>
+          <TimelineConsole />
+        </EaseStoreProvider>
+      </StudioUiProvider>
+    )
+
+    // Elapsed span has w-[46px] and tabular-nums
+    const elapsedSpan = container.querySelector(".w-\\[46px\\]")
+    expect(elapsedSpan).toBeDefined()
+    expect(elapsedSpan?.className).toContain("tabular-nums")
+    expect(elapsedSpan?.className).toContain("font-sans")
+    expect(elapsedSpan?.className).not.toContain("font-mono")
+
+    // Total duration button has w-[48px] and tabular-nums
+    const durationBtn = container.querySelector(".w-\\[48px\\]")
+    expect(durationBtn).toBeDefined()
+    expect(durationBtn?.className).toContain("tabular-nums")
+    expect(durationBtn?.className).toContain("font-sans")
+    expect(durationBtn?.className).not.toContain("font-mono")
+
+    // Entire console contains 0 font-mono classes
+    expect(container.innerHTML).not.toContain("font-mono")
+  })
+
+  it("switches smoothly between Preview and Customize via ModeSwitcherSlab", () => {
+    let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+    function TestHarness() {
+      storeApi = useEaseStoreApi()
+      return <ModeSwitcherSlab />
+    }
+
+    render(
+      <EaseStoreProvider>
+        <TestHarness />
+      </EaseStoreProvider>
+    )
+
+    expect(storeApi!.getState().mode).toBe("preview")
+
+    // Switch to Customize
+    const customizeTab = screen.getByRole("tab", {
+      name: /Switch to Customize mode/i,
+    })
+    act(() => {
+      fireEvent.click(customizeTab)
+    })
+    expect(storeApi!.getState().mode).toBe("customize")
+
+    // Switch back to Preview
+    const previewTab = screen.getByRole("tab", {
+      name: /Switch to Preview mode/i,
+    })
+    act(() => {
+      fireEvent.click(previewTab)
+    })
+    expect(storeApi!.getState().mode).toBe("preview")
   })
 })

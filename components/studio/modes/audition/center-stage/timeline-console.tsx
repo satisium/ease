@@ -69,6 +69,7 @@ export function TimelineConsole() {
 
   // 120fps conductor subscriber (ZERO component re-renders)
   useClockRef((snap) => {
+    if (snap.interactionMode === "live") return
     sliderImperativeRef.current?.setProgress(snap.progress * 100)
     if (elapsedRef.current) {
       elapsedRef.current.textContent = `${Math.round(snap.elapsedMs)}ms`
@@ -198,7 +199,7 @@ export function TimelineConsole() {
                       className="flex items-center gap-1.5 text-xs"
                     >
                       <span>{isPlaying ? "Pause" : "Play"}</span>
-                      <kbd className="rounded bg-muted px-1 py-0.5 font-mono text-[9px] text-muted-foreground">
+                      <kbd className="rounded bg-muted px-1 py-0.5 font-sans text-[9px] text-muted-foreground tabular-nums">
                         Space
                       </kbd>
                     </TooltipContent>
@@ -227,7 +228,7 @@ export function TimelineConsole() {
                       className="flex items-center gap-1.5 text-xs"
                     >
                       <span>Replay</span>
-                      <kbd className="rounded bg-muted px-1 py-0.5 font-mono text-[9px] text-muted-foreground">
+                      <kbd className="rounded bg-muted px-1 py-0.5 font-sans text-[9px] text-muted-foreground tabular-nums">
                         R
                       </kbd>
                     </TooltipContent>
@@ -273,7 +274,7 @@ export function TimelineConsole() {
                             store.getState().setLoopDelayMs(nextDelay)
                           }}
                           aria-label={`Loop delay breather: ${loopDelayMs}ms. Click to cycle`}
-                          className="flex h-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted px-2 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
+                          className="flex h-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted px-2 font-sans text-[11px] text-muted-foreground tabular-nums transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
                         >
                           <span>{loopDelayMs}ms</span>
                         </button>
@@ -298,7 +299,7 @@ export function TimelineConsole() {
                         onClick={() => store.getState().setSpeed(s)}
                         aria-label={`Set playback speed to ${s}x`}
                         className={cn(
-                          "cursor-pointer rounded-[6px] px-2 py-0.5 font-mono text-[11px] transition-colors",
+                          "cursor-pointer rounded-[6px] px-2 py-0.5 font-sans text-[11px] tabular-nums transition-colors",
                           speed === s
                             ? "bg-background font-semibold text-foreground shadow-xs"
                             : "text-muted-foreground hover:text-foreground"
@@ -326,7 +327,7 @@ export function TimelineConsole() {
                             )
                           }
                           aria-label={`Spring mode: ${focusedChannel.springMode}. Click to toggle`}
-                          className="flex h-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted px-2 font-mono text-[10px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
+                          className="flex h-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted px-2 font-sans text-[10px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
                         >
                           {focusedChannel.springMode === "fit"
                             ? "Fit to Time"
@@ -420,10 +421,10 @@ export function TimelineConsole() {
                   <div className="h-3.5 w-px bg-border" />
 
                   {/* 120fps Safe Timestamp & Clickable Duration Control */}
-                  <div className="flex items-baseline gap-1 font-mono text-xs select-none">
+                  <div className="flex items-baseline gap-1 font-sans text-xs select-none">
                     <span
                       ref={elapsedRef}
-                      className="font-semibold text-foreground tabular-nums"
+                      className="inline-block w-[46px] text-right font-sans text-xs font-medium text-foreground tabular-nums"
                     >
                       {initialElapsedMs}ms
                     </span>
@@ -451,7 +452,7 @@ export function TimelineConsole() {
                           }
                           setIsEditingDuration(false)
                         }}
-                        className="h-6 w-16 rounded-[6px] bg-secondary px-1.5 font-mono text-xs text-foreground focus:outline-none"
+                        className="h-6 w-[48px] rounded-[6px] bg-secondary px-1 text-center font-sans text-xs text-foreground tabular-nums focus:outline-none"
                       />
                     ) : (
                       <button
@@ -459,7 +460,7 @@ export function TimelineConsole() {
                         onClick={() => setIsEditingDuration(true)}
                         title="Click to edit duration (Enter to commit)"
                         aria-label={`Total duration ${totalDurationMs}ms. Click to edit`}
-                        className="cursor-pointer rounded-[6px] bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground tabular-nums transition-colors hover:bg-secondary hover:text-foreground"
+                        className="inline-flex w-[48px] items-center justify-center rounded-[6px] bg-muted py-0.5 font-sans text-xs font-medium text-muted-foreground tabular-nums transition-colors hover:bg-secondary hover:text-foreground"
                       >
                         {totalDurationMs}ms
                       </button>

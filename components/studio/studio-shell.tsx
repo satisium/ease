@@ -11,6 +11,7 @@ function StudioShellInner() {
   const isLooping = useEaseStore((s) => s.isLooping)
   const pauseScoped = useEaseStore((s) => s.pauseScoped)
   const playScoped = useEaseStore((s) => s.playScoped)
+  const seekScoped = useEaseStore((s) => s.seekScoped)
   const triggerLive = useEaseStore((s) => s.triggerLive)
   const interruptActive = useEaseStore((s) => s.interruptActive)
   const setLooping = useEaseStore((s) => s.setLooping)
@@ -73,10 +74,8 @@ function StudioShellInner() {
         e.preventDefault()
         if (isPlaying) {
           pauseScoped()
-        } else if (isLooping || mode === "compare") {
-          playScoped()
         } else {
-          triggerLive(focusedTrackId)
+          playScoped()
         }
       } else if (e.key === "i" || e.key === "I") {
         interruptActive()
@@ -89,7 +88,8 @@ function StudioShellInner() {
       } else if (e.key === "t" || e.key === "T") {
         toggleTimeline()
       } else if (e.key === "r" || e.key === "R") {
-        triggerLive(focusedTrackId)
+        seekScoped(0)
+        playScoped()
       } else if (e.key === "1") {
         if (mode === "customize") exitCustomize()
         else if (mode === "compare") exitCompare()
@@ -109,6 +109,7 @@ function StudioShellInner() {
     isLooping,
     pauseScoped,
     playScoped,
+    seekScoped,
     triggerLive,
     interruptActive,
     setLooping,

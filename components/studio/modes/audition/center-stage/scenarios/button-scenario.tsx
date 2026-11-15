@@ -81,7 +81,7 @@ export function ButtonScenario() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-1 font-sans text-[10px] text-muted-foreground tabular-nums">
               <span className="rounded bg-muted px-2 py-0.5 font-medium">
                 {clickCount} Taps
               </span>
@@ -115,7 +115,7 @@ export function ButtonScenario() {
                 <span className="font-heading text-xs font-semibold tracking-tight text-foreground">
                   Commit Kinetic Action
                 </span>
-                <span className="font-mono text-[10px] text-muted-foreground">
+                <span className="font-sans text-[10px] text-muted-foreground">
                   {isCompressed
                     ? "Compressing Surface..."
                     : "Press or Space to Audition"}
@@ -139,7 +139,7 @@ export function ButtonScenario() {
               <span className="font-sans text-[10px] text-muted-foreground">
                 Scale Factor
               </span>
-              <p className="mt-0.5 font-mono text-[11px] font-semibold text-foreground">
+              <p className="mt-0.5 font-sans text-[11px] font-semibold text-foreground tabular-nums">
                 {scale.toFixed(3)}x
               </p>
             </div>
@@ -148,7 +148,7 @@ export function ButtonScenario() {
               <span className="font-sans text-[10px] text-muted-foreground">
                 Compression
               </span>
-              <p className="mt-0.5 font-mono text-[11px] font-semibold text-foreground">
+              <p className="mt-0.5 font-sans text-[11px] font-semibold text-foreground tabular-nums">
                 {(compressionFactor * 100).toFixed(0)}%
               </p>
             </div>
@@ -157,7 +157,7 @@ export function ButtonScenario() {
               <span className="font-sans text-[10px] text-muted-foreground">
                 Contact State
               </span>
-              <p className="mt-0.5 font-mono text-[11px] font-semibold text-foreground">
+              <p className="mt-0.5 font-sans text-[11px] font-semibold text-foreground">
                 {isCompressed ? "PRESSED" : isSimulating ? "REBOUND" : "IDLE"}
               </p>
             </div>
@@ -173,7 +173,7 @@ export function ButtonScenario() {
               {pressCurve.name}
             </span>
           </span>
-          <span className="font-mono text-[10px]">
+          <span className="font-sans text-[10px] tabular-nums">
             {Math.round(pressCurve.duration)}ms · {pressCurve.engine}
           </span>
         </div>

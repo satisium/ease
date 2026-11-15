@@ -148,10 +148,17 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
       const exportBtn = screen.getByRole("button", {
         name: /Export kinetic curve code/i,
       })
+      expect(exportBtn.className).toContain("justify-between")
+      expect(exportBtn.className).toContain("rounded-[16px]")
       fireEvent.click(exportBtn)
 
       expect(screen.getByTestId("probe-export-open").textContent).toBe("true")
       expect(screen.getByText("Export Motion Kinetics")).toBeInTheDocument()
+
+      // Dialog container has sm:max-w-[640px] and rounded-[20px]
+      const dialogContent = screen.getByRole("dialog")
+      expect(dialogContent.className).toContain("sm:max-w-[640px]")
+      expect(dialogContent.className).toContain("rounded-[20px]")
 
       // Switch framework to Tailwind
       const tailwindTab = screen.getByRole("tab", { name: "Tailwind export" })

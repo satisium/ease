@@ -218,7 +218,7 @@ export function PreviewTheater() {
                 <span>
                   {isTimelineOpen ? "Hide Timeline" : "Reveal Timeline"}
                 </span>
-                <kbd className="rounded bg-muted px-1 py-0.5 font-mono text-[10px] text-muted-foreground">
+                <kbd className="rounded bg-muted px-1 py-0.5 font-sans text-[10px] text-muted-foreground">
                   T
                 </kbd>
               </TooltipContent>

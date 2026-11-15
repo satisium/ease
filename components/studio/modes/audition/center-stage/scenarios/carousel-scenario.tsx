@@ -116,7 +116,7 @@ export function CarouselScenario() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-1.5 font-sans text-[10px] text-muted-foreground tabular-nums">
               <span className="rounded bg-muted px-2 py-0.5 font-medium">
                 {
                   CAROUSEL_SLIDES[
@@ -152,10 +152,10 @@ export function CarouselScenario() {
                       )}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] font-medium tracking-wider text-muted-foreground">
+                        <span className="font-sans text-[10px] font-medium tracking-wider text-muted-foreground">
                           {slide.tag}
                         </span>
-                        <span className="font-mono text-[11px] font-semibold text-foreground">
+                        <span className="font-sans text-[11px] font-semibold text-foreground tabular-nums">
                           {slide.index}
                         </span>
                       </div>
@@ -171,7 +171,7 @@ export function CarouselScenario() {
                         <span className="font-sans text-[11px] text-muted-foreground">
                           {slide.metric}
                         </span>
-                        <span className="font-mono text-[11px] font-medium text-foreground">
+                        <span className="font-sans text-[11px] font-medium text-foreground tabular-nums">
                           {slide.value}
                         </span>
                       </div>
@@ -239,7 +239,7 @@ export function CarouselScenario() {
               {slideCurve.name}
             </span>
           </span>
-          <span className="font-mono text-[10px]">
+          <span className="font-sans text-[10px] tabular-nums">
             {Math.round(slideCurve.duration)}ms · {slideCurve.engine}
           </span>
         </div>

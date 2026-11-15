@@ -57,6 +57,7 @@ export function ModalScenario() {
         <button
           type="button"
           onClick={open}
+          aria-label="Launch Modal Dialog"
           className="group inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm transition-all hover:border-border hover:bg-secondary active:scale-95"
         >
           <div className="flex size-5 items-center justify-center rounded-full bg-secondary text-foreground">
@@ -65,7 +66,7 @@ export function ModalScenario() {
           <span className="font-heading text-xs font-semibold text-foreground">
             Launch Modal Dialog
           </span>
-          <div className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1 font-sans text-[10px] text-muted-foreground">
             <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
               Space
             </span>
@@ -133,7 +134,7 @@ export function ModalScenario() {
                   <span className="font-heading text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                     In · Arrival
                   </span>
-                  <span className="font-mono text-[10px] text-muted-foreground">
+                  <span className="font-sans text-[10px] text-muted-foreground tabular-nums">
                     {enterCurve.duration || 320}ms
                   </span>
                 </div>
@@ -157,7 +158,7 @@ export function ModalScenario() {
                   <span className="font-heading text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                     Out · Dismissal
                   </span>
-                  <span className="font-mono text-[10px] text-muted-foreground">
+                  <span className="font-sans text-[10px] text-muted-foreground tabular-nums">
                     {exitCurve.duration || 200}ms
                   </span>
                 </div>
@@ -172,7 +173,7 @@ export function ModalScenario() {
 
             {/* Live Progress Bar */}
             <div className="flex flex-col gap-1 rounded-xl bg-secondary p-2.5">
-              <div className="flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+              <div className="flex items-center justify-between font-sans text-[10px] text-muted-foreground tabular-nums">
                 <span>
                   Phase: {phase === "enter" ? "Arrival" : "Dismissal"}
                 </span>
@@ -191,7 +192,7 @@ export function ModalScenario() {
 
           {/* Action Row */}
           <div className="mt-5 flex items-center justify-between border-t border-border pt-2">
-            <span className="font-mono text-[10px] text-muted-foreground">
+            <span className="font-sans text-[10px] text-muted-foreground">
               Press{" "}
               <kbd className="rounded bg-muted px-1 py-0.5 font-semibold text-foreground">
                 Esc
@@ -203,6 +204,7 @@ export function ModalScenario() {
               <button
                 type="button"
                 onClick={close}
+                aria-label="Dismiss modal dialog"
                 className="cursor-pointer rounded-lg bg-secondary px-3 py-1.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted active:scale-95"
               >
                 Dismiss (Exit Ease)
@@ -210,6 +212,7 @@ export function ModalScenario() {
               <button
                 type="button"
                 onClick={open}
+                aria-label="Replay modal entrance"
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-1.5 font-heading text-xs font-medium text-background transition-transform active:scale-95"
               >
                 <HugeiconsIcon icon={PlayIcon} className="size-3" />
