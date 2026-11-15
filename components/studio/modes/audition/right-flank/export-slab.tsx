@@ -2,13 +2,15 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { useEaseStore } from "@/hooks/use-ease-store"
 
 interface ExportSlabProps {
-  onOpenExportDialog?: () => void
   className?: string
 }
 
-export function ExportSlab({ onOpenExportDialog, className }: ExportSlabProps) {
+export function ExportSlab({ className }: ExportSlabProps) {
+  const setExportOpen = useEaseStore((s) => s.setExportOpen)
+
   return (
     <section
       aria-label="Export Trigger"
@@ -19,7 +21,8 @@ export function ExportSlab({ onOpenExportDialog, className }: ExportSlabProps) {
     >
       <button
         type="button"
-        onClick={onOpenExportDialog}
+        onClick={() => setExportOpen(true)}
+        aria-label="Export kinetic curve code"
         className="inline-flex h-8 w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted active:scale-95"
       >
         <span>Export</span>
