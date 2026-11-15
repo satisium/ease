@@ -751,24 +751,36 @@ export interface ComponentTrackGroup {
   tracks: TransitionTrackPlugin[]
 }
 
+export interface ListComponentsOptions {
+  includePrimitives?: boolean
+}
+
 /**
  * Lists all distinct interactive UI components registered in the track registry,
- * grouped with their associated phase tracks in registration order (excluding "primitives").
+ * grouped with their associated phase tracks in registration order (excluding "primitives" by default).
  *
+ * @param options - Optional configuration (e.g. { includePrimitives: true }).
  * @returns Array of ComponentTrackGroup objects for UI component pickers.
  */
-export function listComponents(): ComponentTrackGroup[] {
+export function listComponents(
+  options?: ListComponentsOptions
+): ComponentTrackGroup[] {
   const groups: ComponentTrackGroup[] = []
   const groupMap = new Map<string, ComponentTrackGroup>()
 
   for (const track of trackRegistry.list()) {
-    if (track.componentId === "primitives") continue
+    if (track.componentId === "primitives" && !options?.includePrimitives) {
+      continue
+    }
 
     let existing = groupMap.get(track.componentId)
     if (!existing) {
       existing = {
         componentId: track.componentId,
-        componentLabel: track.componentLabel,
+        componentLabel:
+          track.componentId === "primitives"
+            ? "Primitives"
+            : track.componentLabel,
         tracks: [],
       }
       groupMap.set(track.componentId, existing)

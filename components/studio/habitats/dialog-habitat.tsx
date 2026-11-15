@@ -6,7 +6,11 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import type { TrackFrameResult } from "@/core"
 import { usePairedHabitat } from "@/hooks/use-paired-habitat"
 
-export function DialogHabitat() {
+export interface DialogHabitatProps {
+  compareItemId?: string
+}
+
+export function DialogHabitat({ compareItemId }: DialogHabitatProps = {}) {
   const overlayRef = React.useRef<HTMLDivElement>(null)
 
   // Pointer-Events Guard: Prevent invisible scrim/card from blocking clicks on the trigger underneath
@@ -25,6 +29,7 @@ export function DialogHabitat() {
     enterTrackId: "dialog:open",
     exitTrackId: "dialog:close",
     onFrame: handleFrame,
+    compareItemId,
   })
 
   // Keyboard ergonomics: Escape dismisses modal

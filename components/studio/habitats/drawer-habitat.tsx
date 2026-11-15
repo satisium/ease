@@ -6,7 +6,11 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import type { TrackFrameResult } from "@/core"
 import { usePairedHabitat } from "@/hooks/use-paired-habitat"
 
-export function DrawerHabitat() {
+export interface DrawerHabitatProps {
+  compareItemId?: string
+}
+
+export function DrawerHabitat({ compareItemId }: DrawerHabitatProps = {}) {
   const overlayRef = React.useRef<HTMLDivElement>(null)
 
   // Pointer-Events Guard: Prevent off-screen drawer/scrim from blocking clicks on trigger underneath
@@ -25,6 +29,7 @@ export function DrawerHabitat() {
     enterTrackId: "drawer:open",
     exitTrackId: "drawer:close",
     onFrame: handleFrame,
+    compareItemId,
   })
 
   // Keyboard ergonomics: Escape dismisses drawer

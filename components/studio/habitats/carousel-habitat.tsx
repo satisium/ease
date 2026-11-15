@@ -45,7 +45,11 @@ const CAROUSEL_SLIDES = [
   },
 ]
 
-export function CarouselHabitat() {
+export interface CarouselHabitatProps {
+  compareItemId?: string
+}
+
+export function CarouselHabitat({ compareItemId }: CarouselHabitatProps = {}) {
   const store = useEaseStoreApi()
   const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
 
@@ -67,13 +71,22 @@ export function CarouselHabitat() {
     stripRef.current.style.transform = `translate3d(${-interp * 100}%, 0, 0)`
   }, [])
 
-  const { triggerLive } = useTransitionTrack("carousel:slide", { onFrame })
+  const { triggerLive } = useTransitionTrack("carousel:slide", {
+    onFrame,
+    compareItemId,
+  })
 
-  // Sync external/keyboard Spacebar or Toolbar triggers
+  // Sync external/keyboard Spacebar or Toolbar triggers & Compare Mode
   React.useEffect(() => {
     const unsubscribe = store.subscribe((curr, prev) => {
+      const isTarget = compareItemId
+        ? (curr.compareQueue.find((i) => i.id === compareItemId)
+            ?.overrideTrackId ?? curr.globalCompareTarget.trackId) ===
+          "carousel:slide"
+        : curr.focusedTrackId === "carousel:slide"
+
       if (
-        curr.focusedTrackId === "carousel:slide" &&
+        isTarget &&
         curr.playbackState === "playing" &&
         prev.playbackState !== "playing"
       ) {
@@ -89,7 +102,7 @@ export function CarouselHabitat() {
       }
     })
     return unsubscribe
-  }, [store])
+  }, [store, compareItemId])
 
   const navigateTo = (target: number) => {
     if (target === currentIndex) return
@@ -98,7 +111,9 @@ export function CarouselHabitat() {
     targetIndexRef.current = target
     setCurrentIndex(target)
 
-    if (focusedTrackId === "carousel:slide") {
+    if (compareItemId) {
+      store.getState().playScoped()
+    } else if (focusedTrackId === "carousel:slide") {
       triggerLive()
     } else {
       store.getState().focusTrack("carousel:slide")

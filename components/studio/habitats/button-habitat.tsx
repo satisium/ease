@@ -3,15 +3,27 @@
 import * as React from "react"
 import { CursorPointer01Icon, SparklesIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { useEaseStoreApi } from "@/hooks/use-ease-store"
 import { useTransitionTrack } from "@/hooks/use-transition-track"
 
-export function ButtonHabitat() {
-  const { bindRef, triggerLive } = useTransitionTrack("button:press")
+export interface ButtonHabitatProps {
+  compareItemId?: string
+}
+
+export function ButtonHabitat({ compareItemId }: ButtonHabitatProps = {}) {
+  const store = useEaseStoreApi()
+  const { bindRef, triggerLive } = useTransitionTrack("button:press", {
+    compareItemId,
+  })
   const [clickCount, setClickCount] = React.useState(0)
 
   const handleClick = () => {
     setClickCount((c) => c + 1)
-    triggerLive()
+    if (compareItemId) {
+      store.getState().playScoped()
+    } else {
+      triggerLive()
+    }
   }
 
   return (

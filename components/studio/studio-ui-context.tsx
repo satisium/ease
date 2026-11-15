@@ -2,6 +2,8 @@
 
 import * as React from "react"
 
+const TIMELINE_STORAGE_KEY = "satisium-ease-timeline-open"
+
 interface StudioUiContextValue {
   isTimelineOpen: boolean
   setTimelineOpen: (open: boolean) => void
@@ -19,11 +21,41 @@ export function StudioUiProvider({
   children,
   initialTimelineOpen = true,
 }: StudioUiProviderProps) {
-  const [isTimelineOpen, setTimelineOpen] =
+  const [isTimelineOpen, setIsTimelineOpenState] =
     React.useState<boolean>(initialTimelineOpen)
 
+  React.useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(TIMELINE_STORAGE_KEY)
+      if (stored !== null) {
+        queueMicrotask(() => {
+          setIsTimelineOpenState(stored === "true")
+        })
+      }
+    } catch {
+      // safe fallback on storage failure
+    }
+  }, [])
+
+  const setTimelineOpen = React.useCallback((open: boolean) => {
+    setIsTimelineOpenState(open)
+    try {
+      window.localStorage.setItem(TIMELINE_STORAGE_KEY, String(open))
+    } catch {
+      // safe fallback on storage failure
+    }
+  }, [])
+
   const toggleTimeline = React.useCallback(() => {
-    setTimelineOpen((prev) => !prev)
+    setIsTimelineOpenState((prev) => {
+      const next = !prev
+      try {
+        window.localStorage.setItem(TIMELINE_STORAGE_KEY, String(next))
+      } catch {
+        // safe fallback on storage failure
+      }
+      return next
+    })
   }, [])
 
   const value = React.useMemo<StudioUiContextValue>(
@@ -32,7 +64,7 @@ export function StudioUiProvider({
       setTimelineOpen,
       toggleTimeline,
     }),
-    [isTimelineOpen, toggleTimeline]
+    [isTimelineOpen, setTimelineOpen, toggleTimeline]
   )
 
   return (

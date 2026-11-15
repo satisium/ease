@@ -37,7 +37,7 @@ export function AuditionToolbar() {
   const menuRef = React.useRef<HTMLDivElement>(null)
   const channelMenuRef = React.useRef<HTMLDivElement>(null)
 
-  // Close menus on outside click
+  // Close menus on outside click or Escape key
   React.useEffect(() => {
     if (!isComponentMenuOpen && !isChannelMenuOpen) return
     const handlePointerDown = (e: PointerEvent) => {
@@ -56,8 +56,18 @@ export function AuditionToolbar() {
         setIsChannelMenuOpen(false)
       }
     }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsComponentMenuOpen(false)
+        setIsChannelMenuOpen(false)
+      }
+    }
     window.addEventListener("pointerdown", handlePointerDown)
-    return () => window.removeEventListener("pointerdown", handlePointerDown)
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown)
+      window.removeEventListener("keydown", handleKeyDown)
+    }
   }, [isComponentMenuOpen, isChannelMenuOpen])
 
   // Track & Channel Resolutions
@@ -89,12 +99,15 @@ export function AuditionToolbar() {
   const isEntranceActive = focusedTrackId === enterTrackId
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto rounded-[14px] bg-background p-1 select-none">
+    <div className="flex items-center gap-1 rounded-[14px] bg-background p-1 select-none">
       {/* 1. Component Picker Popover Trigger */}
       <div className="relative" ref={menuRef}>
         <button
           type="button"
-          onClick={() => setIsComponentMenuOpen((v) => !v)}
+          onClick={() => {
+            setIsComponentMenuOpen((v) => !v)
+            setIsChannelMenuOpen(false)
+          }}
           aria-label="Select interactive component"
           aria-expanded={isComponentMenuOpen}
           className="flex h-8 cursor-pointer items-center gap-1.5 rounded-[10px] bg-muted px-2.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-secondary active:scale-95"
@@ -109,7 +122,7 @@ export function AuditionToolbar() {
         </button>
 
         {isComponentMenuOpen && (
-          <div className="absolute bottom-full left-0 z-50 mb-2 flex w-48 flex-col gap-0.5 rounded-[14px] bg-card p-1 shadow-lg">
+          <div className="absolute bottom-full left-0 z-50 mb-2 flex w-48 flex-col gap-0.5 rounded-[12px] bg-card p-1">
             <span className="px-2.5 py-1 font-sans text-[10px] text-muted-foreground uppercase">
               Components
             </span>
@@ -132,6 +145,7 @@ export function AuditionToolbar() {
                       ? "bg-secondary font-medium text-foreground"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
+                  aria-label={comp.componentLabel}
                 >
                   <span>{comp.componentLabel}</span>
                   {isSelected && (
@@ -163,7 +177,7 @@ export function AuditionToolbar() {
             className={cn(
               "flex h-7 cursor-pointer items-center rounded-[8px] px-2 font-sans text-[11px] transition-colors",
               isEntranceActive
-                ? "bg-background font-medium text-foreground shadow-xs"
+                ? "bg-background font-medium text-foreground"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -178,7 +192,7 @@ export function AuditionToolbar() {
             className={cn(
               "flex h-7 cursor-pointer items-center rounded-[8px] px-2 font-sans text-[11px] transition-colors",
               !isEntranceActive
-                ? "bg-background font-medium text-foreground shadow-xs"
+                ? "bg-background font-medium text-foreground"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -219,7 +233,7 @@ export function AuditionToolbar() {
                         stiffness: 350,
                         damping: 30,
                       }}
-                      className="absolute inset-0 rounded-[8px] bg-background shadow-xs"
+                      className="absolute inset-0 rounded-[8px] bg-background"
                     />
                   )}
                   <span className="relative z-20">All</span>
@@ -257,7 +271,7 @@ export function AuditionToolbar() {
                             stiffness: 350,
                             damping: 30,
                           }}
-                          className="absolute inset-0 rounded-[8px] bg-background shadow-xs"
+                          className="absolute inset-0 rounded-[8px] bg-background"
                         />
                       )}
                       <span className="relative z-20">{ch.label}</span>
@@ -278,7 +292,10 @@ export function AuditionToolbar() {
         <div className="relative" ref={channelMenuRef}>
           <button
             type="button"
-            onClick={() => setIsChannelMenuOpen((v) => !v)}
+            onClick={() => {
+              setIsChannelMenuOpen((v) => !v)
+              setIsComponentMenuOpen(false)
+            }}
             aria-label="Select kinetic channel"
             className="flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] bg-muted px-2.5 font-sans text-[11px] text-foreground hover:bg-secondary"
           >
@@ -292,7 +309,7 @@ export function AuditionToolbar() {
             <HugeiconsIcon icon={ArrowDown01Icon} className="size-3" />
           </button>
           {isChannelMenuOpen && (
-            <div className="absolute bottom-full left-0 z-50 mb-2 flex w-40 flex-col gap-0.5 rounded-[12px] bg-card p-1 shadow-lg">
+            <div className="absolute bottom-full left-0 z-50 mb-2 flex w-40 flex-col gap-0.5 rounded-[12px] bg-card p-1">
               <button
                 type="button"
                 onClick={() => {

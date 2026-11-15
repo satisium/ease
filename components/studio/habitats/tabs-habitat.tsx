@@ -45,7 +45,11 @@ const TABS = [
   },
 ] as const
 
-export function TabsHabitat() {
+export interface TabsHabitatProps {
+  compareItemId?: string
+}
+
+export function TabsHabitat({ compareItemId }: TabsHabitatProps = {}) {
   const store = useEaseStoreApi()
   const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
 
@@ -68,13 +72,22 @@ export function TabsHabitat() {
     pillRef.current.style.transform = `translate3d(${interp * 100}%, 0, 0) scale(${scale})`
   }, [])
 
-  const { triggerLive } = useTransitionTrack("tabs:switch", { onFrame })
+  const { triggerLive } = useTransitionTrack("tabs:switch", {
+    onFrame,
+    compareItemId,
+  })
 
-  // Sync external/keyboard Spacebar or Toolbar triggers
+  // Sync external/keyboard Spacebar or Toolbar triggers & Compare Mode
   React.useEffect(() => {
     const unsubscribe = store.subscribe((curr, prev) => {
+      const isTarget = compareItemId
+        ? (curr.compareQueue.find((i) => i.id === compareItemId)
+            ?.overrideTrackId ?? curr.globalCompareTarget.trackId) ===
+          "tabs:switch"
+        : curr.focusedTrackId === "tabs:switch"
+
       if (
-        curr.focusedTrackId === "tabs:switch" &&
+        isTarget &&
         curr.playbackState === "playing" &&
         prev.playbackState !== "playing"
       ) {
@@ -90,7 +103,7 @@ export function TabsHabitat() {
       }
     })
     return unsubscribe
-  }, [store])
+  }, [store, compareItemId])
 
   const handleSelectTab = (idx: number) => {
     if (idx === activeTab) return
@@ -99,7 +112,9 @@ export function TabsHabitat() {
     targetIndexRef.current = idx
     setActiveTab(idx)
 
-    if (focusedTrackId === "tabs:switch") {
+    if (compareItemId) {
+      store.getState().playScoped()
+    } else if (focusedTrackId === "tabs:switch") {
       triggerLive()
     } else {
       store.getState().focusTrack("tabs:switch")

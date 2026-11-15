@@ -11,11 +11,16 @@ import type { TrackFrameResult } from "@/core"
 import { useEaseStore, useEaseStoreApi } from "@/hooks/use-ease-store"
 import { useTransitionTrack } from "@/hooks/use-transition-track"
 
-export function ToastHabitat() {
+export interface ToastHabitatProps {
+  compareItemId?: string
+}
+
+export function ToastHabitat({ compareItemId }: ToastHabitatProps = {}) {
   const store = useEaseStoreApi()
   const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
   const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
   const isSolo = useEaseStore((s) => s.isSolo)
+  const playbackState = useEaseStore((s) => s.playbackState)
   const overlayRef = React.useRef<HTMLDivElement>(null)
 
   // Pointer-Events Guard: Prevent invisible toast from blocking clicks on trigger underneath
@@ -33,19 +38,30 @@ export function ToastHabitat() {
     bindRef,
     shouldForceMount: baseForceMount,
     triggerLive,
-  } = useTransitionTrack("toast:fire", { onFrame: handleFrame })
+  } = useTransitionTrack("toast:fire", {
+    onFrame: handleFrame,
+    compareItemId,
+  })
 
-  const isFocused = focusedTrackId === "toast:fire"
+  const isFocused = compareItemId ? true : focusedTrackId === "toast:fire"
   const isSoloOrSingle = isSolo || focusedChannelId !== "all"
-  const shouldForceMount = baseForceMount || (isFocused && isSoloOrSingle)
+  const shouldForceMount = compareItemId
+    ? playbackState !== "idle"
+    : baseForceMount || (isFocused && isSoloOrSingle)
 
   const [isToastOpen, setIsToastOpen] = React.useState(false)
 
-  // Sync external/keyboard Spacebar or Toolbar triggers
+  // Sync external/keyboard Spacebar or Toolbar triggers & Compare Mode
   React.useEffect(() => {
     const unsubscribe = store.subscribe((curr, prev) => {
+      const isTarget = compareItemId
+        ? (curr.compareQueue.find((i) => i.id === compareItemId)
+            ?.overrideTrackId ?? curr.globalCompareTarget.trackId) ===
+          "toast:fire"
+        : curr.focusedTrackId === "toast:fire"
+
       if (
-        curr.focusedTrackId === "toast:fire" &&
+        isTarget &&
         curr.playbackState === "playing" &&
         prev.playbackState !== "playing"
       ) {
@@ -53,17 +69,19 @@ export function ToastHabitat() {
       }
     })
     return unsubscribe
-  }, [store])
+  }, [store, compareItemId])
 
   const handleFireToast = React.useCallback(() => {
     setIsToastOpen(true)
-    if (focusedTrackId === "toast:fire") {
+    if (compareItemId) {
+      store.getState().playScoped()
+    } else if (focusedTrackId === "toast:fire") {
       triggerLive()
     } else {
       store.getState().focusTrack("toast:fire")
       store.getState().triggerLive("toast:fire")
     }
-  }, [focusedTrackId, triggerLive, store])
+  }, [compareItemId, focusedTrackId, triggerLive, store])
 
   const handleDismiss = React.useCallback(() => {
     setIsToastOpen(false)
