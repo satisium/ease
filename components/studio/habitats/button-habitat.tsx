@@ -38,7 +38,7 @@ export function ButtonHabitat() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-1 font-sans text-[10px] text-muted-foreground tabular-nums">
               <span className="rounded-[6px] bg-muted px-2 py-0.5 font-medium">
                 {clickCount} Taps
               </span>
@@ -62,13 +62,13 @@ export function ButtonHabitat() {
                 <span className="font-heading text-xs font-semibold tracking-tight text-foreground">
                   Commit Kinetic Action
                 </span>
-                <span className="font-mono text-[10px] text-muted-foreground">
+                <span className="font-sans text-[10px] text-muted-foreground">
                   Press or Space to Audition
                 </span>
               </div>
 
               <div className="ml-2 flex items-center">
-                <kbd className="rounded-[4px] bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                <kbd className="rounded-[4px] bg-muted px-1.5 py-0.5 font-sans text-[10px] text-muted-foreground">
                   Space
                 </kbd>
               </div>
@@ -81,7 +81,7 @@ export function ButtonHabitat() {
               <span className="font-sans text-[10px] text-muted-foreground">
                 Channel: Scale
               </span>
-              <p className="mt-0.5 font-mono text-[11px] font-semibold text-foreground">
+              <p className="mt-0.5 font-sans text-[11px] font-semibold text-foreground tabular-nums">
                 1.000 ↔ 0.960
               </p>
             </div>
@@ -90,7 +90,7 @@ export function ButtonHabitat() {
               <span className="font-sans text-[10px] text-muted-foreground">
                 Channel: Opacity
               </span>
-              <p className="mt-0.5 font-mono text-[11px] font-semibold text-foreground">
+              <p className="mt-0.5 font-sans text-[11px] font-semibold text-foreground tabular-nums">
                 1.000 ↔ 0.920
               </p>
             </div>
