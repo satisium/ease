@@ -1,13 +1,19 @@
 # Ease — Complete AI Knowledge Base
 
 > Source: https://ease.satisium.com
-> Generated: 2026-11-15T14:46:40.517Z
+> Generated: 2026-11-15T17:15:35.953Z
 > Pages: 11
 
 ---
 
 # Changelog
 <source>https://ease.satisium.com/docs/changelog</source>
+
+## 0.9.0
+
+### Minor Changes
+
+- 81d76da: Introduce Phase D: Compare Mode (Mode 3 Duel Theater, Primitives comparison, Compare Queue & Dock, Telemetry Slab, and Automatic v3 Persistence Contract).
 
 ## 0.8.0
 
