@@ -188,5 +188,59 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
       fireEvent.click(screen.getByText("Switch to Carousel"))
       expect(screen.getByText("Media Carousel Stage")).toBeInTheDocument()
     })
+
+    it("renders PrimitivesXRay without duplicate filter bar when focusedTrack is primitives:all", () => {
+      function PrimitivesController() {
+        const store = useEaseStoreApi()
+        return (
+          <div>
+            <button
+              onClick={() => {
+                store.getState().focusTrack("primitives:all")
+              }}
+            >
+              Switch to Primitives
+            </button>
+            <button
+              onClick={() => {
+                store.getState().focusChannel("position")
+              }}
+            >
+              Isolate Position
+            </button>
+          </div>
+        )
+      }
+
+      render(
+        <TestWrapper>
+          <PrimitivesController />
+          <HabitatStage />
+        </TestWrapper>
+      )
+
+      // Switch to primitives
+      fireEvent.click(screen.getByText("Switch to Primitives"))
+
+      // Primitives 4-panel nodes are rendered
+      expect(
+        screen.getByTestId("primitive-position-wrapper")
+      ).toBeInTheDocument()
+      expect(screen.getByTestId("primitive-scale-node")).toBeInTheDocument()
+      expect(screen.getByTestId("primitive-opacity-node")).toBeInTheDocument()
+      expect(screen.getByTestId("primitive-rotate-node")).toBeInTheDocument()
+
+      // Internal filter pill buttons (e.g. "Filter position primitive") are NOT rendered (zero duplicate bars!)
+      expect(screen.queryByLabelText("Filter position primitive")).toBeNull()
+
+      // Isolate Position channel
+      fireEvent.click(screen.getByText("Isolate Position"))
+      expect(
+        screen.getByTestId("primitive-position-wrapper")
+      ).toBeInTheDocument()
+      expect(screen.queryByTestId("primitive-scale-node")).toBeNull()
+      expect(screen.queryByTestId("primitive-opacity-node")).toBeNull()
+      expect(screen.queryByTestId("primitive-rotate-node")).toBeNull()
+    })
   })
 })

@@ -16,11 +16,36 @@
 import * as React from "react"
 import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { motion, AnimatePresence, LayoutGroup } from "motion/react"
 import { HabitatStage } from "@/components/studio/habitats/habitat-stage"
 import { useEaseStore } from "@/hooks/use-ease-store"
 import { trackRegistry, getPairedTrackId, listComponents } from "@/core"
 import { PrimitivesXRay, type PrimitiveFilter } from "./primitives-xray"
 import { cn } from "@/lib/utils"
+import {
+  SATISIUM_EASE_DECEL,
+  SATISIUM_EASE_ACCEL,
+  SATISIUM_SPRING_PILL,
+  SATISIUM_PRESS_CLASS,
+} from "@/lib/motion"
+
+const downwardPopoverVariants = {
+  initial: { opacity: 0, scale: 0.95, y: -4, filter: "blur(2px)" },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.15, ease: SATISIUM_EASE_DECEL },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.96,
+    y: -2,
+    filter: "blur(2px)",
+    transition: { duration: 0.11, ease: SATISIUM_EASE_ACCEL },
+  },
+} as const
 
 export interface CustomizeMicroPreviewProps {
   className?: string
@@ -128,7 +153,10 @@ export function CustomizeMicroPreview({
                 onClick={() => setIsComponentMenuOpen((v) => !v)}
                 aria-label="Select interactive component"
                 aria-expanded={isComponentMenuOpen}
-                className="flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] bg-background px-2.5 font-heading text-[11px] font-medium text-foreground transition-colors hover:bg-secondary active:scale-95"
+                className={cn(
+                  "flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] bg-background px-2.5 font-heading text-[11px] font-medium text-foreground transition-colors hover:bg-secondary",
+                  SATISIUM_PRESS_CLASS
+                )}
               >
                 <span>{componentLabel}</span>
                 <HugeiconsIcon
@@ -140,42 +168,50 @@ export function CustomizeMicroPreview({
                 />
               </button>
 
-              {isComponentMenuOpen && (
-                <div className="absolute top-full left-0 z-50 mt-1 flex w-48 flex-col gap-0.5 rounded-[12px] bg-background p-1 select-none">
-                  <span className="px-2 py-1 font-sans text-[10px] text-muted-foreground uppercase">
-                    Components
-                  </span>
-                  {components.map((comp) => {
-                    const isSelected = comp.componentId === track?.componentId
-                    const firstTrack = comp.tracks[0]
-                    return (
-                      <button
-                        key={comp.componentId}
-                        type="button"
-                        aria-label={`Select ${comp.componentLabel} component`}
-                        onClick={() => {
-                          if (firstTrack) {
-                            focusTrack(firstTrack.id)
-                            enterCustomize()
-                          }
-                          setIsComponentMenuOpen(false)
-                        }}
-                        className={cn(
-                          "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
-                          isSelected
-                            ? "bg-secondary font-medium text-foreground"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                        )}
-                      >
-                        <span>{comp.componentLabel}</span>
-                        {isSelected && (
-                          <span className="size-1.5 rounded-full bg-foreground" />
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+              <AnimatePresence>
+                {isComponentMenuOpen && (
+                  <motion.div
+                    variants={downwardPopoverVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit={process.env.NODE_ENV === "test" ? undefined : "exit"}
+                    className="absolute top-full left-0 z-50 mt-1 flex w-48 origin-top-left flex-col gap-0.5 rounded-[12px] bg-background p-1 select-none"
+                  >
+                    <span className="px-2 py-1 font-sans text-[10px] text-muted-foreground uppercase">
+                      Components
+                    </span>
+                    {components.map((comp) => {
+                      const isSelected = comp.componentId === track?.componentId
+                      const firstTrack = comp.tracks[0]
+                      return (
+                        <button
+                          key={comp.componentId}
+                          type="button"
+                          aria-label={`Select ${comp.componentLabel} component`}
+                          onClick={() => {
+                            if (firstTrack) {
+                              focusTrack(firstTrack.id)
+                              enterCustomize()
+                            }
+                            setIsComponentMenuOpen(false)
+                          }}
+                          className={cn(
+                            "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
+                            isSelected
+                              ? "bg-secondary font-medium text-foreground"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          )}
+                        >
+                          <span>{comp.componentLabel}</span>
+                          {isSelected && (
+                            <span className="size-1.5 rounded-full bg-foreground" />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* 2. Phase Toggle (In | Out) */}
@@ -192,6 +228,7 @@ export function CustomizeMicroPreview({
                   }}
                   className={cn(
                     "h-6 cursor-pointer rounded-[6px] px-2 font-sans text-[11px] font-medium transition-colors",
+                    SATISIUM_PRESS_CLASS,
                     isInPhase
                       ? "bg-secondary text-foreground"
                       : "text-muted-foreground hover:text-foreground"
@@ -210,6 +247,7 @@ export function CustomizeMicroPreview({
                   }}
                   className={cn(
                     "h-6 cursor-pointer rounded-[6px] px-2 font-sans text-[11px] font-medium transition-colors",
+                    SATISIUM_PRESS_CLASS,
                     !isInPhase
                       ? "bg-secondary text-foreground"
                       : "text-muted-foreground hover:text-foreground"
@@ -227,7 +265,10 @@ export function CustomizeMicroPreview({
                 onClick={() => setIsChannelMenuOpen((v) => !v)}
                 aria-label="Select target channel"
                 aria-expanded={isChannelMenuOpen}
-                className="flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] bg-background px-2.5 font-sans text-[11px] font-medium text-foreground transition-colors hover:bg-secondary active:scale-95"
+                className={cn(
+                  "flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] bg-background px-2.5 font-sans text-[11px] font-medium text-foreground transition-colors hover:bg-secondary",
+                  SATISIUM_PRESS_CLASS
+                )}
               >
                 <span>{channelLabel}</span>
                 <HugeiconsIcon
@@ -239,59 +280,67 @@ export function CustomizeMicroPreview({
                 />
               </button>
 
-              {isChannelMenuOpen && (
-                <div className="absolute top-full left-0 z-50 mt-1 flex w-44 flex-col gap-0.5 rounded-[12px] bg-background p-1 select-none">
-                  <span className="px-2 py-1 font-sans text-[10px] text-muted-foreground uppercase">
-                    Channels
-                  </span>
-                  <button
-                    type="button"
-                    aria-label="Target All channels"
-                    onClick={() => {
-                      focusChannel("all")
-                      enterCustomize()
-                      setIsChannelMenuOpen(false)
-                    }}
-                    className={cn(
-                      "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
-                      focusedChannelId === "all"
-                        ? "bg-secondary font-medium text-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
+              <AnimatePresence>
+                {isChannelMenuOpen && (
+                  <motion.div
+                    variants={downwardPopoverVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit={process.env.NODE_ENV === "test" ? undefined : "exit"}
+                    className="absolute top-full left-0 z-50 mt-1 flex w-44 origin-top-left flex-col gap-0.5 rounded-[12px] bg-background p-1 select-none"
                   >
-                    <span>All Channels</span>
-                    {focusedChannelId === "all" && (
-                      <span className="size-1.5 rounded-full bg-foreground" />
-                    )}
-                  </button>
-                  {track?.channels.map((channel) => {
-                    const isSelected = channel.id === focusedChannelId
-                    return (
-                      <button
-                        key={channel.id}
-                        type="button"
-                        aria-label={`Target ${channel.label} channel`}
-                        onClick={() => {
-                          focusChannel(channel.id)
-                          enterCustomize()
-                          setIsChannelMenuOpen(false)
-                        }}
-                        className={cn(
-                          "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
-                          isSelected
-                            ? "bg-secondary font-medium text-foreground"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                        )}
-                      >
-                        <span>{channel.label}</span>
-                        {isSelected && (
-                          <span className="size-1.5 rounded-full bg-foreground" />
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+                    <span className="px-2 py-1 font-sans text-[10px] text-muted-foreground uppercase">
+                      Channels
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Target All channels"
+                      onClick={() => {
+                        focusChannel("all")
+                        enterCustomize()
+                        setIsChannelMenuOpen(false)
+                      }}
+                      className={cn(
+                        "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
+                        focusedChannelId === "all"
+                          ? "bg-secondary font-medium text-foreground"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <span>All Channels</span>
+                      {focusedChannelId === "all" && (
+                        <span className="size-1.5 rounded-full bg-foreground" />
+                      )}
+                    </button>
+                    {track?.channels.map((channel) => {
+                      const isSelected = channel.id === focusedChannelId
+                      return (
+                        <button
+                          key={channel.id}
+                          type="button"
+                          aria-label={`Target ${channel.label} channel`}
+                          onClick={() => {
+                            focusChannel(channel.id)
+                            enterCustomize()
+                            setIsChannelMenuOpen(false)
+                          }}
+                          className={cn(
+                            "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
+                            isSelected
+                              ? "bg-secondary font-medium text-foreground"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          )}
+                        >
+                          <span>{channel.label}</span>
+                          {isSelected && (
+                            <span className="size-1.5 rounded-full bg-foreground" />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         ) : (
@@ -306,6 +355,7 @@ export function CustomizeMicroPreview({
                   onClick={() => setPrimitivesFilter(filter)}
                   className={cn(
                     "h-6 cursor-pointer rounded-[8px] px-2 font-sans text-[11px] font-medium capitalize transition-colors",
+                    SATISIUM_PRESS_CLASS,
                     primitivesFilter === filter
                       ? "bg-secondary text-foreground"
                       : "text-muted-foreground hover:text-foreground"
@@ -319,34 +369,52 @@ export function CustomizeMicroPreview({
         )}
 
         {/* Right Side: Mode Toggle (Component | Primitives) */}
-        <div className="flex items-center rounded-[10px] bg-background p-0.5">
-          <button
-            type="button"
-            aria-label="Switch to Component preview"
-            onClick={() => handleToggleMode("component")}
-            className={cn(
-              "h-7 cursor-pointer rounded-[8px] px-2.5 font-sans text-xs font-medium transition-colors",
-              customizePreviewMode === "component"
-                ? "bg-secondary text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Component
-          </button>
-          <button
-            type="button"
-            aria-label="Switch to Primitives X-Ray preview"
-            onClick={() => handleToggleMode("primitives")}
-            className={cn(
-              "h-7 cursor-pointer rounded-[8px] px-2.5 font-sans text-xs font-medium transition-colors",
-              customizePreviewMode === "primitives"
-                ? "bg-secondary text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Primitives
-          </button>
-        </div>
+        <LayoutGroup id="customize-preview-mode-toggle">
+          <div className="relative flex items-center rounded-[10px] bg-background p-0.5">
+            <button
+              type="button"
+              aria-label="Switch to Component preview"
+              onClick={() => handleToggleMode("component")}
+              className={cn(
+                "relative z-10 h-7 cursor-pointer rounded-[8px] px-2.5 font-sans text-xs font-medium transition-colors outline-none",
+                SATISIUM_PRESS_CLASS,
+                customizePreviewMode === "component"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {customizePreviewMode === "component" && (
+                <motion.div
+                  layoutId="customize-preview-mode-pill"
+                  transition={SATISIUM_SPRING_PILL}
+                  className="absolute inset-0 rounded-[8px] bg-secondary"
+                />
+              )}
+              <span className="relative z-20">Component</span>
+            </button>
+            <button
+              type="button"
+              aria-label="Switch to Primitives X-Ray preview"
+              onClick={() => handleToggleMode("primitives")}
+              className={cn(
+                "relative z-10 h-7 cursor-pointer rounded-[8px] px-2.5 font-sans text-xs font-medium transition-colors outline-none",
+                SATISIUM_PRESS_CLASS,
+                customizePreviewMode === "primitives"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {customizePreviewMode === "primitives" && (
+                <motion.div
+                  layoutId="customize-preview-mode-pill"
+                  transition={SATISIUM_SPRING_PILL}
+                  className="absolute inset-0 rounded-[8px] bg-secondary"
+                />
+              )}
+              <span className="relative z-20">Primitives</span>
+            </button>
+          </div>
+        </LayoutGroup>
       </div>
 
       {/* Main Stage Body (Fills 100% of available space) */}

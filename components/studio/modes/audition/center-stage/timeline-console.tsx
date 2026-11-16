@@ -11,7 +11,7 @@ import {
   RotateLeft01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence, LayoutGroup } from "motion/react"
 import {
   Tooltip,
   TooltipContent,
@@ -26,6 +26,12 @@ import {
   Slider as SatisSlider,
   type SliderImperativeHandle,
 } from "./satis-slider"
+import {
+  SATISIUM_SPRING_PILL,
+  SATISIUM_EASE_DECEL,
+  SATISIUM_EASE_ACCEL,
+  SATISIUM_PRESS_CLASS,
+} from "@/lib/motion"
 
 export function TimelineConsole() {
   const store = useEaseStoreApi()
@@ -112,19 +118,14 @@ export function TimelineConsole() {
           animate={{
             height: "auto",
             opacity: 1,
-            transition: {
-              type: "spring",
-              stiffness: 400,
-              damping: 34,
-              mass: 0.8,
-            },
+            transition: SATISIUM_SPRING_PILL,
           }}
           exit={{
             height: 0,
             opacity: 0,
             transition: {
               duration: 0.18,
-              ease: [0.4, 0, 1, 1],
+              ease: SATISIUM_EASE_ACCEL,
             },
           }}
           className="shrink-0 overflow-hidden"
@@ -134,18 +135,13 @@ export function TimelineConsole() {
               initial={{ y: 20 }}
               animate={{
                 y: 0,
-                transition: {
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 34,
-                  mass: 0.8,
-                },
+                transition: SATISIUM_SPRING_PILL,
               }}
               exit={{
                 y: 16,
                 transition: {
                   duration: 0.18,
-                  ease: [0.4, 0, 1, 1],
+                  ease: SATISIUM_EASE_ACCEL,
                 },
               }}
               aria-label="Master Precision Timeline Dock"
@@ -176,174 +172,280 @@ export function TimelineConsole() {
               {/* Row 2: Precision Transport Controls & Sharp Readout */}
               <div className="flex shrink-0 items-center justify-between">
                 {/* Left: Minimal Icon Transport Cluster */}
-                <div className="flex items-center gap-1.5">
-                  {/* Play / Pause Toggle */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => store.getState().togglePlayback()}
-                        aria-label={
-                          isPlaying ? "Pause animation" : "Play animation"
-                        }
-                        className="flex size-7 cursor-pointer items-center justify-center rounded-[8px] bg-foreground text-background transition-transform active:scale-95"
+                <LayoutGroup id="timeline-transport">
+                  <div className="flex items-center gap-1.5">
+                    {/* Play / Pause Toggle */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => store.getState().togglePlayback()}
+                          aria-label={
+                            isPlaying ? "Pause animation" : "Play animation"
+                          }
+                          className={cn(
+                            "flex size-7 cursor-pointer items-center justify-center rounded-[8px] bg-foreground text-background",
+                            SATISIUM_PRESS_CLASS
+                          )}
+                        >
+                          <AnimatePresence mode="popLayout" initial={false}>
+                            <motion.span
+                              key={isPlaying ? "pause" : "play"}
+                              initial={{
+                                opacity: 0,
+                                scale: 0.6,
+                                filter: "blur(2px)",
+                              }}
+                              animate={{
+                                opacity: 1,
+                                scale: 1,
+                                filter: "blur(0px)",
+                              }}
+                              exit={{
+                                opacity: 0,
+                                scale: 0.6,
+                                filter: "blur(2px)",
+                              }}
+                              transition={{
+                                duration: 0.14,
+                                ease: SATISIUM_EASE_DECEL,
+                              }}
+                              className="flex items-center justify-center"
+                            >
+                              <HugeiconsIcon
+                                icon={isPlaying ? PauseIcon : PlayIcon}
+                                className="size-3.5"
+                              />
+                            </motion.span>
+                          </AnimatePresence>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        className="flex items-center gap-1.5 text-xs"
                       >
-                        <HugeiconsIcon
-                          icon={isPlaying ? PauseIcon : PlayIcon}
-                          className="size-3.5"
-                        />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      className="flex items-center gap-1.5 text-xs"
-                    >
-                      <span>{isPlaying ? "Pause" : "Play"}</span>
-                      <kbd className="rounded bg-muted px-1 py-0.5 font-sans text-[9px] text-muted-foreground tabular-nums">
-                        Space
-                      </kbd>
-                    </TooltipContent>
-                  </Tooltip>
+                        <span>{isPlaying ? "Pause" : "Play"}</span>
+                        <kbd className="rounded bg-muted px-1 py-0.5 font-sans text-[9px] text-muted-foreground tabular-nums">
+                          Space
+                        </kbd>
+                      </TooltipContent>
+                    </Tooltip>
 
-                  {/* Replay */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          store.getState().seekScoped(0)
-                          store.getState().playScoped()
-                        }}
-                        aria-label="Replay from Origin"
-                        className="flex size-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
-                      >
-                        <HugeiconsIcon
-                          icon={Refresh03Icon}
-                          className="size-3.5"
-                        />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      className="flex items-center gap-1.5 text-xs"
-                    >
-                      <span>Replay</span>
-                      <kbd className="rounded bg-muted px-1 py-0.5 font-sans text-[9px] text-muted-foreground tabular-nums">
-                        R
-                      </kbd>
-                    </TooltipContent>
-                  </Tooltip>
-
-                  {/* Loop Toggle */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => store.getState().setLooping(!isLooping)}
-                        aria-label="Toggle continuous loop"
-                        className={cn(
-                          "flex size-7 cursor-pointer items-center justify-center rounded-[8px] transition-colors active:scale-95",
-                          isLooping
-                            ? "bg-foreground text-background"
-                            : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        )}
-                      >
-                        <HugeiconsIcon icon={RepeatIcon} className="size-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">
-                      {isLooping
-                        ? "Continuous Loop: Active"
-                        : "Toggle Continuous Loop"}
-                    </TooltipContent>
-                  </Tooltip>
-
-                  {/* Loop Delay Breather Selector Pill */}
-                  {isLooping && (
+                    {/* Replay */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
                           type="button"
                           onClick={() => {
-                            const nextDelay =
-                              loopDelayMs === 0
-                                ? 400
-                                : loopDelayMs === 400
-                                  ? 800
-                                  : 0
-                            store.getState().setLoopDelayMs(nextDelay)
+                            store.getState().seekScoped(0)
+                            store.getState().playScoped()
                           }}
-                          aria-label={`Loop delay breather: ${loopDelayMs}ms. Click to cycle`}
-                          className="flex h-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted px-2 font-sans text-[11px] text-muted-foreground tabular-nums transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
+                          aria-label="Replay from Origin"
+                          className={cn(
+                            "flex size-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+                            SATISIUM_PRESS_CLASS
+                          )}
                         >
-                          <span>{loopDelayMs}ms</span>
+                          <HugeiconsIcon
+                            icon={Refresh03Icon}
+                            className="size-3.5"
+                          />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="text-xs">
-                        <span>
-                          Loop Delay: {loopDelayMs}ms · Click to cycle (0ms ·
-                          400ms · 800ms)
-                        </span>
+                      <TooltipContent
+                        side="top"
+                        className="flex items-center gap-1.5 text-xs"
+                      >
+                        <span>Replay</span>
+                        <kbd className="rounded bg-muted px-1 py-0.5 font-sans text-[9px] text-muted-foreground tabular-nums">
+                          R
+                        </kbd>
                       </TooltipContent>
                     </Tooltip>
-                  )}
 
-                  <div className="mx-0.5 h-3.5 w-px bg-border" />
-
-                  {/* Speed Multiplier Segment */}
-                  <div className="flex h-7 items-center rounded-[8px] bg-muted p-0.5 font-sans text-xs">
-                    {([1, 0.5, 0.25] as const).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => store.getState().setSpeed(s)}
-                        aria-label={`Set playback speed to ${s}x`}
-                        className={cn(
-                          "cursor-pointer rounded-[6px] px-2 py-0.5 font-sans text-[11px] tabular-nums transition-colors",
-                          speed === s
-                            ? "bg-background font-semibold text-foreground shadow-xs"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        {s}x
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Right: Spring Mode, Pin, Reset, A11y Suite & Clickable Duration Readout */}
-                <div className="flex items-center gap-2">
-                  {/* Spring Fit | Natural Mode Switcher */}
-                  {focusedChannel?.curve.engine === "spring" && (
+                    {/* Loop Toggle */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
                           type="button"
                           onClick={() =>
-                            setFocusedSpringMode(
-                              focusedChannel.springMode === "fit"
-                                ? "natural"
-                                : "fit"
-                            )
+                            store.getState().setLooping(!isLooping)
                           }
-                          aria-label={`Spring mode: ${focusedChannel.springMode}. Click to toggle`}
-                          className="flex h-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted px-2 font-sans text-[10px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
+                          aria-label="Toggle continuous loop"
+                          className={cn(
+                            "flex size-7 cursor-pointer items-center justify-center rounded-[8px] transition-colors",
+                            SATISIUM_PRESS_CLASS,
+                            isLooping
+                              ? "bg-foreground text-background"
+                              : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          )}
                         >
-                          {focusedChannel.springMode === "fit"
-                            ? "Fit to Time"
-                            : "Natural Settle"}
+                          <HugeiconsIcon
+                            icon={RepeatIcon}
+                            className="size-3.5"
+                          />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="text-xs">
-                        <span>
-                          Spring Mode:{" "}
-                          {focusedChannel.springMode === "fit"
-                            ? "Fit (scaled to timeline duration)"
-                            : "Natural (unconstrained physics settling)"}
-                        </span>
+                        {isLooping
+                          ? "Continuous Loop: Active"
+                          : "Toggle Continuous Loop"}
                       </TooltipContent>
                     </Tooltip>
-                  )}
+
+                    {/* Loop Delay Breather Selector Pill */}
+                    <AnimatePresence initial={false}>
+                      {isLooping && (
+                        <motion.div
+                          initial={{
+                            opacity: 0,
+                            scale: 0.85,
+                            filter: "blur(3px)",
+                          }}
+                          animate={{
+                            opacity: 1,
+                            scale: 1,
+                            filter: "blur(0px)",
+                          }}
+                          exit={{
+                            opacity: 0,
+                            scale: 0.85,
+                            filter: "blur(3px)",
+                          }}
+                          transition={{
+                            duration: 0.16,
+                            ease: SATISIUM_EASE_DECEL,
+                          }}
+                        >
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextDelay =
+                                    loopDelayMs === 0
+                                      ? 400
+                                      : loopDelayMs === 400
+                                        ? 800
+                                        : 0
+                                  store.getState().setLoopDelayMs(nextDelay)
+                                }}
+                                aria-label={`Loop delay breather: ${loopDelayMs}ms. Click to cycle`}
+                                className={cn(
+                                  "flex h-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted px-2 font-sans text-[11px] text-muted-foreground tabular-nums transition-colors hover:bg-secondary hover:text-foreground",
+                                  SATISIUM_PRESS_CLASS
+                                )}
+                              >
+                                <span>{loopDelayMs}ms</span>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              <span>
+                                Loop Delay: {loopDelayMs}ms · Click to cycle
+                                (0ms · 400ms · 800ms)
+                              </span>
+                            </TooltipContent>
+                          </Tooltip>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <motion.div
+                      layout
+                      transition={SATISIUM_SPRING_PILL}
+                      className="mx-0.5 h-3.5 w-px bg-secondary"
+                    />
+
+                    {/* Speed Multiplier Segment */}
+                    <motion.div
+                      layout
+                      transition={SATISIUM_SPRING_PILL}
+                      className="flex h-7 items-center rounded-[8px] bg-muted p-0.5 font-sans text-xs"
+                    >
+                      {([1, 0.5, 0.25] as const).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => store.getState().setSpeed(s)}
+                          aria-label={`Set playback speed to ${s}x`}
+                          className={cn(
+                            "relative z-10 cursor-pointer rounded-[6px] px-2 py-0.5 font-sans text-[11px] tabular-nums transition-colors outline-none",
+                            SATISIUM_PRESS_CLASS,
+                            speed === s
+                              ? "font-semibold text-foreground"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          {speed === s && (
+                            <motion.div
+                              layoutId="timeline-speed-pill"
+                              transition={SATISIUM_SPRING_PILL}
+                              className="absolute inset-0 rounded-[6px] bg-background"
+                            />
+                          )}
+                          <span className="relative z-20">{s}x</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  </div>
+                </LayoutGroup>
+
+                {/* Right: Spring Mode, Pin, Reset, A11y Suite & Clickable Duration Readout */}
+                <div className="flex items-center gap-2">
+                  {/* Spring Fit | Natural Mode Switcher */}
+                  <AnimatePresence initial={false}>
+                    {focusedChannel?.curve.engine === "spring" && (
+                      <motion.div
+                        initial={{
+                          opacity: 0,
+                          scale: 0.85,
+                          filter: "blur(3px)",
+                        }}
+                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                        exit={{
+                          opacity: 0,
+                          scale: 0.85,
+                          filter: "blur(3px)",
+                        }}
+                        transition={{
+                          duration: 0.16,
+                          ease: SATISIUM_EASE_DECEL,
+                        }}
+                      >
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFocusedSpringMode(
+                                  focusedChannel.springMode === "fit"
+                                    ? "natural"
+                                    : "fit"
+                                )
+                              }
+                              aria-label={`Spring mode: ${focusedChannel.springMode}. Click to toggle`}
+                              className={cn(
+                                "flex h-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted px-2 font-sans text-[10px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+                                SATISIUM_PRESS_CLASS
+                              )}
+                            >
+                              {focusedChannel.springMode === "fit"
+                                ? "Fit to Time"
+                                : "Natural Settle"}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">
+                            <span>
+                              Spring Mode:{" "}
+                              {focusedChannel.springMode === "fit"
+                                ? "Fit (scaled to timeline duration)"
+                                : "Natural (unconstrained physics settling)"}
+                            </span>
+                          </TooltipContent>
+                        </Tooltip>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Pin Active Curve */}
                   <Tooltip>
@@ -355,7 +457,8 @@ export function TimelineConsole() {
                           isPinned ? "Unpin active curve" : "Pin active curve"
                         }
                         className={cn(
-                          "flex size-7 cursor-pointer items-center justify-center rounded-[8px] transition-colors active:scale-95",
+                          "flex size-7 cursor-pointer items-center justify-center rounded-[8px] transition-colors",
+                          SATISIUM_PRESS_CLASS,
                           isPinned
                             ? "bg-foreground text-background"
                             : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -376,7 +479,10 @@ export function TimelineConsole() {
                         type="button"
                         onClick={resetFocusedTrack}
                         aria-label="Reset track channels to defaults"
-                        className="flex size-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground active:scale-95"
+                        className={cn(
+                          "flex size-7 cursor-pointer items-center justify-center rounded-[8px] bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+                          SATISIUM_PRESS_CLASS
+                        )}
                       >
                         <HugeiconsIcon
                           icon={RotateLeft01Icon}
@@ -399,7 +505,8 @@ export function TimelineConsole() {
                         }
                         aria-label="Toggle reduced motion accessibility simulation"
                         className={cn(
-                          "flex size-7 cursor-pointer items-center justify-center rounded-[8px] transition-colors active:scale-95",
+                          "flex size-7 cursor-pointer items-center justify-center rounded-[8px] transition-colors",
+                          SATISIUM_PRESS_CLASS,
                           isReducedMotion
                             ? "bg-foreground text-background"
                             : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground"

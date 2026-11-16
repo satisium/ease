@@ -95,7 +95,7 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
     expect(screen.getByTestId("probe-track").textContent).toBe("dialog:open")
   })
 
-  it("renders Multi-Channel strip and allows selecting specific channels", () => {
+  it("renders Channel Dropdown and allows selecting specific channels", () => {
     render(
       <TestWrapper>
         <AuditionToolbar />
@@ -103,20 +103,23 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
       </TestWrapper>
     )
 
-    const allChip = screen.getByRole("tab", { name: /Master Channel/i })
-    expect(allChip).toBeInTheDocument()
-    expect(allChip).toHaveAttribute("aria-selected", "true")
+    const channelTrigger = screen.getByRole("button", {
+      name: /Select kinetic channel/i,
+    })
+    expect(channelTrigger).toBeInTheDocument()
+    expect(screen.getByText("All Channels")).toBeInTheDocument()
 
-    const translateYChip = screen.getByRole("tab", {
+    // Open channel dropdown
+    fireEvent.click(channelTrigger)
+    const translateYOption = screen.getByRole("button", {
       name: /Translate Y channel/i,
     })
-    expect(translateYChip).toBeInTheDocument()
+    expect(translateYOption).toBeInTheDocument()
 
     // Click Translate Y
-    fireEvent.click(translateYChip)
+    fireEvent.click(translateYOption)
     expect(screen.getByTestId("probe-channel").textContent).toBe("translateY")
-    expect(translateYChip).toHaveAttribute("aria-selected", "true")
-    expect(allChip).toHaveAttribute("aria-selected", "false")
+    expect(screen.getByText("Translate Y")).toBeInTheDocument()
 
     // Scoped controls
     expect(
@@ -141,9 +144,13 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
     })
     expect(soloBtn).toBeDisabled()
 
-    // Focus a channel first so Solo is available
-    const scaleChip = screen.getByRole("tab", { name: /Scale channel/i })
-    fireEvent.click(scaleChip)
+    // Focus a channel first via Channel Dropdown so Solo is available
+    const channelTrigger = screen.getByRole("button", {
+      name: /Select kinetic channel/i,
+    })
+    fireEvent.click(channelTrigger)
+    const scaleOption = screen.getByRole("button", { name: /Scale channel/i })
+    fireEvent.click(scaleOption)
     expect(soloBtn).not.toBeDisabled()
 
     // Solo
@@ -219,5 +226,46 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
     expect(screen.getByText("Components")).toBeInTheDocument()
     fireEvent.pointerDown(screen.getByTestId("outside-area"))
     expect(screen.queryByText("Components")).toBeNull()
+  })
+
+  it("allows selecting Primitives with Lab badge and isolates channel in Channel Dropdown", () => {
+    render(
+      <TestWrapper>
+        <AuditionToolbar />
+        <StoreProbe />
+      </TestWrapper>
+    )
+
+    // Open component menu
+    const pickerTrigger = screen.getByRole("button", {
+      name: /Select interactive component/i,
+    })
+    fireEvent.click(pickerTrigger)
+
+    // Verify Lab badge and Primitives option
+    expect(screen.getByText("Lab")).toBeInTheDocument()
+    const primitivesOption = screen.getByRole("button", { name: "Primitives" })
+    expect(primitivesOption).toBeInTheDocument()
+
+    // Select Primitives
+    fireEvent.click(primitivesOption)
+    expect(screen.getByTestId("probe-track").textContent).toBe("primitives:all")
+    expect(screen.getByTestId("probe-channel").textContent).toBe("all")
+
+    // Open Channel Dropdown
+    const channelTrigger = screen.getByRole("button", {
+      name: /Select kinetic channel/i,
+    })
+    fireEvent.click(channelTrigger)
+
+    // Verify Position option is available and click it
+    const positionOption = screen.getByRole("button", {
+      name: /Position channel/i,
+    })
+    expect(positionOption).toBeInTheDocument()
+    fireEvent.click(positionOption)
+
+    expect(screen.getByTestId("probe-channel").textContent).toBe("position")
+    expect(screen.getByText("Position")).toBeInTheDocument()
   })
 })

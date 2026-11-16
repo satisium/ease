@@ -677,9 +677,11 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       setFocusedDurationMs: (ms) => {
         const { focusedTrackId, focusedChannelId, trackBindings } = get()
         const target =
-          focusedChannelId === "all"
-            ? trackBindings[focusedTrackId]?.[0]?.id
-            : focusedChannelId
+          focusedTrackId === "primitives:all"
+            ? "all"
+            : focusedChannelId === "all"
+              ? trackBindings[focusedTrackId]?.[0]?.id
+              : focusedChannelId
         if (!target) return
         set({
           trackBindings: setChannelDurationMs(
@@ -695,9 +697,11 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       setFocusedDelayMs: (ms) => {
         const { focusedTrackId, focusedChannelId, trackBindings } = get()
         const target =
-          focusedChannelId === "all"
-            ? trackBindings[focusedTrackId]?.[0]?.id
-            : focusedChannelId
+          focusedTrackId === "primitives:all"
+            ? "all"
+            : focusedChannelId === "all"
+              ? trackBindings[focusedTrackId]?.[0]?.id
+              : focusedChannelId
         if (!target) return
         set({
           trackBindings: setChannelDelayMs(
@@ -713,8 +717,8 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
       setFocusedSpringMode: (mode) => {
         const { focusedTrackId, focusedChannelId, trackBindings } = get()
         const target =
-          focusedChannelId === "all"
-            ? trackBindings[focusedTrackId]?.[0]?.id
+          focusedTrackId === "primitives:all" || focusedChannelId === "all"
+            ? "all"
             : focusedChannelId
         if (!target) return
         set({
@@ -878,20 +882,19 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
         let nextBindings = applyCurveToChannel(
           trackBindings,
           focusedTrackId,
-          focusedChannelId,
+          focusedTrackId === "primitives:all" ? "all" : focusedChannelId,
           nextDraft.workingCurve
         )
         if (focusedTrackId === "primitives:all") {
-          const primChannels = nextBindings["primitives:all"] ?? []
-          nextBindings = {
-            ...nextBindings,
-            "primitives:all": primChannels.map((ch) => ({
-              ...ch,
-              durationMs: nextDraft.workingCurve.suggestedDurationMs,
-              springMode: (nextDraft.workingCurve.engine === "spring"
-                ? "natural"
-                : "fit") as SpringDurationMode,
-            })),
+          if (patch.engine && patch.engine !== draftCurve.workingCurve.engine) {
+            const nextSpringMode: SpringDurationMode =
+              patch.engine === "spring" ? "natural" : "fit"
+            nextBindings = setChannelSpringMode(
+              nextBindings,
+              "primitives:all",
+              "all",
+              nextSpringMode
+            )
           }
         }
         set({
@@ -909,20 +912,19 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
         let nextBindings = applyCurveToChannel(
           trackBindings,
           focusedTrackId,
-          focusedChannelId,
+          focusedTrackId === "primitives:all" ? "all" : focusedChannelId,
           reverted.workingCurve
         )
         if (focusedTrackId === "primitives:all") {
-          const primChannels = nextBindings["primitives:all"] ?? []
-          nextBindings = {
-            ...nextBindings,
-            "primitives:all": primChannels.map((ch) => ({
-              ...ch,
-              durationMs: reverted.workingCurve.suggestedDurationMs,
-              springMode: (reverted.workingCurve.engine === "spring"
-                ? "natural"
-                : "fit") as SpringDurationMode,
-            })),
+          if (reverted.workingCurve.engine !== draftCurve.workingCurve.engine) {
+            const nextSpringMode: SpringDurationMode =
+              reverted.workingCurve.engine === "spring" ? "natural" : "fit"
+            nextBindings = setChannelSpringMode(
+              nextBindings,
+              "primitives:all",
+              "all",
+              nextSpringMode
+            )
           }
         }
         set({

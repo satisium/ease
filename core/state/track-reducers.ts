@@ -97,14 +97,14 @@ export function applyCurveToChannel(
  *
  * @param bindings - Current track channels map.
  * @param trackId - Target track ID.
- * @param channelId - Target channel ID.
+ * @param channelIdOrAll - Target channel ID or "all" to update every channel in the track.
  * @param durationMs - New duration in milliseconds.
  * @returns Updated TrackChannelMap.
  */
 export function setChannelDurationMs(
   bindings: TrackChannelMap,
   trackId: string,
-  channelId: string,
+  channelIdOrAll: string,
   durationMs: number
 ): TrackChannelMap {
   const currentChannels = bindings[trackId]
@@ -114,7 +114,7 @@ export function setChannelDurationMs(
 
   const safeDuration = Math.max(1, Math.round(durationMs))
   const updatedChannels = currentChannels.map((channel) => {
-    if (channel.id === channelId) {
+    if (channelIdOrAll === "all" || channel.id === channelIdOrAll) {
       return {
         ...cloneChannel(channel),
         durationMs: safeDuration,
@@ -135,14 +135,14 @@ export function setChannelDurationMs(
  *
  * @param bindings - Current track channels map.
  * @param trackId - Target track ID.
- * @param channelId - Target channel ID.
+ * @param channelIdOrAll - Target channel ID or "all" to update every channel in the track.
  * @param delayMs - Stagger delay in milliseconds.
  * @returns Updated TrackChannelMap.
  */
 export function setChannelDelayMs(
   bindings: TrackChannelMap,
   trackId: string,
-  channelId: string,
+  channelIdOrAll: string,
   delayMs: number
 ): TrackChannelMap {
   const currentChannels = bindings[trackId]
@@ -152,7 +152,7 @@ export function setChannelDelayMs(
 
   const safeDelay = Math.max(0, Math.round(delayMs))
   const updatedChannels = currentChannels.map((channel) => {
-    if (channel.id === channelId) {
+    if (channelIdOrAll === "all" || channel.id === channelIdOrAll) {
       return {
         ...cloneChannel(channel),
         delayMs: safeDelay,
@@ -172,14 +172,14 @@ export function setChannelDelayMs(
  *
  * @param bindings - Current track channels map.
  * @param trackId - Target track ID.
- * @param channelId - Target channel ID.
+ * @param channelIdOrAll - Target channel ID or "all" to update every channel in the track.
  * @param springMode - New SpringDurationMode ("fit" or "natural").
  * @returns Updated TrackChannelMap.
  */
 export function setChannelSpringMode(
   bindings: TrackChannelMap,
   trackId: string,
-  channelId: string,
+  channelIdOrAll: string,
   springMode: SpringDurationMode
 ): TrackChannelMap {
   const currentChannels = bindings[trackId]
@@ -188,7 +188,7 @@ export function setChannelSpringMode(
   }
 
   const updatedChannels = currentChannels.map((channel) => {
-    if (channel.id === channelId) {
+    if (channelIdOrAll === "all" || channel.id === channelIdOrAll) {
       return {
         ...cloneChannel(channel),
         springMode,

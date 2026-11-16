@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { MotionConfig, MotionConfigContext } from "motion/react"
 import { useEaseStore } from "@/hooks/use-ease-store"
 import { StudioUiProvider, useStudioUi } from "./studio-ui-context"
 import { AuditionView } from "./modes/audition/audition-view"
@@ -138,9 +139,15 @@ function StudioShellInner() {
 }
 
 export function StudioShell() {
+  const parentConfig = React.useContext(MotionConfigContext)
+  const reducedMotion =
+    parentConfig.reducedMotion === "always" ? "always" : "user"
+
   return (
-    <StudioUiProvider>
-      <StudioShellInner />
-    </StudioUiProvider>
+    <MotionConfig reducedMotion={reducedMotion}>
+      <StudioUiProvider>
+        <StudioShellInner />
+      </StudioUiProvider>
+    </MotionConfig>
   )
 }

@@ -7,7 +7,7 @@ import {
   CheckmarkCircle02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { motion, LayoutGroup } from "motion/react"
+import { motion, AnimatePresence } from "motion/react"
 import {
   Tooltip,
   TooltipContent,
@@ -21,6 +21,7 @@ import {
   trackRegistry,
 } from "@/core"
 import { useEaseStore } from "@/hooks/use-ease-store"
+import { SATISIUM_POPOVER_VARIANTS, SATISIUM_PRESS_CLASS } from "@/lib/motion"
 
 export function AuditionToolbar() {
   const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
@@ -71,7 +72,21 @@ export function AuditionToolbar() {
   }, [isComponentMenuOpen, isChannelMenuOpen])
 
   // Track & Channel Resolutions
-  const components = React.useMemo(() => listComponents(), [])
+  const components = React.useMemo(
+    () => listComponents({ includePrimitives: true }),
+    []
+  )
+
+  const realComponents = React.useMemo(
+    () => components.filter((c) => c.componentId !== "primitives"),
+    [components]
+  )
+
+  const primitivesComponent = React.useMemo(
+    () => components.find((c) => c.componentId === "primitives"),
+    [components]
+  )
+
   const currentPlugin = React.useMemo(
     () => getTrackPlugin(focusedTrackId) ?? trackRegistry.list()[0],
     [focusedTrackId]
@@ -79,6 +94,22 @@ export function AuditionToolbar() {
   const currentChannels = React.useMemo(() => {
     return trackBindings[focusedTrackId] ?? currentPlugin?.channels ?? []
   }, [trackBindings, focusedTrackId, currentPlugin])
+
+  const activeChannel = React.useMemo(() => {
+    return currentChannels.find((c) => c.id === focusedChannelId)
+  }, [currentChannels, focusedChannelId])
+
+  const channelLabel =
+    focusedChannelId === "all"
+      ? "All Channels"
+      : focusedTrackId === "primitives:all" && focusedChannelId === "position"
+        ? "Position"
+        : (activeChannel?.label ?? focusedChannelId)
+
+  const componentDisplayLabel =
+    currentPlugin?.componentId === "primitives"
+      ? "Primitives"
+      : (currentPlugin?.componentLabel ?? "Modal Dialog")
 
   const pairedTrackId = React.useMemo(
     () => getPairedTrackId(focusedTrackId),
@@ -110,9 +141,12 @@ export function AuditionToolbar() {
           }}
           aria-label="Select interactive component"
           aria-expanded={isComponentMenuOpen}
-          className="flex h-8 cursor-pointer items-center gap-1.5 rounded-[10px] bg-muted px-2.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-secondary active:scale-95"
+          className={cn(
+            "flex h-8 cursor-pointer items-center gap-1.5 rounded-[10px] bg-muted px-2.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-secondary",
+            SATISIUM_PRESS_CLASS
+          )}
         >
-          <span>{currentPlugin?.componentLabel ?? "Modal Dialog"}</span>
+          <span>{componentDisplayLabel}</span>
           <HugeiconsIcon
             icon={ArrowDown01Icon}
             className={`size-3 text-muted-foreground transition-transform ${
@@ -121,44 +155,97 @@ export function AuditionToolbar() {
           />
         </button>
 
-        {isComponentMenuOpen && (
-          <div className="absolute bottom-full left-0 z-50 mb-2 flex w-48 flex-col gap-0.5 rounded-[12px] bg-card p-1">
-            <span className="px-2.5 py-1 font-sans text-[10px] text-muted-foreground uppercase">
-              Components
-            </span>
-            {components.map((comp) => {
-              const isSelected = comp.componentId === currentPlugin?.componentId
-              const firstTrack = comp.tracks[0]
-              return (
-                <button
-                  key={comp.componentId}
-                  type="button"
-                  onClick={() => {
-                    if (firstTrack) {
-                      focusTrack(firstTrack.id)
-                    }
-                    setIsComponentMenuOpen(false)
-                  }}
-                  className={cn(
-                    "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
-                    isSelected
-                      ? "bg-secondary font-medium text-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                  aria-label={comp.componentLabel}
-                >
-                  <span>{comp.componentLabel}</span>
-                  {isSelected && (
-                    <HugeiconsIcon
-                      icon={CheckmarkCircle02Icon}
-                      className="size-3 text-foreground"
-                    />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        )}
+        <AnimatePresence>
+          {isComponentMenuOpen && (
+            <motion.div
+              variants={SATISIUM_POPOVER_VARIANTS}
+              initial="initial"
+              animate="animate"
+              exit={process.env.NODE_ENV === "test" ? undefined : "exit"}
+              className="absolute bottom-full left-0 z-50 mb-2 flex w-48 origin-bottom-left flex-col gap-0.5 rounded-[12px] bg-card p-1 select-none"
+            >
+              <span className="px-2.5 py-1 font-sans text-[10px] text-muted-foreground uppercase">
+                Components
+              </span>
+              {realComponents.map((comp) => {
+                const isSelected =
+                  comp.componentId === currentPlugin?.componentId
+                const firstTrack = comp.tracks[0]
+                return (
+                  <button
+                    key={comp.componentId}
+                    type="button"
+                    onClick={() => {
+                      if (firstTrack) {
+                        focusTrack(firstTrack.id)
+                      }
+                      setIsComponentMenuOpen(false)
+                    }}
+                    className={cn(
+                      "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
+                      isSelected
+                        ? "bg-secondary font-medium text-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                    aria-label={comp.componentLabel}
+                  >
+                    <span>{comp.componentLabel}</span>
+                    {isSelected && (
+                      <HugeiconsIcon
+                        icon={CheckmarkCircle02Icon}
+                        className="size-3 text-foreground"
+                      />
+                    )}
+                  </button>
+                )
+              })}
+
+              {primitivesComponent && (
+                <>
+                  <div className="my-1 h-px bg-muted" />
+                  {(() => {
+                    const isSelected =
+                      primitivesComponent.componentId ===
+                      currentPlugin?.componentId
+                    const firstTrack = primitivesComponent.tracks[0]
+                    return (
+                      <button
+                        key={primitivesComponent.componentId}
+                        type="button"
+                        onClick={() => {
+                          if (firstTrack) {
+                            focusTrack(firstTrack.id)
+                          }
+                          setIsComponentMenuOpen(false)
+                        }}
+                        className={cn(
+                          "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
+                          isSelected
+                            ? "bg-secondary font-medium text-foreground"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        )}
+                        aria-label="Primitives"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Primitives</span>
+                          {isSelected && (
+                            <HugeiconsIcon
+                              icon={CheckmarkCircle02Icon}
+                              className="size-3 text-foreground"
+                            />
+                          )}
+                        </div>
+                        <span className="font-sans text-[10px] text-muted-foreground">
+                          Lab
+                        </span>
+                      </button>
+                    )
+                  })()}
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* 2. Semantic Phase Switcher (Entrance | Exit) */}
@@ -176,6 +263,7 @@ export function AuditionToolbar() {
             onClick={() => focusTrack(enterTrackId)}
             className={cn(
               "flex h-7 cursor-pointer items-center rounded-[8px] px-2 font-sans text-[11px] transition-colors",
+              SATISIUM_PRESS_CLASS,
               isEntranceActive
                 ? "bg-background font-medium text-foreground"
                 : "text-muted-foreground hover:text-foreground"
@@ -191,6 +279,7 @@ export function AuditionToolbar() {
             onClick={() => focusTrack(exitTrackId)}
             className={cn(
               "flex h-7 cursor-pointer items-center rounded-[8px] px-2 font-sans text-[11px] transition-colors",
+              SATISIUM_PRESS_CLASS,
               !isEntranceActive
                 ? "bg-background font-medium text-foreground"
                 : "text-muted-foreground hover:text-foreground"
@@ -201,152 +290,95 @@ export function AuditionToolbar() {
         </div>
       )}
 
-      {/* 3. Clean Channel Strip (Label-Only!) */}
-      {currentChannels.length <= 4 ? (
-        <LayoutGroup id="audition-channels">
-          <div
-            role="tablist"
-            aria-label="Kinetic channel selection"
-            className="relative flex items-center rounded-[10px] bg-muted p-0.5"
-          >
-            {/* All (Master) Chip */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={focusedChannelId === "all"}
-                  aria-label="Master Channel"
-                  onClick={() => focusChannel("all")}
-                  className={cn(
-                    "relative z-10 flex h-7 cursor-pointer items-center rounded-[8px] px-2.5 font-sans text-[11px] tracking-tight transition-colors outline-none",
-                    focusedChannelId === "all"
-                      ? "font-medium text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {focusedChannelId === "all" && (
-                    <motion.div
-                      layoutId="audition-channel-pill"
-                      transition={{
-                        type: "spring",
-                        stiffness: 350,
-                        damping: 30,
-                      }}
-                      className="absolute inset-0 rounded-[8px] bg-background"
-                    />
-                  )}
-                  <span className="relative z-20">All</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                <span>Master Channel ({currentPlugin?.phaseLabel} · All)</span>
-              </TooltipContent>
-            </Tooltip>
+      {/* 3. Unified Channel Dropdown */}
+      <div className="relative" ref={channelMenuRef}>
+        <button
+          type="button"
+          onClick={() => {
+            setIsChannelMenuOpen((v) => !v)
+            setIsComponentMenuOpen(false)
+          }}
+          aria-label="Select kinetic channel"
+          aria-expanded={isChannelMenuOpen}
+          className={cn(
+            "flex h-8 cursor-pointer items-center gap-1.5 rounded-[10px] bg-muted px-2.5 font-sans text-xs font-medium text-foreground transition-colors hover:bg-secondary",
+            SATISIUM_PRESS_CLASS
+          )}
+        >
+          <span>{channelLabel}</span>
+          <HugeiconsIcon
+            icon={ArrowDown01Icon}
+            className={cn(
+              "size-3.5 text-muted-foreground transition-transform",
+              isChannelMenuOpen && "rotate-180"
+            )}
+          />
+        </button>
 
-            {/* Individual Channels */}
-            {currentChannels.map((ch) => {
-              const isChannelActive = focusedChannelId === ch.id
-              return (
-                <Tooltip key={ch.id}>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={isChannelActive}
-                      aria-label={`${ch.label} channel`}
-                      onClick={() => focusChannel(ch.id)}
-                      className={cn(
-                        "relative z-10 flex h-7 cursor-pointer items-center rounded-[8px] px-2 font-sans text-[11px] tracking-tight transition-colors outline-none",
-                        isChannelActive
-                          ? "font-medium text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {isChannelActive && (
-                        <motion.div
-                          layoutId="audition-channel-pill"
-                          transition={{
-                            type: "spring",
-                            stiffness: 350,
-                            damping: 30,
-                          }}
-                          className="absolute inset-0 rounded-[8px] bg-background"
-                        />
-                      )}
-                      <span className="relative z-20">{ch.label}</span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">
-                    <span>
-                      {ch.label} · {ch.curve.name} · {ch.durationMs}ms
-                    </span>
-                  </TooltipContent>
-                </Tooltip>
-              )
-            })}
-          </div>
-        </LayoutGroup>
-      ) : (
-        /* Overflow Dropdown for tracks with > 4 channels */
-        <div className="relative" ref={channelMenuRef}>
-          <button
-            type="button"
-            onClick={() => {
-              setIsChannelMenuOpen((v) => !v)
-              setIsComponentMenuOpen(false)
-            }}
-            aria-label="Select kinetic channel"
-            className="flex h-7 cursor-pointer items-center gap-1.5 rounded-[8px] bg-muted px-2.5 font-sans text-[11px] text-foreground hover:bg-secondary"
-          >
-            <span>
-              Part:{" "}
-              {focusedChannelId === "all"
-                ? "All"
-                : (currentChannels.find((c) => c.id === focusedChannelId)
-                    ?.label ?? "All")}
-            </span>
-            <HugeiconsIcon icon={ArrowDown01Icon} className="size-3" />
-          </button>
+        <AnimatePresence>
           {isChannelMenuOpen && (
-            <div className="absolute bottom-full left-0 z-50 mb-2 flex w-40 flex-col gap-0.5 rounded-[12px] bg-card p-1">
+            <motion.div
+              variants={SATISIUM_POPOVER_VARIANTS}
+              initial="initial"
+              animate="animate"
+              exit={process.env.NODE_ENV === "test" ? undefined : "exit"}
+              className="absolute bottom-full left-0 z-50 mb-2 flex w-56 origin-bottom-left flex-col gap-0.5 rounded-[14px] bg-card p-1.5 select-none"
+            >
+              <span className="px-2 py-1 font-sans text-[10px] font-semibold text-muted-foreground uppercase">
+                Channels
+              </span>
               <button
                 type="button"
+                aria-label="Target All channels"
                 onClick={() => {
                   focusChannel("all")
                   setIsChannelMenuOpen(false)
                 }}
                 className={cn(
-                  "flex w-full cursor-pointer items-center rounded-[6px] px-2 py-1 text-left font-sans text-xs",
+                  "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
                   focusedChannelId === "all"
                     ? "bg-secondary font-medium text-foreground"
-                    : "text-muted-foreground hover:bg-muted"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                All
+                <span>All Channels</span>
+                {focusedChannelId === "all" && (
+                  <span className="size-1.5 rounded-full bg-foreground" />
+                )}
               </button>
-              {currentChannels.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => {
-                    focusChannel(c.id)
-                    setIsChannelMenuOpen(false)
-                  }}
-                  className={cn(
-                    "flex w-full cursor-pointer items-center rounded-[6px] px-2 py-1 text-left font-sans text-xs",
-                    focusedChannelId === c.id
-                      ? "bg-secondary font-medium text-foreground"
-                      : "text-muted-foreground hover:bg-muted"
-                  )}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
+              {currentChannels.map((ch) => {
+                const isSelected = ch.id === focusedChannelId
+                const displayLabel =
+                  focusedTrackId === "primitives:all" && ch.id === "position"
+                    ? "Position"
+                    : ch.label
+                return (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    aria-label={`${displayLabel} channel`}
+                    onClick={() => {
+                      focusChannel(ch.id)
+                      setIsChannelMenuOpen(false)
+                    }}
+                    className={cn(
+                      "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
+                      isSelected
+                        ? "bg-secondary font-medium text-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <span>{displayLabel}</span>
+                    <span className="font-sans text-[10px] text-muted-foreground tabular-nums">
+                      {ch.curve.name} · {ch.durationMs}ms
+                    </span>
+                  </button>
+                )
+              })}
+            </motion.div>
           )}
-        </div>
-      )}
+        </AnimatePresence>
+      </div>
 
       {/* 4. Solo Toggle (S) — Disabled when focusedChannelId === 'all' */}
       <Tooltip>
@@ -358,6 +390,7 @@ export function AuditionToolbar() {
             aria-label="Toggle channel solo"
             className={cn(
               "flex h-8 cursor-pointer items-center justify-center rounded-[10px] px-2.5 font-sans text-[11px] font-medium transition-colors outline-none",
+              SATISIUM_PRESS_CLASS,
               isSolo
                 ? "bg-foreground text-background"
                 : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground",
@@ -392,7 +425,10 @@ export function AuditionToolbar() {
             type="button"
             onClick={enterCustomize}
             aria-label="Customize curve"
-            className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[10px] bg-secondary text-foreground transition-colors hover:bg-muted active:scale-95"
+            className={cn(
+              "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[10px] bg-secondary text-foreground transition-colors hover:bg-muted",
+              SATISIUM_PRESS_CLASS
+            )}
           >
             <HugeiconsIcon icon={ArrowUpRight01Icon} className="size-4" />
           </button>

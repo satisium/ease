@@ -14,6 +14,7 @@
 import * as React from "react"
 import { LayoutGroup, motion } from "motion/react"
 import { useEaseStore } from "@/hooks/use-ease-store"
+import { SATISIUM_SPRING_PILL } from "@/lib/motion"
 import {
   Tooltip,
   TooltipContent,
@@ -83,7 +84,7 @@ export function ModeSwitcherSlab({ className }: ModeSwitcherSlabProps) {
             {mode === "preview" && (
               <motion.div
                 layoutId="studio-mode-pill"
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                transition={SATISIUM_SPRING_PILL}
                 className="absolute inset-0 rounded-[12px] bg-secondary"
               />
             )}
@@ -110,7 +111,7 @@ export function ModeSwitcherSlab({ className }: ModeSwitcherSlabProps) {
             {mode === "customize" && (
               <motion.div
                 layoutId="studio-mode-pill"
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                transition={SATISIUM_SPRING_PILL}
                 className="absolute inset-0 rounded-[12px] bg-secondary"
               />
             )}
@@ -138,7 +139,7 @@ export function ModeSwitcherSlab({ className }: ModeSwitcherSlabProps) {
               {mode === "compare" && (
                 <motion.div
                   layoutId="studio-mode-pill"
-                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                  transition={SATISIUM_SPRING_PILL}
                   className="absolute inset-0 rounded-[12px] bg-secondary"
                 />
               )}

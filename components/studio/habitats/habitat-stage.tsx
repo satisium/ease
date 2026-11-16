@@ -20,7 +20,9 @@ export interface HabitatStageProps {
 }
 
 export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
+  const mode = useEaseStore((s) => s.mode)
   const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
+  const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
   const compareQueue = useEaseStore((s) => s.compareQueue)
   const globalCompareTarget = useEaseStore((s) => s.globalCompareTarget)
 
@@ -36,6 +38,18 @@ export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
     return getTrackPlugin(resolvedTrackId)?.componentId ?? "dialog"
   }, [resolvedTrackId])
 
+  const normalizedChannelId = React.useMemo<PrimitiveFilter>(() => {
+    if (
+      focusedChannelId === "position" ||
+      focusedChannelId === "scale" ||
+      focusedChannelId === "opacity" ||
+      focusedChannelId === "rotate"
+    ) {
+      return focusedChannelId
+    }
+    return "all"
+  }, [focusedChannelId])
+
   const controlledFilter = React.useMemo<PrimitiveFilter>(() => {
     if (compareItemId) {
       const item = compareQueue.find((i) => i.id === compareItemId)
@@ -49,9 +63,15 @@ export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
       ) {
         return targetChannelId
       }
+      return "all"
     }
-    return "all"
-  }, [compareItemId, compareQueue, globalCompareTarget.channelId])
+    return normalizedChannelId
+  }, [
+    compareItemId,
+    compareQueue,
+    globalCompareTarget.channelId,
+    normalizedChannelId,
+  ])
 
   switch (componentId) {
     case "dialog":
@@ -77,7 +97,12 @@ export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
           />
         )
       }
-      return <DialogHabitat compareItemId={compareItemId} />
+      return (
+        <PrimitivesXRay
+          isPreviewMode={mode === "preview"}
+          controlledFilter={normalizedChannelId}
+        />
+      )
     default:
       return <DialogHabitat compareItemId={compareItemId} />
   }
