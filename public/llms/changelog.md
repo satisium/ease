@@ -2,6 +2,12 @@
 
 > Release notes for ease.
 
+## 0.10.0
+
+### Minor Changes
+
+- a5b1ad4: Implement Phase E launch polish: retire legacy iframe stage & bridge, add single-ease export switcher (Ease Only | Snippet), wire cmd-k command menu to ease curve catalog, and enhance export dialog with prominent curve metadata and compare contender selection.
+
 ## 0.9.0
 
 ### Minor Changes
