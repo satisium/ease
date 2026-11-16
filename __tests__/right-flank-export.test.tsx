@@ -13,10 +13,14 @@ function StoreProbe() {
   const isExportOpen = useEaseStore((s) => s.isExportOpen)
   const preferredExporter = useEaseStore((s) => s.preferredExporter)
   const exportScope = useEaseStore((s) => s.exportScope)
+  const activeCurve = useEaseStore((s) => s.getActiveCurve())
+  const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
 
   return (
     <div data-testid="probe">
       <span data-testid="probe-channel-curve">{focusedChannel?.curve.id}</span>
+      <span data-testid="probe-active-curve">{activeCurve.id}</span>
+      <span data-testid="probe-focused-channel-id">{focusedChannelId}</span>
       <span data-testid="probe-channel-duration">
         {focusedChannel?.durationMs}
       </span>
@@ -24,6 +28,75 @@ function StoreProbe() {
       <span data-testid="probe-export-open">{String(isExportOpen)}</span>
       <span data-testid="probe-exporter">{preferredExporter}</span>
       <span data-testid="probe-export-scope">{exportScope}</span>
+    </div>
+  )
+}
+
+function StoreActions() {
+  const selectCurveForFocused = useEaseStore((s) => s.selectCurveForFocused)
+  const focusChannel = useEaseStore((s) => s.focusChannel)
+  const enterCustomize = useEaseStore((s) => s.enterCustomize)
+  const updateDraft = useEaseStore((s) => s.updateDraft)
+  const enterCompare = useEaseStore((s) => s.enterCompare)
+  const stageActiveCurveToCompare = useEaseStore(
+    (s) => s.stageActiveCurveToCompare
+  )
+
+  return (
+    <div>
+      <button
+        type="button"
+        data-testid="btn-select-material-decelerate"
+        onClick={() => selectCurveForFocused("material-decelerate")}
+      >
+        Select Material Decelerate
+      </button>
+      <button
+        type="button"
+        data-testid="btn-select-expo-out"
+        onClick={() => selectCurveForFocused("expo-out")}
+      >
+        Select Expo Out
+      </button>
+      <button
+        type="button"
+        data-testid="btn-focus-all-channels"
+        onClick={() => focusChannel("all")}
+      >
+        Focus All Channels
+      </button>
+      <button
+        type="button"
+        data-testid="btn-enter-customize"
+        onClick={() => enterCustomize()}
+      >
+        Enter Customize
+      </button>
+      <button
+        type="button"
+        data-testid="btn-update-draft"
+        onClick={() =>
+          updateDraft({
+            bezier: { p1: { x: 0.1, y: 0.9 }, p2: { x: 0.2, y: 1 } },
+          })
+        }
+      >
+        Update Draft
+      </button>
+      <button
+        type="button"
+        data-testid="btn-stage-curve"
+        onClick={() => stageActiveCurveToCompare()}
+      >
+        Stage Active Curve
+      </button>
+      <button
+        type="button"
+        data-testid="btn-enter-compare"
+        onClick={() => enterCompare()}
+      >
+        Enter Compare
+      </button>
     </div>
   )
 }
@@ -36,6 +109,7 @@ function TestRig() {
       <ExportSlab />
       <ExportDialog />
       <StoreProbe />
+      <StoreActions />
     </EaseStoreProvider>
   )
 }
@@ -160,6 +234,12 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
       expect(dialogContent.className).toContain("sm:max-w-[640px]")
       expect(dialogContent.className).toContain("rounded-[20px]")
 
+      // Subtitle contains engine label
+      expect(dialogContent.textContent).toMatch(/Cubic Bézier|Spring Physics/)
+
+      // Default export scope is "ease"
+      expect(screen.getByTestId("probe-export-scope").textContent).toBe("ease")
+
       // Switch framework to Tailwind
       const tailwindTab = screen.getByRole("tab", { name: "Tailwind export" })
       fireEvent.click(tailwindTab)
@@ -170,12 +250,21 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
       fireEvent.click(motionTab)
       expect(screen.getByTestId("probe-exporter").textContent).toBe("motion")
 
-      // Switch scope to Full Track
-      const fullTrackBtn = screen.getByRole("tab", {
-        name: "Export full track channels",
+      // Switch scope to Snippet
+      const snippetBtn = screen.getByRole("tab", {
+        name: "Export full component snippet",
       })
-      fireEvent.click(fullTrackBtn)
-      expect(screen.getByTestId("probe-export-scope").textContent).toBe("track")
+      fireEvent.click(snippetBtn)
+      expect(screen.getByTestId("probe-export-scope").textContent).toBe(
+        "snippet"
+      )
+
+      // Switch scope back to Ease Only
+      const easeOnlyBtn = screen.getByRole("tab", {
+        name: "Export ease timing curve only",
+      })
+      fireEvent.click(easeOnlyBtn)
+      expect(screen.getByTestId("probe-export-scope").textContent).toBe("ease")
 
       // Copy code
       const copyCodeBtn = screen.getByRole("button", {
@@ -194,6 +283,193 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
         fireEvent.click(copyUrlBtn)
       })
       expect(navigator.clipboard.writeText).toHaveBeenCalled()
+    })
+
+    it("selecting Material Decelerate with focusedChannelId === 'all' exports Material Decelerate's exact cubic-bezier, not Backdrop's Expo In; switching between Ease Only and Snippet updates CSS, Tailwind, Motion, GSAP", async () => {
+      render(<TestRig />)
+
+      // Ensure focusedChannelId is "all" and select Material Decelerate
+      fireEvent.click(screen.getByTestId("btn-focus-all-channels"))
+      fireEvent.click(screen.getByTestId("btn-select-material-decelerate"))
+
+      expect(screen.getByTestId("probe-focused-channel-id").textContent).toBe(
+        "all"
+      )
+      expect(screen.getByTestId("probe-active-curve").textContent).toBe(
+        "material-decelerate"
+      )
+
+      // Open export dialog
+      fireEvent.click(
+        screen.getByRole("button", { name: /Export kinetic curve code/i })
+      )
+      const dialogContent = screen.getByRole("dialog")
+      expect(dialogContent.textContent).toContain("Material Decelerate")
+      expect(dialogContent.textContent).toContain("Cubic Bézier")
+
+      // 1. CSS Exporter
+      fireEvent.click(screen.getByRole("tab", { name: "CSS export" }))
+      fireEvent.click(
+        screen.getByRole("tab", { name: "Export ease timing curve only" })
+      )
+      expect(dialogContent.textContent).toContain(
+        "transition-timing-function: cubic-bezier(0, 0, 0.2, 1);"
+      )
+      expect(dialogContent.textContent).not.toContain("expo-in")
+
+      fireEvent.click(
+        screen.getByRole("tab", { name: "Export full component snippet" })
+      )
+      expect(dialogContent.textContent).toContain(".ease-target {")
+      expect(dialogContent.textContent).toContain("transition: transform")
+      expect(dialogContent.textContent).toContain("cubic-bezier(0, 0, 0.2, 1);")
+
+      // 2. Tailwind Exporter
+      fireEvent.click(screen.getByRole("tab", { name: "Tailwind export" }))
+      fireEvent.click(
+        screen.getByRole("tab", { name: "Export ease timing curve only" })
+      )
+      expect(dialogContent.textContent).toContain(
+        "ease-[cubic-bezier(0,0,0.2,1)]"
+      )
+
+      fireEvent.click(
+        screen.getByRole("tab", { name: "Export full component snippet" })
+      )
+      expect(dialogContent.textContent).toContain(
+        "transition-transform duration-["
+      )
+      expect(dialogContent.textContent).toContain(
+        "ease-[cubic-bezier(0,0,0.2,1)]"
+      )
+
+      // 3. Motion Exporter
+      fireEvent.click(screen.getByRole("tab", { name: "Motion export" }))
+      fireEvent.click(
+        screen.getByRole("tab", { name: "Export ease timing curve only" })
+      )
+      expect(dialogContent.textContent).toContain("[0, 0, 0.2, 1]")
+
+      fireEvent.click(
+        screen.getByRole("tab", { name: "Export full component snippet" })
+      )
+      expect(dialogContent.textContent).toContain("transition={{ duration:")
+      expect(dialogContent.textContent).toContain("ease: [0, 0, 0.2, 1]")
+
+      // 4. GSAP Exporter
+      fireEvent.click(screen.getByRole("tab", { name: "GSAP export" }))
+      fireEvent.click(
+        screen.getByRole("tab", { name: "Export ease timing curve only" })
+      )
+      expect(dialogContent.textContent).toContain('"cubic-bezier(0,0,0.2,1)"')
+
+      fireEvent.click(
+        screen.getByRole("tab", { name: "Export full component snippet" })
+      )
+      expect(dialogContent.textContent).toContain('gsap.to(".target", {')
+      expect(dialogContent.textContent).toContain(
+        'ease: "cubic-bezier(0,0,0.2,1)"'
+      )
+    })
+
+    it("displays prominent active ease name and engine/duration pill in Preview Mode", () => {
+      render(<TestRig />)
+
+      // Open export dialog
+      fireEvent.click(
+        screen.getByRole("button", { name: /Export kinetic curve code/i })
+      )
+
+      const dialogContent = screen.getByRole("dialog")
+      expect(dialogContent).toBeInTheDocument()
+      // Title
+      expect(screen.getByText("Export Motion Kinetics")).toBeInTheDocument()
+      // Prominent curve name
+      expect(dialogContent.textContent).toContain("Decelerate")
+      // Pill
+      expect(dialogContent.textContent).toMatch(/Cubic Bézier · \d+ms/)
+      // Not dirty, so no "Unsaved Draft *"
+      expect(dialogContent.textContent).not.toContain("Unsaved Draft *")
+    })
+
+    it("displays Unsaved Draft * badge and exports live uncommitted Bézier coordinates during customization", () => {
+      render(<TestRig />)
+
+      // Enter customize mode and update draft curve
+      fireEvent.click(screen.getByTestId("btn-enter-customize"))
+      fireEvent.click(screen.getByTestId("btn-update-draft"))
+
+      // Open export dialog
+      fireEvent.click(
+        screen.getByRole("button", { name: /Export kinetic curve code/i })
+      )
+
+      const dialogContent = screen.getByRole("dialog")
+      expect(screen.getByText("Unsaved Draft *")).toBeInTheDocument()
+
+      // Switch to CSS ease only to check coordinates
+      fireEvent.click(screen.getByRole("tab", { name: "CSS export" }))
+      fireEvent.click(
+        screen.getByRole("tab", { name: "Export ease timing curve only" })
+      )
+
+      expect(dialogContent.textContent).toContain(
+        "transition-timing-function: cubic-bezier(0.1, 0.9, 0.2, 1);"
+      )
+    })
+
+    it("allows selecting contender to export in Compare Mode and updates exported code immediately", () => {
+      render(<TestRig />)
+
+      // 1. Stage first curve (Material Decelerate)
+      fireEvent.click(screen.getByTestId("btn-select-material-decelerate"))
+      fireEvent.click(screen.getByTestId("btn-stage-curve"))
+
+      // 2. Stage second curve (Expo Out)
+      fireEvent.click(screen.getByTestId("btn-select-expo-out"))
+      fireEvent.click(screen.getByTestId("btn-stage-curve"))
+
+      // 3. Enter Compare mode
+      fireEvent.click(screen.getByTestId("btn-enter-compare"))
+
+      // 4. Open export dialog
+      fireEvent.click(
+        screen.getByRole("button", { name: /Export kinetic curve code/i })
+      )
+
+      const dialogContent = screen.getByRole("dialog")
+      expect(screen.getByText("Select Contender to Export")).toBeInTheDocument()
+
+      // Both contenders rendered in the contender tablist
+      const decelTab = screen.getByRole("tab", {
+        name: "Export contender Material Decelerate",
+      })
+      const expoTab = screen.getByRole("tab", {
+        name: "Export contender Expo Out",
+      })
+      expect(decelTab).toBeInTheDocument()
+      expect(expoTab).toBeInTheDocument()
+
+      // Initially first contender (Material Decelerate) is selected
+      expect(decelTab).toHaveAttribute("aria-selected", "true")
+      expect(expoTab).toHaveAttribute("aria-selected", "false")
+      expect(dialogContent.textContent).toContain("Material Decelerate")
+
+      // Ensure CSS Ease Only scope
+      fireEvent.click(screen.getByRole("tab", { name: "CSS export" }))
+      fireEvent.click(
+        screen.getByRole("tab", { name: "Export ease timing curve only" })
+      )
+      expect(dialogContent.textContent).toContain("cubic-bezier(0, 0, 0.2, 1)")
+
+      // Switch to Expo Out contender
+      fireEvent.click(expoTab)
+      expect(expoTab).toHaveAttribute("aria-selected", "true")
+      expect(decelTab).toHaveAttribute("aria-selected", "false")
+      expect(dialogContent.textContent).toContain("Expo Out")
+      expect(dialogContent.textContent).toContain(
+        "cubic-bezier(0.16, 1, 0.3, 1)"
+      )
     })
   })
 })
