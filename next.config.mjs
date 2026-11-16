@@ -45,6 +45,11 @@ const config = {
         destination: "/docs/changelog",
         permanent: true,
       },
+      {
+        source: "/stage",
+        destination: "/app",
+        permanent: true,
+      },
     ]
   },
   async rewrites() {

@@ -296,4 +296,26 @@ describe("Ease v3 Persistence Contract", () => {
     expect(opacity).toBeDefined()
     expect(opacity?.property).toBe("opacity")
   })
+
+  it("migrates legacy exportScope ('channel' -> 'ease', 'track' -> 'snippet')", () => {
+    const legacyChannel = deserializeEaseStorage(
+      JSON.stringify({ version: 3, exportScope: "channel" })
+    )
+    expect(legacyChannel.exportScope).toBe("ease")
+
+    const legacyTrack = deserializeEaseStorage(
+      JSON.stringify({ version: 3, exportScope: "track" })
+    )
+    expect(legacyTrack.exportScope).toBe("snippet")
+
+    const modernEase = deserializeEaseStorage(
+      JSON.stringify({ version: 3, exportScope: "ease" })
+    )
+    expect(modernEase.exportScope).toBe("ease")
+
+    const modernSnippet = deserializeEaseStorage(
+      JSON.stringify({ version: 3, exportScope: "snippet" })
+    )
+    expect(modernSnippet.exportScope).toBe("snippet")
+  })
 })

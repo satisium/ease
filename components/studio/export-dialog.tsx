@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { type ExporterId } from "@/core"
+import { type ExporterId, computeSpringSettleTimeMs } from "@/core"
 import { useEaseStore } from "@/hooks/use-ease-store"
 
 const EXPORTERS: { id: ExporterId; label: string }[] = [
@@ -35,6 +35,9 @@ const LANG_MAP: Record<ExporterId, string> = {
 
 export function ExportDialog() {
   const { resolvedTheme } = useTheme()
+  const mode = useEaseStore((s) => s.mode)
+  const draftCurve = useEaseStore((s) => s.draftCurve)
+  const compareQueue = useEaseStore((s) => s.compareQueue)
   const isExportOpen = useEaseStore((s) => s.isExportOpen)
   const setExportOpen = useEaseStore((s) => s.setExportOpen)
   const exportScope = useEaseStore((s) => s.exportScope)
@@ -44,7 +47,7 @@ export function ExportDialog() {
   const getActiveExportCode = useEaseStore((s) => s.getActiveExportCode)
   const getShareUrlHash = useEaseStore((s) => s.getShareUrlHash)
   const getActiveCurve = useEaseStore((s) => s.getActiveCurve)
-  const getFocusedTrack = useEaseStore((s) => s.getFocusedTrack)
+  const getFocusedChannel = useEaseStore((s) => s.getFocusedChannel)
 
   const [hasCopiedCode, setHasCopiedCode] = React.useState(false)
   const [hasCopiedUrl, setHasCopiedUrl] = React.useState(false)
@@ -52,12 +55,57 @@ export function ExportDialog() {
     null
   )
 
-  const activeCurve = React.useMemo(() => getActiveCurve(), [getActiveCurve])
-  const focusedTrack = React.useMemo(() => getFocusedTrack(), [getFocusedTrack])
+  const visibleCompareItems = React.useMemo(() => {
+    return compareQueue.filter((item) => item.visible)
+  }, [compareQueue])
+
+  const [selectedCompareId, setSelectedCompareId] = React.useState<
+    string | null
+  >(null)
+
+  const selectedCompareItem = React.useMemo(() => {
+    if (mode !== "compare" || visibleCompareItems.length === 0) return null
+    if (selectedCompareId) {
+      const match = visibleCompareItems.find((i) => i.id === selectedCompareId)
+      if (match) return match
+    }
+    return visibleCompareItems[0] ?? null
+  }, [mode, visibleCompareItems, selectedCompareId])
+
+  const activeCurve = React.useMemo(() => {
+    if (mode === "compare" && selectedCompareItem) {
+      return selectedCompareItem.curve
+    }
+    if (mode === "customize" && draftCurve) {
+      return draftCurve.workingCurve
+    }
+    return getActiveCurve()
+  }, [mode, selectedCompareItem, draftCurve, getActiveCurve])
+
+  const curveOverride = React.useMemo(() => {
+    if (mode === "compare" && selectedCompareItem) {
+      return selectedCompareItem.curve
+    }
+    if (mode === "customize" && draftCurve) {
+      return draftCurve.workingCurve
+    }
+    return undefined
+  }, [mode, selectedCompareItem, draftCurve])
+
+  const effectiveDurationMs = React.useMemo(() => {
+    const ch = getFocusedChannel()
+    const base = ch?.durationMs ?? activeCurve.suggestedDurationMs
+    if (activeCurve.engine === "spring" && ch?.springMode === "natural") {
+      return computeSpringSettleTimeMs(activeCurve.spring, 0.005)
+    }
+    return base
+  }, [getFocusedChannel, activeCurve])
+
+  const isUnsavedDraft = mode === "customize" && Boolean(draftCurve?.isDirty)
 
   const code = React.useMemo(() => {
-    return getActiveExportCode(preferredExporter, exportScope)
-  }, [getActiveExportCode, preferredExporter, exportScope])
+    return getActiveExportCode(preferredExporter, exportScope, curveOverride)
+  }, [getActiveExportCode, preferredExporter, exportScope, curveOverride])
 
   React.useEffect(() => {
     let isMounted = true
@@ -125,11 +173,57 @@ export function ExportDialog() {
           <DialogTitle className="font-heading text-sm font-semibold text-foreground">
             Export Motion Kinetics
           </DialogTitle>
-          <p className="font-sans text-xs text-muted-foreground">
-            {activeCurve.name} · {focusedTrack.componentLabel} (
-            {focusedTrack.phaseLabel})
-          </p>
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            <span className="font-heading text-sm font-semibold text-foreground">
+              {activeCurve.name}
+            </span>
+            <span className="rounded-[6px] bg-secondary px-2 py-0.5 font-sans text-[11px] font-medium text-muted-foreground tabular-nums">
+              {activeCurve.engine === "spring" ? "Spring" : "Cubic Bézier"} ·{" "}
+              {Math.round(effectiveDurationMs)}ms
+            </span>
+            {isUnsavedDraft && (
+              <span className="rounded-[6px] bg-foreground px-2 py-0.5 font-sans text-[10px] font-medium text-background">
+                Unsaved Draft *
+              </span>
+            )}
+          </div>
         </DialogHeader>
+
+        {/* Compare Mode Contender Selector */}
+        {mode === "compare" && visibleCompareItems.length > 0 && (
+          <div className="flex flex-col gap-1.5 pb-1">
+            <span className="font-sans text-[11px] font-medium text-muted-foreground">
+              Select Contender to Export
+            </span>
+            <div
+              role="tablist"
+              aria-label="Compare contender selection"
+              className="flex flex-wrap items-center gap-1 rounded-[10px] bg-muted p-0.5"
+            >
+              {visibleCompareItems.map((item) => {
+                const isSelected = item.id === selectedCompareItem?.id
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSelected}
+                    aria-label={`Export contender ${item.curve.name}`}
+                    onClick={() => setSelectedCompareId(item.id)}
+                    className={cn(
+                      "flex h-7 cursor-pointer items-center rounded-[8px] px-2.5 font-sans text-xs transition-colors",
+                      isSelected
+                        ? "bg-background font-semibold text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {item.curve.name}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Controls: Target Framework + Scope */}
         <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
@@ -171,32 +265,32 @@ export function ExportDialog() {
             <button
               type="button"
               role="tab"
-              aria-selected={exportScope === "channel"}
-              aria-label="Export active channel only"
-              onClick={() => setExportScope("channel")}
+              aria-selected={exportScope === "ease"}
+              aria-label="Export ease timing curve only"
+              onClick={() => setExportScope("ease")}
               className={cn(
                 "flex h-7 cursor-pointer items-center rounded-[8px] px-2.5 font-sans text-xs transition-colors",
-                exportScope === "channel"
+                exportScope === "ease"
                   ? "bg-background font-semibold text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Active Channel
+              Ease Only
             </button>
             <button
               type="button"
               role="tab"
-              aria-selected={exportScope === "track"}
-              aria-label="Export full track channels"
-              onClick={() => setExportScope("track")}
+              aria-selected={exportScope === "snippet"}
+              aria-label="Export full component snippet"
+              onClick={() => setExportScope("snippet")}
               className={cn(
                 "flex h-7 cursor-pointer items-center rounded-[8px] px-2.5 font-sans text-xs transition-colors",
-                exportScope === "track"
+                exportScope === "snippet"
                   ? "bg-background font-semibold text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Full Track
+              Snippet
             </button>
           </div>
         </div>

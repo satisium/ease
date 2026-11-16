@@ -144,6 +144,14 @@ export function useEaseStoreApi(): EaseStoreApi {
 }
 
 /**
+ * Returns the underlying EaseStoreApi if rendered within an <EaseStoreProvider>,
+ * or null when rendered outside (e.g. on landing pages or documentation).
+ */
+export function useOptionalEaseStoreApi(): EaseStoreApi | null {
+  return useContext(EaseStoreContext)
+}
+
+/**
  * Reactive slice selector for the Ease store.
  * Re-renders the consuming component ONLY when the selected slice value changes.
  *

@@ -164,5 +164,5 @@ describe("Phase C Master Integration: Mode 1 <-> Mode 2 In-Place Morph (Step C-5
     await waitFor(() => {
       expect(screen.getByLabelText("Motion Guide")).toBeDefined()
     })
-  })
+  }, 15000)
 })

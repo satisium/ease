@@ -6,6 +6,8 @@ import { getCanonicalPresetById } from "../../core/presets/index"
 import { getTrackPlugin } from "../../core/registry/tracks"
 import {
   compileChannelExport,
+  compileEaseOnly,
+  compileEaseSnippet,
   compileTrackExport,
   exporterRegistry,
   getExporterPlugin,
@@ -185,6 +187,119 @@ describe("core/registry/exporters", () => {
       expect(code).toContain('gsap.to(".dialog-backdrop",')
       expect(code).toContain('gsap.to(".dialog-translateY",')
       expect(code).toContain('gsap.to(".dialog-scale",')
+    })
+  })
+
+  describe("Single-Ease Export (compileEaseOnly)", () => {
+    it("compiles Bézier curve to pure timing functions across all 4 targets", () => {
+      const css = compileEaseOnly("css", quartCurve, 280)
+      expect(css).toBe(
+        "transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);"
+      )
+
+      const tailwind = compileEaseOnly("tailwind", quartCurve, 280)
+      expect(tailwind).toBe("ease-[cubic-bezier(0.25,1,0.5,1)]")
+
+      const motion = compileEaseOnly("motion", quartCurve, 280)
+      expect(motion).toBe("[0.25, 1, 0.5, 1]")
+
+      const gsap = compileEaseOnly("gsap", quartCurve, 280)
+      expect(gsap).toBe('"cubic-bezier(0.25,1,0.5,1)"')
+    })
+
+    it("compiles Spring curve to pure timing functions across all 4 targets", () => {
+      const css = compileEaseOnly("css", snappyCurve, undefined, "natural")
+      expect(css).toContain("transition-timing-function: linear(")
+
+      const tailwind = compileEaseOnly(
+        "tailwind",
+        snappyCurve,
+        undefined,
+        "natural"
+      )
+      expect(tailwind).toContain("ease-[linear(")
+      expect(tailwind).toContain("_")
+
+      const motion = compileEaseOnly(
+        "motion",
+        snappyCurve,
+        undefined,
+        "natural"
+      )
+      expect(motion).toBe(
+        '{ type: "spring", mass: 1, stiffness: 860, damping: 46 }'
+      )
+
+      const gsap = compileEaseOnly("gsap", snappyCurve, undefined, "natural")
+      expect(gsap).toContain("gsap.registerPlugin(CustomEase);")
+      expect(gsap).toContain('CustomEase.create("snappySpring"')
+    })
+
+    it("throws for unknown exporter plugin", () => {
+      expect(() =>
+        compileEaseOnly("unknown" as never, quartCurve)
+      ).toThrowError(/Unknown exporter plugin/)
+    })
+  })
+
+  describe("Single-Ease Snippet Export (compileEaseSnippet)", () => {
+    it("compiles Bézier curve to runnable snippets across all 4 targets", () => {
+      const css = compileEaseSnippet("css", quartCurve, 280)
+      expect(css).toBe(
+        ".ease-target {\n  transition: transform 280ms cubic-bezier(0.25, 1, 0.5, 1);\n}"
+      )
+
+      const tailwind = compileEaseSnippet("tailwind", quartCurve, 280)
+      expect(tailwind).toBe(
+        "transition-transform duration-[280ms] ease-[cubic-bezier(0.25,1,0.5,1)]"
+      )
+
+      const motion = compileEaseSnippet("motion", quartCurve, 280)
+      expect(motion).toBe(
+        "transition={{ duration: 0.28, ease: [0.25, 1, 0.5, 1] }}"
+      )
+
+      const gsap = compileEaseSnippet("gsap", quartCurve, 280)
+      expect(gsap).toBe(
+        'gsap.to(".target", { duration: 0.28, ease: "cubic-bezier(0.25,1,0.5,1)", overwrite: "auto" });'
+      )
+    })
+
+    it("compiles Spring curve to runnable snippets across all 4 targets", () => {
+      const css = compileEaseSnippet("css", snappyCurve, undefined, "natural")
+      expect(css).toContain(".ease-target {")
+      expect(css).toContain("transition: transform")
+      expect(css).toContain("linear(")
+
+      const tailwind = compileEaseSnippet(
+        "tailwind",
+        snappyCurve,
+        undefined,
+        "natural"
+      )
+      expect(tailwind).toContain("transition-transform duration-[")
+      expect(tailwind).toContain("ease-[linear(")
+
+      const motion = compileEaseSnippet(
+        "motion",
+        snappyCurve,
+        undefined,
+        "natural"
+      )
+      expect(motion).toBe(
+        'transition={{ type: "spring", mass: 1, stiffness: 860, damping: 46 }}'
+      )
+
+      const gsap = compileEaseSnippet("gsap", snappyCurve, undefined, "natural")
+      expect(gsap).toContain("gsap.registerPlugin(CustomEase);")
+      expect(gsap).toContain('CustomEase.create("snappySpring"')
+      expect(gsap).toContain('gsap.to(".target",')
+    })
+
+    it("throws for unknown exporter plugin", () => {
+      expect(() =>
+        compileEaseSnippet("unknown" as never, quartCurve)
+      ).toThrowError(/Unknown exporter plugin/)
     })
   })
 

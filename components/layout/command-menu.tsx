@@ -39,10 +39,22 @@ import {
   MoonSlowWindIcon,
   Search01Icon,
   Sun02Icon,
+  SparklesIcon,
   TextAlignLeftIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { PROJECT } from "@/lib/social-links"
+import {
+  useOptionalEaseStoreApi,
+  type EaseStoreApi,
+} from "@/hooks/use-ease-store"
+import { useStore } from "zustand"
+import {
+  ALL_CANONICAL_PRESETS,
+  listComponentTracks,
+  searchEaseCommandCatalog,
+  type SearchResultKind,
+} from "@/core"
 
 type ApiSearchResult = {
   id: string
@@ -154,6 +166,114 @@ export const CommandMenuTrigger = React.forwardRef<
 })
 CommandMenuTrigger.displayName = "CommandMenuTrigger"
 
+function getEaseKindBadge(kind: SearchResultKind): string {
+  switch (kind) {
+    case "preset":
+      return "Preset"
+    case "custom-root":
+      return "Custom"
+    case "custom-variant":
+      return "Variant"
+    case "track":
+      return "Component"
+  }
+}
+
+function getEaseIcon(kind: SearchResultKind) {
+  switch (kind) {
+    case "preset":
+      return (
+        <HugeiconsIcon
+          icon={Layers01Icon}
+          className="mr-3 size-4 shrink-0 text-primary"
+        />
+      )
+    case "custom-root":
+      return (
+        <HugeiconsIcon
+          icon={SparklesIcon}
+          className="mr-3 size-4 shrink-0 text-primary"
+        />
+      )
+    case "custom-variant":
+      return (
+        <HugeiconsIcon
+          icon={Layers01Icon}
+          className="mr-3 size-4 shrink-0 text-muted-foreground"
+        />
+      )
+    case "track":
+      return (
+        <HugeiconsIcon
+          icon={ComponentIcon}
+          className="mr-3 size-4 shrink-0 text-primary"
+        />
+      )
+  }
+}
+
+interface EaseCommandGroupProps {
+  query: string
+  easeStore: EaseStoreApi
+  onClose: () => void
+}
+
+function EaseCommandGroup({
+  query,
+  easeStore,
+  onClose,
+}: EaseCommandGroupProps) {
+  const customCurves = useStore(easeStore, (s) => s.customCurves)
+
+  const results = React.useMemo(() => {
+    return searchEaseCommandCatalog({
+      query,
+      presets: ALL_CANONICAL_PRESETS,
+      customCurves,
+      tracks: listComponentTracks(),
+      limit: 10,
+    })
+  }, [query, customCurves])
+
+  if (results.length === 0) return null
+
+  return (
+    <CommandGroup heading="Studio Curves & Components">
+      {results.map((item) => (
+        <CommandItem
+          key={`ease-${item.kind}-${item.id}`}
+          value={`ease-${item.kind}-${item.id}`}
+          onSelect={() => {
+            if (item.kind === "track") {
+              easeStore.getState().focusTrack(item.id)
+            } else {
+              easeStore.getState().selectCurveForFocused(item.id)
+            }
+            onClose()
+          }}
+          className="flex w-full items-center px-4 py-2.5 aria-selected:bg-secondary aria-selected:text-primary"
+        >
+          {getEaseIcon(item.kind)}
+          <div className="flex min-w-0 flex-col items-start gap-0.5">
+            <span className="flex items-center gap-2 truncate font-medium text-foreground">
+              {item.title}
+            </span>
+            {item.subtitle && (
+              <span className="line-clamp-1 text-xs text-muted-foreground">
+                {item.subtitle}
+              </span>
+            )}
+          </div>
+          <span className="ml-auto inline-flex shrink-0 items-center rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {getEaseKindBadge(item.kind)}
+          </span>
+        </CommandItem>
+      ))}
+      <CommandSeparator className="my-2" />
+    </CommandGroup>
+  )
+}
+
 /**
  * 🌟 THE GLOBAL DIALOG
  */
@@ -161,6 +281,7 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
   const router = useRouter()
   const { setTheme } = useTheme()
   const { isOpen, setIsOpen } = useCommandStore()
+  const easeStore = useOptionalEaseStoreApi()
 
   const [query, setQuery] = React.useState("")
   const [apiResults, setApiResults] = React.useState<ApiSearchResult[]>([])
@@ -479,13 +600,21 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
   }, [recentIds, staticItems])
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open)
+        if (!open) setQuery("")
+      }}
+    >
       <DialogContent className="overflow-hidden rounded-3xl bg-muted p-1 sm:max-w-[640px]">
         <DialogTitle className="sr-only">Command Menu</DialogTitle>
         <Command
           className="flex h-full w-full flex-col gap-2 bg-muted"
           onValueChange={setActiveValue}
           filter={(value, search) => {
+            if (value.startsWith("ease-") || value.startsWith("api-")) return 1
+
             // Strip any internal prefix before finding the item in static items
             const cleanId = value.replace(/^(recent-|api-)/, "")
             const item = staticItems.find((i) => i.id === cleanId)
@@ -555,6 +684,18 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
                   ))}
                   <CommandSeparator className="my-2" />
                 </CommandGroup>
+              )}
+
+              {/* 🎨 STUDIO CURVES & COMPONENTS */}
+              {easeStore && (
+                <EaseCommandGroup
+                  query={query}
+                  easeStore={easeStore}
+                  onClose={() => {
+                    setIsOpen(false)
+                    setQuery("")
+                  }}
+                />
               )}
 
               {/* 🔍 API RESULTS: Prefixed value ensures unique cmdk identification */}
