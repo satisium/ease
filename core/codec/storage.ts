@@ -26,7 +26,7 @@ import {
   createInitialTrackBindings,
 } from "../state/track-reducers"
 import { CompareGlobalTarget } from "../state/compare-reducers"
-import { ExporterId } from "../registry/exporters"
+import { ExporterId, ExportFormatScope } from "../registry/exporters"
 import { trackRegistry } from "../registry/tracks"
 
 /** Active schema version for persisted local storage. */
@@ -62,7 +62,7 @@ export interface PersistedEaseData {
 
   // Stack Preferences
   preferredExporter: ExporterId
-  exportScope?: "channel" | "track"
+  exportScope?: ExportFormatScope | "channel" | "track"
   loopDelayMs: number
 
   // Legacy compatibility fields
@@ -88,7 +88,7 @@ export interface DeserializedEaseData {
   activeLibraryTab: MotionEngine
   viewport: ViewportPreset
   preferredExporter: ExporterId
-  exportScope: "channel" | "track"
+  exportScope: ExportFormatScope
   loopDelayMs: number
   activeTrackId: string
   activeChannelId: string
@@ -534,7 +534,10 @@ export function serializeEaseStorage(data: SerializeEaseDataInput): string {
 
     // Stack Preferences
     preferredExporter: data.preferredExporter ?? "tailwind",
-    exportScope: data.exportScope ?? "channel",
+    exportScope:
+      data.exportScope === "snippet" || data.exportScope === "track"
+        ? "snippet"
+        : "ease",
     loopDelayMs: Math.max(0, Math.round(data.loopDelayMs ?? 400)),
 
     // Backward-compat aliases
@@ -577,7 +580,7 @@ export function deserializeEaseStorage(
     activeLibraryTab: "bezier",
     viewport: "desktop",
     preferredExporter: "tailwind",
-    exportScope: "channel",
+    exportScope: "ease",
     loopDelayMs: 400,
     activeTrackId: "dialog:open",
     activeChannelId: "all",
@@ -762,8 +765,10 @@ export function deserializeEaseStorage(
       : fallback.preferredExporter
 
     // 12. Export Scope
-    const exportScope: "channel" | "track" =
-      parsed.exportScope === "track" ? "track" : "channel"
+    const exportScope: ExportFormatScope =
+      parsed.exportScope === "snippet" || parsed.exportScope === "track"
+        ? "snippet"
+        : "ease"
 
     // 13. Loop delay
     const loopDelayMs =

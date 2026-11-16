@@ -11,7 +11,13 @@
  * - GSAP exporter compiles real CustomEase SVG paths (M0,0...) and NEVER fakes power4.out.
  */
 
-import { ChannelBinding, SpringParams, TransitionTrackPlugin } from "../schema"
+import {
+  ChannelBinding,
+  EaseCurve,
+  SpringDurationMode,
+  SpringParams,
+  TransitionTrackPlugin,
+} from "../schema"
 import {
   compileSpringToLinearCss,
   compileSpringToSvgPath,
@@ -24,6 +30,9 @@ import { PluginRegistry } from "./plugin-registry"
 
 /** Supported code exporter target identifiers. */
 export type ExporterId = "css" | "tailwind" | "motion" | "gsap"
+
+/** Scope for single-ease export: pure timing curve vs runnable component snippet. */
+export type ExportFormatScope = "ease" | "snippet"
 
 /** Contract for a code generation exporter plugin. */
 export interface ExporterPlugin {
@@ -50,9 +59,34 @@ function formatNum(n: number, maxDecimals = 3): string {
   return s.includes(".") ? s.replace(/\.?0+$/, "") : s
 }
 
-/** Converts a kebab/colon delimited identifier to camelCase. */
+/** Converts a human string or kebab/colon delimited identifier to clean camelCase. */
 function toCamelCase(str: string): string {
-  return str.replace(/[:\-_](\w)/g, (_, c) => c.toUpperCase())
+  const words = str
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+
+  if (words.length === 0) return ""
+  if (words.length === 1) {
+    return words[0].charAt(0).toLowerCase() + words[0].slice(1)
+  }
+
+  return words
+    .map((word, index) => {
+      if (index === 0) return word.toLowerCase()
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    })
+    .join("")
+}
+
+/** Resolves clean camelCase identifier from curve.name for GSAP CustomEase.create("<id>", ...). */
+function getGsapCustomEaseId(curve: EaseCurve): string {
+  const fromName = toCamelCase(curve.name)
+  if (fromName) return fromName
+  const fromId = toCamelCase(curve.id)
+  if (fromId) return fromId
+  return "customEase"
 }
 
 /** Maps animatable channel property to its standard CSS transition property. */
@@ -110,6 +144,39 @@ function resolveChannelEffectiveMotion(channel: ChannelBinding): {
 
   return {
     durationMs,
+    effectiveSpring,
+  }
+}
+
+/** Resolves effective duration and spring params for a single EaseCurve. */
+function resolveCurveEffectiveMotion(
+  curve: EaseCurve,
+  durationMs?: number,
+  springMode: SpringDurationMode = "fit"
+): {
+  durationMs: number
+  effectiveSpring: SpringParams
+} {
+  const baseDuration = durationMs ?? curve.suggestedDurationMs
+  if (curve.engine === "bezier") {
+    return {
+      durationMs: Math.max(1, Math.round(baseDuration)),
+      effectiveSpring: curve.spring,
+    }
+  }
+
+  if (springMode === "fit") {
+    const effectiveSpring = fitSpringToDurationMs(curve.spring, baseDuration)
+    return {
+      durationMs: Math.max(1, Math.round(baseDuration)),
+      effectiveSpring,
+    }
+  }
+
+  const effectiveSpring = curve.spring
+  const naturalDurationMs = computeSpringSettleTimeMs(effectiveSpring, 0.005)
+  return {
+    durationMs: naturalDurationMs,
     effectiveSpring,
   }
 }
@@ -436,4 +503,171 @@ export function compileTrackExport(
     throw new Error(`Unknown exporter plugin '${id}'`)
   }
   return plugin.compileTrack(track)
+}
+
+/**
+ * Compiles a single ease curve timing function/expression without boilerplate.
+ *
+ * @param id - Exporter target ID.
+ * @param curve - Target EaseCurve.
+ * @param durationMs - Optional duration override in milliseconds.
+ * @param springMode - Duration fitting mode for spring physics ("fit" | "natural").
+ * @returns Clean timing function or expression string.
+ */
+export function compileEaseOnly(
+  id: ExporterId,
+  curve: EaseCurve,
+  durationMs?: number,
+  springMode: SpringDurationMode = "fit"
+): string {
+  if (!getExporterPlugin(id)) {
+    throw new Error(`Unknown exporter plugin '${id}'`)
+  }
+
+  const { durationMs: resolvedDur, effectiveSpring } =
+    resolveCurveEffectiveMotion(curve, durationMs, springMode)
+
+  if (curve.engine === "bezier") {
+    const p1x = formatNum(curve.bezier.p1.x)
+    const p1y = formatNum(curve.bezier.p1.y)
+    const p2x = formatNum(curve.bezier.p2.x)
+    const p2y = formatNum(curve.bezier.p2.y)
+
+    switch (id) {
+      case "css":
+        return `transition-timing-function: cubic-bezier(${p1x}, ${p1y}, ${p2x}, ${p2y});`
+      case "tailwind":
+        return `ease-[cubic-bezier(${p1x},${p1y},${p2x},${p2y})]`
+      case "motion":
+        return `[${p1x}, ${p1y}, ${p2x}, ${p2y}]`
+      case "gsap":
+        return `"cubic-bezier(${p1x},${p1y},${p2x},${p2y})"`
+    }
+  }
+
+  // Spring physics engine
+  switch (id) {
+    case "css": {
+      const { linearCss } = compileSpringToLinearCss(effectiveSpring, {
+        durationMs: resolvedDur,
+      })
+      return `transition-timing-function: ${linearCss};`
+    }
+    case "tailwind": {
+      const { linearCss } = compileSpringToLinearCss(effectiveSpring, {
+        durationMs: resolvedDur,
+      })
+      const tailwindEase = linearCss.replace(/\s+/g, "_")
+      return `ease-[${tailwindEase}]`
+    }
+    case "motion": {
+      const m = formatNum(effectiveSpring.mass, 2)
+      const k = formatNum(effectiveSpring.stiffness, 2)
+      const c = formatNum(effectiveSpring.damping, 2)
+      const vStr =
+        effectiveSpring.velocity !== 0
+          ? `, velocity: ${formatNum(effectiveSpring.velocity, 2)}`
+          : ""
+      return `{ type: "spring", mass: ${m}, stiffness: ${k}, damping: ${c}${vStr} }`
+    }
+    case "gsap": {
+      const svgPath = compileSpringToSvgPath(effectiveSpring, {
+        durationMs: resolvedDur,
+      })
+      const safeName = getGsapCustomEaseId(curve)
+      return [
+        `gsap.registerPlugin(CustomEase);`,
+        `CustomEase.create("${safeName}", "${svgPath}");`,
+      ].join("\n")
+    }
+  }
+}
+
+/**
+ * Compiles a complete, runnable drop-in snippet for a single ease curve.
+ *
+ * @param id - Exporter target ID.
+ * @param curve - Target EaseCurve.
+ * @param durationMs - Optional duration override in milliseconds.
+ * @param springMode - Duration fitting mode for spring physics ("fit" | "natural").
+ * @returns Fully formed code snippet for the target framework.
+ */
+export function compileEaseSnippet(
+  id: ExporterId,
+  curve: EaseCurve,
+  durationMs?: number,
+  springMode: SpringDurationMode = "fit"
+): string {
+  if (!getExporterPlugin(id)) {
+    throw new Error(`Unknown exporter plugin '${id}'`)
+  }
+
+  const { durationMs: resolvedDur, effectiveSpring } =
+    resolveCurveEffectiveMotion(curve, durationMs, springMode)
+
+  if (curve.engine === "bezier") {
+    const p1x = formatNum(curve.bezier.p1.x)
+    const p1y = formatNum(curve.bezier.p1.y)
+    const p2x = formatNum(curve.bezier.p2.x)
+    const p2y = formatNum(curve.bezier.p2.y)
+    const durSec = formatNum(resolvedDur / 1000)
+
+    switch (id) {
+      case "css":
+        return [
+          `.ease-target {`,
+          `  transition: transform ${resolvedDur}ms cubic-bezier(${p1x}, ${p1y}, ${p2x}, ${p2y});`,
+          `}`,
+        ].join("\n")
+      case "tailwind":
+        return `transition-transform duration-[${resolvedDur}ms] ease-[cubic-bezier(${p1x},${p1y},${p2x},${p2y})]`
+      case "motion":
+        return `transition={{ duration: ${durSec}, ease: [${p1x}, ${p1y}, ${p2x}, ${p2y}] }}`
+      case "gsap":
+        return `gsap.to(".target", { duration: ${durSec}, ease: "cubic-bezier(${p1x},${p1y},${p2x},${p2y})", overwrite: "auto" });`
+    }
+  }
+
+  // Spring physics engine
+  switch (id) {
+    case "css": {
+      const { linearCss } = compileSpringToLinearCss(effectiveSpring, {
+        durationMs: resolvedDur,
+      })
+      return [
+        `.ease-target {`,
+        `  transition: transform ${resolvedDur}ms ${linearCss};`,
+        `}`,
+      ].join("\n")
+    }
+    case "tailwind": {
+      const { linearCss } = compileSpringToLinearCss(effectiveSpring, {
+        durationMs: resolvedDur,
+      })
+      const tailwindEase = linearCss.replace(/\s+/g, "_")
+      return `transition-transform duration-[${resolvedDur}ms] ease-[${tailwindEase}]`
+    }
+    case "motion": {
+      const m = formatNum(effectiveSpring.mass, 2)
+      const k = formatNum(effectiveSpring.stiffness, 2)
+      const c = formatNum(effectiveSpring.damping, 2)
+      const vStr =
+        effectiveSpring.velocity !== 0
+          ? `, velocity: ${formatNum(effectiveSpring.velocity, 2)}`
+          : ""
+      return `transition={{ type: "spring", mass: ${m}, stiffness: ${k}, damping: ${c}${vStr} }}`
+    }
+    case "gsap": {
+      const svgPath = compileSpringToSvgPath(effectiveSpring, {
+        durationMs: resolvedDur,
+      })
+      const safeName = getGsapCustomEaseId(curve)
+      const durSec = formatNum(resolvedDur / 1000)
+      return [
+        `gsap.registerPlugin(CustomEase);`,
+        `CustomEase.create("${safeName}", "${svgPath}");`,
+        `gsap.to(".target", { duration: ${durSec}, ease: "${safeName}", overwrite: "auto" });`,
+      ].join("\n")
+    }
+  }
 }

@@ -79,22 +79,39 @@ describe("Headless EaseStore Integration (core/store/create-ease-store)", () => 
     expect(channelAfter.savedBezierDurationMs).toBe(baselineSaved)
 
     // 4. Verify all 4 code generator exports compile valid snippets
-    const tailwindExport = store
+    const tailwindSnippet = store
       .getState()
-      .getActiveExportCode("tailwind", "channel")
-    expect(tailwindExport).toContain("transition")
+      .getActiveExportCode("tailwind", "snippet")
+    expect(tailwindSnippet).toContain("transition")
 
-    const cssExport = store.getState().getActiveExportCode("css", "channel")
-    expect(cssExport).toContain("transition:")
-    expect(cssExport).toContain("cubic-bezier")
-
-    const motionExport = store
+    const tailwindEaseOnly = store
       .getState()
-      .getActiveExportCode("motion", "channel")
-    expect(motionExport).toContain("transition={{")
+      .getActiveExportCode("tailwind", "ease")
+    expect(tailwindEaseOnly).toContain("ease-[")
 
-    const gsapExport = store.getState().getActiveExportCode("gsap", "channel")
-    expect(gsapExport).toContain("gsap.to")
+    const cssSnippet = store.getState().getActiveExportCode("css", "snippet")
+    expect(cssSnippet).toContain("transition:")
+    expect(cssSnippet).toContain("cubic-bezier")
+
+    const cssEaseOnly = store.getState().getActiveExportCode("css", "ease")
+    expect(cssEaseOnly).toContain("transition-timing-function:")
+    expect(cssEaseOnly).toContain("cubic-bezier")
+
+    const motionSnippet = store
+      .getState()
+      .getActiveExportCode("motion", "snippet")
+    expect(motionSnippet).toContain("transition={{")
+
+    const motionEaseOnly = store
+      .getState()
+      .getActiveExportCode("motion", "ease")
+    expect(motionEaseOnly).toMatch(/^\[.+\]$/)
+
+    const gsapSnippet = store.getState().getActiveExportCode("gsap", "snippet")
+    expect(gsapSnippet).toContain("gsap.to")
+
+    const gsapEaseOnly = store.getState().getActiveExportCode("gsap", "ease")
+    expect(gsapEaseOnly).toContain("cubic-bezier")
 
     // Track-wide export compilation
     const trackCss = store.getState().getActiveExportCode("css", "track")
@@ -436,8 +453,10 @@ describe("Headless EaseStore Integration (core/store/create-ease-store)", () => 
     store.getState().setExportOpen(true)
     expect(store.getState().isExportOpen).toBe(true)
 
-    store.getState().setExportScope("track")
-    expect(store.getState().exportScope).toBe("track")
+    store.getState().setExportScope("snippet")
+    expect(store.getState().exportScope).toBe("snippet")
+    store.getState().setExportScope("ease")
+    expect(store.getState().exportScope).toBe("ease")
 
     store.getState().setReducedMotion(true)
     expect(store.getState().isReducedMotion).toBe(true)

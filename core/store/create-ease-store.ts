@@ -31,9 +31,11 @@ import {
 } from "../presets/index"
 import { getPairedTrackId, trackRegistry } from "../registry/tracks"
 import {
-  compileChannelExport,
+  compileEaseOnly,
+  compileEaseSnippet,
   compileTrackExport,
   ExporterId,
+  ExportFormatScope,
 } from "../registry/exporters"
 import {
   PlaybackSpeed,
@@ -107,7 +109,7 @@ export interface EaseStoreState {
   viewport: ViewportPreset
   navStack: NavStackState
   isExportOpen: boolean
-  exportScope: "channel" | "track"
+  exportScope: ExportFormatScope
   preferredExporter: ExporterId
   isReducedMotion: boolean
   searchQuery: string
@@ -131,7 +133,7 @@ export interface EaseStoreState {
   drillIntoCurve: (curveId: string) => void
   backToPresets: () => void
   setExportOpen: (open: boolean) => void
-  setExportScope: (scope: "channel" | "track") => void
+  setExportScope: (scope: ExportFormatScope | "channel" | "track") => void
   setPreferredExporter: (exporter: ExporterId) => void
   setReducedMotion: (reduced: boolean) => void
   setSearchQuery: (query: string) => void
@@ -230,7 +232,7 @@ export interface EaseStoreState {
   hydrateFromStorage: (rawJson?: string | null) => void
   getActiveExportCode: (
     exporterId?: ExporterId,
-    scope?: "channel" | "track",
+    scope?: ExportFormatScope | "channel" | "track",
     curveOverride?: EaseCurve
   ) => string
   getShareUrlHash: () => string
@@ -268,7 +270,7 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
   let initialActiveLibraryTab: MotionEngine = "bezier"
   let initialViewport: ViewportPreset = "desktop"
   let initialExporter: ExporterId = "tailwind"
-  let initialExportScope: "channel" | "track" = "channel"
+  let initialExportScope: ExportFormatScope = "ease"
 
   if (options?.storage) {
     try {
@@ -524,7 +526,13 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
         get().persist()
       },
       setExportOpen: (isExportOpen) => set({ isExportOpen }),
-      setExportScope: (exportScope) => set({ exportScope }),
+      setExportScope: (exportScope) => {
+        const normalized: ExportFormatScope =
+          exportScope === "snippet" || exportScope === "track"
+            ? "snippet"
+            : "ease"
+        set({ exportScope: normalized })
+      },
       setPreferredExporter: (preferredExporter) => {
         set({ preferredExporter })
         get().persist()
@@ -1209,25 +1217,32 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
         const state = get()
         const expId = exporterId ?? state.preferredExporter
         const sc = scope ?? state.exportScope
-        if (sc === "channel") {
-          const ch = state.getFocusedChannel()
-          if (!ch) return ""
-          const finalCh = curveOverride ? { ...ch, curve: curveOverride } : ch
-          return compileChannelExport(expId, finalCh)
+        const targetCurve = curveOverride ?? state.getActiveCurve()
+        const ch = state.getFocusedChannel()
+        const dur = ch?.durationMs ?? targetCurve.suggestedDurationMs
+        const sMode: SpringDurationMode =
+          ch?.springMode ??
+          (state.focusedTrackId === "primitives:all" ? "natural" : "fit")
+
+        if (sc === "ease") {
+          return compileEaseOnly(expId, targetCurve, dur, sMode)
         }
-        const track = state.getFocusedTrack()
-        const finalTrack = curveOverride
-          ? {
-              ...track,
-              channels: track.channels.map((c) =>
-                state.focusedChannelId === "all" ||
-                state.focusedChannelId === c.id
-                  ? { ...c, curve: curveOverride }
-                  : c
-              ),
-            }
-          : track
-        return compileTrackExport(expId, finalTrack)
+        if (sc === "track") {
+          const track = state.getFocusedTrack()
+          const finalTrack = curveOverride
+            ? {
+                ...track,
+                channels: track.channels.map((c) =>
+                  state.focusedChannelId === "all" ||
+                  state.focusedChannelId === c.id
+                    ? { ...c, curve: curveOverride }
+                    : c
+                ),
+              }
+            : track
+          return compileTrackExport(expId, finalTrack)
+        }
+        return compileEaseSnippet(expId, targetCurve, dur, sMode)
       },
       getShareUrlHash: () => {
         const state = get()
