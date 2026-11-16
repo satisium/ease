@@ -1,7 +1,7 @@
 export const ROUTES = {
   home: "/",
   app: "/app",
-  stage: "/stage",
+  stage: "/app",
   docs: "/docs",
   docsInstall: "/docs/getting-started/installation",
   docsStructure: "/docs/getting-started/project-structure",

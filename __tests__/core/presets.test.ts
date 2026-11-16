@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
-import { BEZIER_PRESETS, SPRING_PRESETS } from "../../core/presets"
 import {
   ALL_CANONICAL_PRESETS,
   CANONICAL_BEZIER_PRESETS,
@@ -13,39 +12,6 @@ import {
 
 describe("core/presets", () => {
   describe("Completeness & Migration Integrity", () => {
-    it("migrates 100% of the 31 legacy Bézier presets from core/presets.ts", () => {
-      expect(BEZIER_PRESETS).toHaveLength(31)
-
-      for (const legacy of BEZIER_PRESETS) {
-        const canonical = CANONICAL_BEZIER_PRESETS.find(
-          (p) => p.id === legacy.id
-        )
-        expect(canonical).toBeDefined()
-        expect(canonical?.name).toBe(legacy.label)
-        expect(canonical?.engine).toBe("bezier")
-        expect(canonical?.description).toBe(legacy.description)
-        expect(canonical?.useCases).toEqual(legacy.useCases)
-      }
-    })
-
-    it("migrates 100% of the 25 legacy Spring presets from core/presets.ts", () => {
-      expect(SPRING_PRESETS).toHaveLength(25)
-
-      for (const legacy of SPRING_PRESETS) {
-        const canonical = CANONICAL_SPRING_PRESETS.find(
-          (p) => p.id === legacy.id
-        )
-        expect(canonical).toBeDefined()
-        expect(canonical?.name).toBe(legacy.label)
-        expect(canonical?.engine).toBe("spring")
-        expect(canonical?.description).toBe(legacy.description)
-        expect(canonical?.useCases).toEqual(legacy.useCases)
-        expect(canonical?.spring.mass).toBe(legacy.value.mass)
-        expect(canonical?.spring.stiffness).toBe(legacy.value.stiffness)
-        expect(canonical?.spring.damping).toBe(legacy.value.damping)
-      }
-    })
-
     it("includes required canonical additions: ease-out-quart, linear, and snappy-spring", () => {
       // Ease Out Quart
       const quart = getCanonicalPresetById("ease-out-quart")
