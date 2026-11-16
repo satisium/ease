@@ -15,13 +15,18 @@ import { CommandMenuTrigger } from "@/components/layout/command-menu"
 import { useMounted } from "@/hooks/use-mounted"
 import { ROUTES } from "@/lib/routes"
 import { PROJECT } from "@/lib/social-links"
+import { switchThemeWithTransition } from "@/lib/theme-transition"
+import { cn } from "@/lib/utils"
+import { SATISIUM_PRESS_CLASS } from "@/lib/motion"
 
 export function BrandSlab() {
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   const mounted = useMounted()
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark")
+  const toggleTheme = (e: React.MouseEvent) => {
+    const currentTheme = resolvedTheme ?? theme
+    const newTheme = currentTheme === "dark" ? "light" : "dark"
+    switchThemeWithTransition(setTheme, newTheme, e, "fade")
   }
 
   return (
@@ -111,10 +116,17 @@ export function BrandSlab() {
           onClick={toggleTheme}
           aria-label="Toggle Color Theme"
           title="Toggle Color Theme"
-          className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-background text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className={cn(
+            "flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-[10px] bg-background text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+            SATISIUM_PRESS_CLASS
+          )}
         >
           <HugeiconsIcon
-            icon={mounted && theme === "dark" ? Sun02Icon : Moon02Icon}
+            icon={
+              mounted && (resolvedTheme ?? theme) === "dark"
+                ? Sun02Icon
+                : Moon02Icon
+            }
             className="size-4"
           />
         </button>

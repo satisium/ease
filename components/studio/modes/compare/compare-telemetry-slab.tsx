@@ -4,6 +4,7 @@ import * as React from "react"
 import { useEaseStore } from "@/hooks/use-ease-store"
 import { evaluateDuel, trackRegistry, type DuelTileTelemetry } from "@/core"
 import { cn } from "@/lib/utils"
+import { AnimatedNumber } from "@/components/ui/animated-number"
 
 export interface CompareTelemetrySlabProps {
   className?: string
@@ -75,7 +76,11 @@ export function CompareTelemetrySlab({ className }: CompareTelemetrySlabProps) {
         </span>
         {evaluation && (
           <span className="rounded-[6px] bg-secondary px-2 py-0.5 font-sans text-[10px] font-medium text-muted-foreground tabular-nums">
-            Δ {evaluation.settleDeltaMs}ms spread
+            <AnimatedNumber
+              value={evaluation.settleDeltaMs}
+              prefix="Δ "
+              suffix="ms spread"
+            />
           </span>
         )}
       </div>
@@ -134,7 +139,10 @@ export function CompareTelemetrySlab({ className }: CompareTelemetrySlabProps) {
                       t95
                     </span>
                     <span className="font-sans text-xs font-medium text-foreground tabular-nums">
-                      {Math.round(tile.telemetry.timeTo95Ms)}ms
+                      <AnimatedNumber
+                        value={Math.round(tile.telemetry.timeTo95Ms)}
+                        suffix="ms"
+                      />
                     </span>
                   </div>
 
@@ -143,7 +151,10 @@ export function CompareTelemetrySlab({ className }: CompareTelemetrySlabProps) {
                       Settle
                     </span>
                     <span className="font-sans text-xs font-medium text-foreground tabular-nums">
-                      {Math.round(tile.telemetry.settlingTimeMs)}ms
+                      <AnimatedNumber
+                        value={Math.round(tile.telemetry.settlingTimeMs)}
+                        suffix="ms"
+                      />
                     </span>
                   </div>
 
@@ -152,7 +163,14 @@ export function CompareTelemetrySlab({ className }: CompareTelemetrySlabProps) {
                       Peak
                     </span>
                     <span className="font-sans text-xs font-medium text-foreground tabular-nums">
-                      {tile.telemetry.peakVelocity.toFixed(1)}x
+                      <AnimatedNumber
+                        value={Number(tile.telemetry.peakVelocity.toFixed(1))}
+                        format={{
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        }}
+                        suffix="x"
+                      />
                     </span>
                   </div>
 
@@ -161,7 +179,16 @@ export function CompareTelemetrySlab({ className }: CompareTelemetrySlabProps) {
                       Over
                     </span>
                     <span className="font-sans text-xs font-medium text-foreground tabular-nums">
-                      {tile.telemetry.overshootPercent.toFixed(1)}%
+                      <AnimatedNumber
+                        value={Number(
+                          tile.telemetry.overshootPercent.toFixed(1)
+                        )}
+                        format={{
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        }}
+                        suffix="%"
+                      />
                     </span>
                   </div>
                 </div>

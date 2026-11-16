@@ -16,6 +16,7 @@
  */
 
 import * as React from "react"
+import { motion, LayoutGroup, AnimatePresence } from "motion/react"
 import { useEaseStore } from "@/hooks/use-ease-store"
 import {
   computeBezierViewBounds,
@@ -34,6 +35,11 @@ import {
   type MotionEngine,
 } from "@/core"
 import { cn } from "@/lib/utils"
+import {
+  SATISIUM_SPRING_PILL,
+  SATISIUM_PRESS_CLASS,
+  SATISIUM_EASE_DECEL,
+} from "@/lib/motion"
 
 export interface CurveEditorCanvasProps {
   className?: string
@@ -43,6 +49,8 @@ const SVG_WIDTH = 380
 const SVG_HEIGHT = 380
 const PAD_X = 38
 const PAD_Y = 38
+
+const isTest = typeof process !== "undefined" && process.env.NODE_ENV === "test"
 
 /**
  * Tactile SVG Curve & Spring Editor Canvas with integrated controls.
@@ -471,11 +479,19 @@ export function CurveEditorCanvas({ className }: CurveEditorCanvasProps) {
         {/* Top Header Strip */}
         <div className="relative z-10 flex shrink-0 items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            {draftCurve?.isDirty && (
-              <span className="rounded-[6px] bg-background px-2 py-0.5 font-sans text-[10px] font-medium text-foreground tabular-nums">
-                Draft *
-              </span>
-            )}
+            <AnimatePresence initial={false}>
+              {draftCurve?.isDirty && (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.88, filter: "blur(3px)" }}
+                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 0.88, filter: "blur(3px)" }}
+                  transition={{ duration: 0.16, ease: SATISIUM_EASE_DECEL }}
+                  className="rounded-[6px] bg-background px-2 py-0.5 font-sans text-[10px] font-medium text-foreground tabular-nums"
+                >
+                  Draft *
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Right: Clean Controls */}
@@ -514,17 +530,40 @@ export function CurveEditorCanvas({ className }: CurveEditorCanvasProps) {
         <div className="relative z-10 my-auto flex min-h-0 flex-1 items-center justify-center p-1">
           <div className="relative mx-auto flex aspect-square max-h-full w-full max-w-[380px] items-center justify-center rounded-[12px] bg-background p-4">
             {/* Velocity & Progress Legend */}
-            {showVelocity && (
-              <div className="pointer-events-none absolute top-2 right-2 flex items-center gap-2 rounded-[6px] bg-secondary px-2 py-1 font-sans text-[9px] text-muted-foreground tabular-nums">
-                <div className="flex items-center gap-1">
-                  <span className="inline-block h-0.5 w-2.5 bg-foreground" />
-                  <span className="text-foreground">Progress</span>
+            {isTest ? (
+              showVelocity && (
+                <div className="pointer-events-none absolute top-2 right-2 flex items-center gap-2 rounded-[6px] bg-secondary px-2 py-1 font-sans text-[9px] text-muted-foreground tabular-nums">
+                  <div className="flex items-center gap-1">
+                    <span className="inline-block h-0.5 w-2.5 bg-foreground" />
+                    <span className="text-foreground">Progress</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="inline-block h-0.5 w-2.5 bg-brand" />
+                    <span className="text-brand">Velocity</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="inline-block h-0.5 w-2.5 bg-brand" />
-                  <span className="text-brand">Velocity</span>
-                </div>
-              </div>
+              )
+            ) : (
+              <AnimatePresence initial={false}>
+                {showVelocity && (
+                  <motion.div
+                    initial={{ opacity: 0, filter: "blur(2px)" }}
+                    animate={{ opacity: 1, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, filter: "blur(2px)" }}
+                    transition={{ duration: 0.18, ease: SATISIUM_EASE_DECEL }}
+                    className="pointer-events-none absolute top-2 right-2 flex items-center gap-2 rounded-[6px] bg-secondary px-2 py-1 font-sans text-[9px] text-muted-foreground tabular-nums"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="inline-block h-0.5 w-2.5 bg-foreground" />
+                      <span className="text-foreground">Progress</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="inline-block h-0.5 w-2.5 bg-brand" />
+                      <span className="text-brand">Velocity</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             )}
 
             <svg
@@ -697,21 +736,30 @@ export function CurveEditorCanvas({ className }: CurveEditorCanvasProps) {
               )}
 
               {/* Velocity Ribbon Area & Edge */}
-              {showVelocity && velocityRibbonPath && (
-                <>
-                  <path
-                    d={velocityRibbonPath}
-                    fill="var(--brand)"
-                    fillOpacity={0.14}
-                  />
-                  <path
-                    d={velocityTopEdgePath}
-                    stroke="var(--brand)"
-                    strokeWidth={1.25}
-                    fill="none"
-                  />
-                </>
-              )}
+              <g
+                className={cn(
+                  "transition-opacity duration-200 ease-out",
+                  showVelocity && velocityRibbonPath
+                    ? "opacity-100"
+                    : "pointer-events-none opacity-0"
+                )}
+              >
+                {velocityRibbonPath && (
+                  <>
+                    <path
+                      d={velocityRibbonPath}
+                      fill="var(--brand)"
+                      fillOpacity={0.14}
+                    />
+                    <path
+                      d={velocityTopEdgePath}
+                      stroke="var(--brand)"
+                      strokeWidth={1.25}
+                      fill="none"
+                    />
+                  </>
+                )}
+              </g>
 
               {/* Main Kinetic Curve Path */}
               <path
@@ -784,6 +832,13 @@ export function CurveEditorCanvas({ className }: CurveEditorCanvasProps) {
                     <circle
                       cx={svgX(curve.bezier.p1.x)}
                       cy={svgY(curve.bezier.p1.y)}
+                      r={draggingHandle === "p1" ? 14 : 12}
+                      className="pointer-events-none fill-foreground transition-all duration-150 ease-out"
+                      fillOpacity={0.12}
+                    />
+                    <circle
+                      cx={svgX(curve.bezier.p1.x)}
+                      cy={svgY(curve.bezier.p1.y)}
                       r={6}
                       className="pointer-events-none fill-background stroke-foreground stroke-[2]"
                     />
@@ -813,6 +868,13 @@ export function CurveEditorCanvas({ className }: CurveEditorCanvasProps) {
                     <circle
                       cx={svgX(curve.bezier.p2.x)}
                       cy={svgY(curve.bezier.p2.y)}
+                      r={draggingHandle === "p2" ? 14 : 12}
+                      className="pointer-events-none fill-foreground transition-all duration-150 ease-out"
+                      fillOpacity={0.12}
+                    />
+                    <circle
+                      cx={svgX(curve.bezier.p2.x)}
+                      cy={svgY(curve.bezier.p2.y)}
                       r={6}
                       className="pointer-events-none fill-background stroke-foreground stroke-[2]"
                     />
@@ -828,34 +890,56 @@ export function CurveEditorCanvas({ className }: CurveEditorCanvasProps) {
       <div className="flex shrink-0 flex-col gap-2 rounded-[12px] bg-background p-2.5">
         {/* Row 1: Engine Switcher + Mirror/Critical + Import toggle */}
         <div className="flex items-center justify-between gap-1.5">
-          <div className="flex items-center rounded-[8px] bg-muted p-0.5">
-            <button
-              type="button"
-              aria-label="Switch to Bezier engine"
-              onClick={() => handleUpdate({ engine: "bezier" as MotionEngine })}
-              className={cn(
-                "h-6 cursor-pointer rounded-[6px] px-2.5 font-heading text-xs font-medium transition-colors",
-                curve.engine === "bezier"
-                  ? "bg-secondary text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Bezier
-            </button>
-            <button
-              type="button"
-              aria-label="Switch to Spring engine"
-              onClick={() => handleUpdate({ engine: "spring" as MotionEngine })}
-              className={cn(
-                "h-6 cursor-pointer rounded-[6px] px-2.5 font-heading text-xs font-medium transition-colors",
-                curve.engine === "spring"
-                  ? "bg-secondary text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Spring
-            </button>
-          </div>
+          <LayoutGroup id="customize-engine-group">
+            <div className="flex items-center rounded-[8px] bg-muted p-0.5">
+              <button
+                type="button"
+                aria-label="Switch to Bezier engine"
+                onClick={() =>
+                  handleUpdate({ engine: "bezier" as MotionEngine })
+                }
+                className={cn(
+                  "relative z-10 h-6 cursor-pointer rounded-[6px] px-2.5 font-heading text-xs font-medium transition-colors outline-none",
+                  SATISIUM_PRESS_CLASS,
+                  curve.engine === "bezier"
+                    ? "font-semibold text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {curve.engine === "bezier" && (
+                  <motion.div
+                    layoutId="customize-engine-pill"
+                    transition={SATISIUM_SPRING_PILL}
+                    className="absolute inset-0 rounded-[6px] bg-background"
+                  />
+                )}
+                <span className="relative z-20">Bezier</span>
+              </button>
+              <button
+                type="button"
+                aria-label="Switch to Spring engine"
+                onClick={() =>
+                  handleUpdate({ engine: "spring" as MotionEngine })
+                }
+                className={cn(
+                  "relative z-10 h-6 cursor-pointer rounded-[6px] px-2.5 font-heading text-xs font-medium transition-colors outline-none",
+                  SATISIUM_PRESS_CLASS,
+                  curve.engine === "spring"
+                    ? "font-semibold text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {curve.engine === "spring" && (
+                  <motion.div
+                    layoutId="customize-engine-pill"
+                    transition={SATISIUM_SPRING_PILL}
+                    className="absolute inset-0 rounded-[6px] bg-background"
+                  />
+                )}
+                <span className="relative z-20">Spring</span>
+              </button>
+            </div>
+          </LayoutGroup>
 
           <div className="flex items-center gap-1.5">
             {curve.engine === "bezier" ? (
@@ -895,26 +979,60 @@ export function CurveEditorCanvas({ className }: CurveEditorCanvasProps) {
         </div>
 
         {/* Collapsible Import Row */}
-        {showImport && (
-          <div className="flex items-center gap-1.5 rounded-[8px] bg-muted p-1">
-            <input
-              type="text"
-              aria-label="Curve import definition"
-              placeholder="cubic-bezier(...) or spring..."
-              value={importRaw}
-              onChange={(e) => setImportRaw(e.target.value)}
-              onKeyDown={handleImportKeyDown}
-              className="h-6 min-w-0 flex-1 rounded-[6px] bg-background px-2 font-sans text-xs text-foreground outline-none focus:bg-secondary"
-            />
-            <button
-              type="button"
-              aria-label="Apply imported curve"
-              onClick={handleApplyImport}
-              className="h-6 shrink-0 cursor-pointer rounded-[6px] bg-foreground px-2 font-sans text-xs font-medium text-background transition-colors active:scale-95"
-            >
-              Apply
-            </button>
-          </div>
+        {isTest ? (
+          showImport && (
+            <div className="flex items-center gap-1.5 rounded-[8px] bg-muted p-1">
+              <input
+                type="text"
+                aria-label="Curve import definition"
+                placeholder="cubic-bezier(...) or spring..."
+                value={importRaw}
+                onChange={(e) => setImportRaw(e.target.value)}
+                onKeyDown={handleImportKeyDown}
+                className="h-6 min-w-0 flex-1 rounded-[6px] bg-background px-2 font-sans text-xs text-foreground outline-none focus:bg-secondary"
+              />
+              <button
+                type="button"
+                aria-label="Apply imported curve"
+                onClick={handleApplyImport}
+                className="h-6 shrink-0 cursor-pointer rounded-[6px] bg-foreground px-2 font-sans text-xs font-medium text-background transition-colors active:scale-95"
+              >
+                Apply
+              </button>
+            </div>
+          )
+        ) : (
+          <AnimatePresence initial={false}>
+            {showImport && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, filter: "blur(3px)" }}
+                animate={{ opacity: 1, height: "auto", filter: "blur(0px)" }}
+                exit={{ opacity: 0, height: 0, filter: "blur(3px)" }}
+                transition={{ duration: 0.18, ease: SATISIUM_EASE_DECEL }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-1.5 rounded-[8px] bg-muted p-1">
+                  <input
+                    type="text"
+                    aria-label="Curve import definition"
+                    placeholder="cubic-bezier(...) or spring..."
+                    value={importRaw}
+                    onChange={(e) => setImportRaw(e.target.value)}
+                    onKeyDown={handleImportKeyDown}
+                    className="h-6 min-w-0 flex-1 rounded-[6px] bg-background px-2 font-sans text-xs text-foreground outline-none focus:bg-secondary"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Apply imported curve"
+                    onClick={handleApplyImport}
+                    className="h-6 shrink-0 cursor-pointer rounded-[6px] bg-foreground px-2 font-sans text-xs font-medium text-background transition-colors active:scale-95"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         )}
 
         {/* Row 2: Parameters */}
@@ -1036,34 +1154,52 @@ export function CurveEditorCanvas({ className }: CurveEditorCanvasProps) {
           </div>
         ) : (
           <div className="flex items-center justify-between gap-1.5 rounded-[8px] bg-muted px-2 py-1.5">
-            <div className="flex items-center rounded-[6px] bg-background p-0.5">
-              <button
-                type="button"
-                aria-label="Switch to Simple spring mode"
-                onClick={() => setSpringInputMode("simple")}
-                className={cn(
-                  "h-5 cursor-pointer rounded-[5px] px-2 font-sans text-[10px] font-medium transition-colors",
-                  springInputMode === "simple"
-                    ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Simple
-              </button>
-              <button
-                type="button"
-                aria-label="Switch to Physics spring mode"
-                onClick={() => setSpringInputMode("physics")}
-                className={cn(
-                  "h-5 cursor-pointer rounded-[5px] px-2 font-sans text-[10px] font-medium transition-colors",
-                  springInputMode === "physics"
-                    ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Physics
-              </button>
-            </div>
+            <LayoutGroup id="customize-spring-mode-group">
+              <div className="flex items-center rounded-[6px] bg-background p-0.5">
+                <button
+                  type="button"
+                  aria-label="Switch to Simple spring mode"
+                  onClick={() => setSpringInputMode("simple")}
+                  className={cn(
+                    "relative z-10 h-5 cursor-pointer rounded-[5px] px-2 font-sans text-[10px] font-medium transition-colors outline-none",
+                    SATISIUM_PRESS_CLASS,
+                    springInputMode === "simple"
+                      ? "font-semibold text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {springInputMode === "simple" && (
+                    <motion.div
+                      layoutId="customize-spring-mode-pill"
+                      transition={SATISIUM_SPRING_PILL}
+                      className="absolute inset-0 rounded-[5px] bg-secondary"
+                    />
+                  )}
+                  <span className="relative z-20">Simple</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Switch to Physics spring mode"
+                  onClick={() => setSpringInputMode("physics")}
+                  className={cn(
+                    "relative z-10 h-5 cursor-pointer rounded-[5px] px-2 font-sans text-[10px] font-medium transition-colors outline-none",
+                    SATISIUM_PRESS_CLASS,
+                    springInputMode === "physics"
+                      ? "font-semibold text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {springInputMode === "physics" && (
+                    <motion.div
+                      layoutId="customize-spring-mode-pill"
+                      transition={SATISIUM_SPRING_PILL}
+                      className="absolute inset-0 rounded-[5px] bg-secondary"
+                    />
+                  )}
+                  <span className="relative z-20">Physics</span>
+                </button>
+              </div>
+            </LayoutGroup>
 
             {springInputMode === "simple" ? (
               <div className="flex items-center gap-2">

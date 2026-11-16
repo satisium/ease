@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { motion, AnimatePresence } from "motion/react"
 import {
   computeCurveTelemetry,
   trackRegistry,
@@ -12,6 +13,29 @@ import { HabitatStage } from "@/components/studio/habitats/habitat-stage"
 import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "@/lib/utils"
+import {
+  SATISIUM_EASE_DECEL,
+  SATISIUM_EASE_ACCEL,
+  SATISIUM_PRESS_CLASS,
+} from "@/lib/motion"
+
+const downwardTilePopoverVariants = {
+  initial: { opacity: 0, scale: 0.95, y: -4, filter: "blur(2px)" },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.15, ease: SATISIUM_EASE_DECEL },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.96,
+    y: -2,
+    filter: "blur(2px)",
+    transition: { duration: 0.11, ease: SATISIUM_EASE_ACCEL },
+  },
+} as const
 
 export interface CompareTileProps {
   item: CompareItem
@@ -116,7 +140,10 @@ export function CompareTile({ item, isFastest = false }: CompareTileProps) {
               onClick={() => setIsOverrideOpen((v) => !v)}
               aria-label={`Override target for ${item.curve.name}`}
               aria-expanded={isOverrideOpen}
-              className="inline-flex h-6 cursor-pointer items-center gap-1 rounded-[6px] bg-background px-2 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground active:scale-95"
+              className={cn(
+                "inline-flex h-6 cursor-pointer items-center gap-1 rounded-[6px] bg-background px-2 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground",
+                SATISIUM_PRESS_CLASS
+              )}
             >
               <span>{overrideLabel}</span>
               <HugeiconsIcon
@@ -128,61 +155,69 @@ export function CompareTile({ item, isFastest = false }: CompareTileProps) {
               />
             </button>
 
-            {isOverrideOpen && (
-              <div className="absolute top-full right-0 z-50 mt-1 flex w-44 flex-col gap-0.5 rounded-[12px] bg-card p-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCompareTileOverride(item.id, null)
-                    setIsOverrideOpen(false)
-                  }}
-                  className={cn(
-                    "flex w-full cursor-pointer items-center justify-between rounded-[6px] px-2 py-1 text-left font-sans text-xs transition-colors",
-                    !isOverridden
-                      ? "bg-secondary font-medium text-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                  aria-label="Sync with global target"
+            <AnimatePresence>
+              {isOverrideOpen && (
+                <motion.div
+                  variants={downwardTilePopoverVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit={process.env.NODE_ENV === "test" ? undefined : "exit"}
+                  className="absolute top-full right-0 z-50 mt-1 flex w-44 origin-top-right flex-col gap-0.5 rounded-[12px] bg-card p-1 select-none"
                 >
-                  <span>Sync (Global)</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCompareTileOverride(item.id, null)
+                      setIsOverrideOpen(false)
+                    }}
+                    className={cn(
+                      "flex w-full cursor-pointer items-center justify-between rounded-[6px] px-2 py-1 text-left font-sans text-xs transition-colors",
+                      !isOverridden
+                        ? "bg-secondary font-medium text-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                    aria-label="Sync with global target"
+                  >
+                    <span>Sync (Global)</span>
+                  </button>
 
-                <div className="my-0.5 h-px bg-muted" />
+                  <div className="my-0.5 h-px bg-muted" />
 
-                <span className="px-2 py-0.5 font-sans text-[10px] text-muted-foreground uppercase">
-                  Override Target
-                </span>
+                  <span className="px-2 py-0.5 font-sans text-[10px] text-muted-foreground uppercase">
+                    Override Target
+                  </span>
 
-                {components.map((comp) => {
-                  const firstTrack = comp.tracks[0]
-                  const isSelected = item.overrideTrackId === firstTrack?.id
-                  return (
-                    <button
-                      key={comp.componentId}
-                      type="button"
-                      onClick={() => {
-                        if (firstTrack) {
-                          setCompareTileOverride(item.id, {
-                            trackId: firstTrack.id,
-                            channelId: "all",
-                          })
-                        }
-                        setIsOverrideOpen(false)
-                      }}
-                      className={cn(
-                        "flex w-full cursor-pointer items-center justify-between rounded-[6px] px-2 py-1 text-left font-sans text-xs transition-colors",
-                        isSelected
-                          ? "bg-secondary font-medium text-foreground"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                      )}
-                      aria-label={`Override to ${comp.componentLabel}`}
-                    >
-                      <span>{comp.componentLabel}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+                  {components.map((comp) => {
+                    const firstTrack = comp.tracks[0]
+                    const isSelected = item.overrideTrackId === firstTrack?.id
+                    return (
+                      <button
+                        key={comp.componentId}
+                        type="button"
+                        onClick={() => {
+                          if (firstTrack) {
+                            setCompareTileOverride(item.id, {
+                              trackId: firstTrack.id,
+                              channelId: "all",
+                            })
+                          }
+                          setIsOverrideOpen(false)
+                        }}
+                        className={cn(
+                          "flex w-full cursor-pointer items-center justify-between rounded-[6px] px-2 py-1 text-left font-sans text-xs transition-colors",
+                          isSelected
+                            ? "bg-secondary font-medium text-foreground"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        )}
+                        aria-label={`Override to ${comp.componentLabel}`}
+                      >
+                        <span>{comp.componentLabel}</span>
+                      </button>
+                    )
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Use Winner Button */}
@@ -190,7 +225,10 @@ export function CompareTile({ item, isFastest = false }: CompareTileProps) {
             type="button"
             onClick={() => applyCompareWinner(item.id)}
             aria-label="Use curve as active winner"
-            className="inline-flex h-6 cursor-pointer items-center justify-center rounded-[6px] bg-secondary px-2 font-heading text-[10px] font-medium text-foreground transition-colors hover:bg-foreground hover:text-background active:scale-95"
+            className={cn(
+              "inline-flex h-6 cursor-pointer items-center justify-center rounded-[6px] bg-secondary px-2 font-heading text-[10px] font-medium text-foreground transition-colors hover:bg-foreground hover:text-background",
+              SATISIUM_PRESS_CLASS
+            )}
           >
             Use
           </button>

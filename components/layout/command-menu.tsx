@@ -5,6 +5,7 @@ import { trackEvent } from "@/lib/analytics"
 import { useCommandStore } from "@/store/use-command-store"
 import type * as PageTree from "fumadocs-core/page-tree"
 import { useTheme } from "next-themes"
+import { switchThemeWithTransition } from "@/lib/theme-transition"
 import { useRouter } from "next/navigation"
 import * as React from "react"
 import { logger } from "@/lib/logger"
@@ -504,7 +505,8 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
             className="mr-3 size-4 text-muted-foreground"
           />
         ),
-        action: () => setTheme("light"),
+        action: () =>
+          switchThemeWithTransition(setTheme, "light", null, "fade"),
         aliases: ["mode"],
       },
       {
@@ -518,7 +520,7 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
             className="mr-3 size-4 text-muted-foreground"
           />
         ),
-        action: () => setTheme("dark"),
+        action: () => switchThemeWithTransition(setTheme, "dark", null, "fade"),
         aliases: ["mode"],
       },
       {
@@ -532,7 +534,8 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
             className="mr-3 size-4 text-muted-foreground"
           />
         ),
-        action: () => setTheme("system"),
+        action: () =>
+          switchThemeWithTransition(setTheme, "system", null, "fade"),
         aliases: ["mode"],
       },
     ]

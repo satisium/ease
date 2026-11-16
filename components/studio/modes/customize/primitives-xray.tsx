@@ -13,8 +13,10 @@
  */
 
 import * as React from "react"
+import { motion, LayoutGroup } from "motion/react"
 import { useTransitionTrack } from "@/hooks/use-transition-track"
 import { cn } from "@/lib/utils"
+import { SATISIUM_SPRING_PILL, SATISIUM_PRESS_CLASS } from "@/lib/motion"
 
 export type PrimitiveFilter =
   "all" | "position" | "scale" | "opacity" | "rotate"
@@ -25,7 +27,9 @@ export interface PrimitivesXRayProps {
   controlledFilter?: PrimitiveFilter
   onFilterChange?: (filter: PrimitiveFilter) => void
   showFilterBar?: boolean
+  hideFilterBar?: boolean
   compareItemId?: string
+  isPreviewMode?: boolean
 }
 
 export function PrimitivesXRay({
@@ -34,13 +38,16 @@ export function PrimitivesXRay({
   controlledFilter,
   onFilterChange,
   showFilterBar = true,
+  hideFilterBar = false,
   compareItemId,
+  isPreviewMode = false,
 }: PrimitivesXRayProps) {
   const [internalFilter, setInternalFilter] =
     React.useState<PrimitiveFilter>("all")
   const isCompare = Boolean(compareItemId)
   const activeFilter = controlledFilter ?? propFilter ?? internalFilter
-  const shouldShowFilterBar = showFilterBar && !isCompare
+  const shouldShowFilterBar =
+    showFilterBar && !hideFilterBar && !isCompare && !isPreviewMode
 
   const handleSetFilter = (f: PrimitiveFilter) => {
     if (onFilterChange) {
@@ -52,41 +59,58 @@ export function PrimitivesXRay({
 
   const { bindRef } = useTransitionTrack("primitives:all", { compareItemId })
 
-  const cardBg = isCompare ? "bg-muted" : "bg-background"
-  const runwayTrackBg = isCompare ? "bg-background" : "bg-muted"
-  const ghostBoxBg = isCompare ? "bg-secondary" : "bg-muted"
+  const isContrastSurface = isCompare || isPreviewMode
+  const cardBg = isContrastSurface ? "bg-muted" : "bg-background"
+  const runwayTrackBg = isContrastSurface ? "bg-background" : "bg-muted"
+  const ghostBoxBg = isContrastSurface ? "bg-secondary" : "bg-muted"
 
   return (
     <div
       className={cn(
         "relative flex h-full w-full flex-col select-none",
         isCompare ? "p-2" : "",
+        isPreviewMode
+          ? "mx-auto my-auto max-h-[460px] max-w-[720px] p-4 pt-12 pb-16"
+          : "",
         className
       )}
     >
       {/* Filter Bar (Hidden in Compare Mode, controlled via CompareDock/CompareTile) */}
       {shouldShowFilterBar && (
         <div className="z-10 mb-2 flex items-center justify-between">
-          <div className="flex items-center rounded-[10px] bg-background p-0.5">
-            {(["all", "position", "scale", "opacity", "rotate"] as const).map(
-              (filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  aria-label={`Filter ${filter} primitive`}
-                  onClick={() => handleSetFilter(filter)}
-                  className={cn(
-                    "h-6 cursor-pointer rounded-[8px] px-2 font-sans text-[11px] font-medium capitalize transition-colors",
-                    activeFilter === filter
-                      ? "bg-secondary text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {filter}
-                </button>
-              )
-            )}
-          </div>
+          <LayoutGroup id="primitives-filter-group">
+            <div className="flex items-center rounded-[10px] bg-background p-0.5">
+              {(["all", "position", "scale", "opacity", "rotate"] as const).map(
+                (filter) => {
+                  const isSelected = activeFilter === filter
+                  return (
+                    <button
+                      key={filter}
+                      type="button"
+                      aria-label={`Filter ${filter} primitive`}
+                      onClick={() => handleSetFilter(filter)}
+                      className={cn(
+                        "relative z-10 h-6 cursor-pointer rounded-[8px] px-2 font-sans text-[11px] font-medium capitalize transition-colors outline-none",
+                        SATISIUM_PRESS_CLASS,
+                        isSelected
+                          ? "font-semibold text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {isSelected && (
+                        <motion.div
+                          layoutId="primitives-filter-pill"
+                          transition={SATISIUM_SPRING_PILL}
+                          className="absolute inset-0 rounded-[8px] bg-secondary"
+                        />
+                      )}
+                      <span className="relative z-20">{filter}</span>
+                    </button>
+                  )
+                }
+              )}
+            </div>
+          </LayoutGroup>
         </div>
       )}
 

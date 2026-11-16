@@ -16,23 +16,26 @@ import { CustomizeTheater } from "@/components/studio/modes/customize/customize-
 import { CustomizeTelemetrySlab } from "@/components/studio/modes/customize/customize-telemetry-slab"
 import { CompareTheater } from "@/components/studio/modes/compare/compare-theater"
 import { CompareTelemetrySlab } from "@/components/studio/modes/compare/compare-telemetry-slab"
+import {
+  SATISIUM_STAGE_SLIDE_TRANSITION,
+  SATISIUM_FLANK_SLIDE_TRANSITION,
+  SATISIUM_LEFT_COLLAPSE_TRANSITION,
+} from "@/lib/motion"
 import { cn } from "@/lib/utils"
 
-const cassetteVariants = {
+const blockSlideVariants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? "100%" : "-100%",
+    x: direction >= 0 ? "100%" : "-100%",
+    opacity: 1,
   }),
   center: {
     x: "0%",
+    opacity: 1,
   },
   exit: (direction: number) => ({
-    x: direction > 0 ? "-100%" : "100%",
+    x: direction >= 0 ? "-100%" : "100%",
+    opacity: 1,
   }),
-}
-
-const cassetteTransition = {
-  duration: 0.36,
-  ease: [0.16, 1, 0.3, 1] as const,
 }
 
 const MODE_ORDER: Record<string, number> = {
@@ -41,12 +44,57 @@ const MODE_ORDER: Record<string, number> = {
   compare: 3,
 }
 
+const isTest = typeof process !== "undefined" && process.env.NODE_ENV === "test"
+
 export function AuditionView() {
   const mode = useEaseStore((s) => s.mode)
   const isCompare = mode === "compare"
 
   const [prevMode, setPrevMode] = React.useState(mode)
   const [direction, setDirection] = React.useState(1)
+
+  const [isCenterSliding, setIsCenterSliding] = React.useState(false)
+  const [isRightSliding, setIsRightSliding] = React.useState(false)
+
+  const centerTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+  const rightTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+
+  const handleCenterAnimationStart = React.useCallback(() => {
+    setIsCenterSliding(true)
+    if (centerTimeoutRef.current) clearTimeout(centerTimeoutRef.current)
+    centerTimeoutRef.current = setTimeout(() => {
+      setIsCenterSliding(false)
+    }, 600)
+  }, [])
+
+  const handleCenterAnimationComplete = React.useCallback(() => {
+    setIsCenterSliding(false)
+    if (centerTimeoutRef.current) clearTimeout(centerTimeoutRef.current)
+  }, [])
+
+  const handleRightAnimationStart = React.useCallback(() => {
+    setIsRightSliding(true)
+    if (rightTimeoutRef.current) clearTimeout(rightTimeoutRef.current)
+    rightTimeoutRef.current = setTimeout(() => {
+      setIsRightSliding(false)
+    }, 500)
+  }, [])
+
+  const handleRightAnimationComplete = React.useCallback(() => {
+    setIsRightSliding(false)
+    if (rightTimeoutRef.current) clearTimeout(rightTimeoutRef.current)
+  }, [])
+
+  React.useEffect(() => {
+    return () => {
+      if (centerTimeoutRef.current) clearTimeout(centerTimeoutRef.current)
+      if (rightTimeoutRef.current) clearTimeout(rightTimeoutRef.current)
+    }
+  }, [])
 
   if (mode !== prevMode) {
     setPrevMode(mode)
@@ -61,18 +109,14 @@ export function AuditionView() {
       <motion.aside
         aria-hidden={isCompare}
         initial={false}
-        animate={{
-          width: isCompare ? 0 : 280,
-          marginRight: isCompare ? -8 : 0,
-          opacity: isCompare ? 0 : 1,
-          x: isCompare ? -280 : 0,
-        }}
-        transition={{
-          duration: 0.36,
-          ease: [0.16, 1, 0.3, 1],
-        }}
+        animate={
+          isCompare
+            ? { width: 0, marginRight: -8, x: -288, opacity: 1 }
+            : { width: 280, marginRight: 0, x: 0, opacity: 1 }
+        }
+        transition={SATISIUM_LEFT_COLLAPSE_TRANSITION}
         className={cn(
-          "flex h-full min-h-0 shrink-0 flex-col gap-2 overflow-hidden",
+          "flex h-full min-h-0 shrink-0 flex-col gap-2 overflow-hidden will-change-transform",
           isCompare && "pointer-events-none"
         )}
       >
@@ -83,48 +127,80 @@ export function AuditionView() {
       {/* CENTER STAGE: Hero Canvas & Master Console */}
       <main className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
-          <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-            {mode === "customize" ? (
-              <motion.div
-                key="customize-theater"
-                custom={direction}
-                variants={cassetteVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={cassetteTransition}
-                className="flex h-full min-h-0 w-full flex-1 flex-col"
-              >
+          {isCenterSliding && (
+            <>
+              <div className="progressive-blur-left pointer-events-none absolute inset-y-0 left-0 z-40 w-5" />
+              <div className="progressive-blur-right pointer-events-none absolute inset-y-0 right-0 z-40 w-5" />
+            </>
+          )}
+          {isTest ? (
+            mode === "customize" ? (
+              <div className="flex h-full min-h-0 w-full flex-1 flex-col">
                 <CustomizeTheater />
-              </motion.div>
+              </div>
             ) : mode === "compare" ? (
-              <motion.div
-                key="compare-theater"
-                custom={direction}
-                variants={cassetteVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={cassetteTransition}
-                className="flex h-full min-h-0 w-full flex-1 flex-col"
-              >
+              <div className="flex h-full min-h-0 w-full flex-1 flex-col">
                 <CompareTheater />
-              </motion.div>
+              </div>
             ) : (
-              <motion.div
-                key="preview-theater"
-                custom={direction}
-                variants={cassetteVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={cassetteTransition}
-                className="flex h-full min-h-0 w-full flex-1 flex-col"
-              >
+              <div className="flex h-full min-h-0 w-full flex-1 flex-col">
                 <PreviewTheater />
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            )
+          ) : (
+            <AnimatePresence
+              mode="popLayout"
+              initial={false}
+              custom={direction}
+            >
+              {mode === "customize" ? (
+                <motion.div
+                  key="customize-theater"
+                  custom={direction}
+                  variants={blockSlideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={SATISIUM_STAGE_SLIDE_TRANSITION}
+                  onAnimationStart={handleCenterAnimationStart}
+                  onAnimationComplete={handleCenterAnimationComplete}
+                  className="flex h-full min-h-0 w-full flex-1 flex-col will-change-transform"
+                >
+                  <CustomizeTheater />
+                </motion.div>
+              ) : mode === "compare" ? (
+                <motion.div
+                  key="compare-theater"
+                  custom={direction}
+                  variants={blockSlideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={SATISIUM_STAGE_SLIDE_TRANSITION}
+                  onAnimationStart={handleCenterAnimationStart}
+                  onAnimationComplete={handleCenterAnimationComplete}
+                  className="flex h-full min-h-0 w-full flex-1 flex-col will-change-transform"
+                >
+                  <CompareTheater />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="preview-theater"
+                  custom={direction}
+                  variants={blockSlideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={SATISIUM_STAGE_SLIDE_TRANSITION}
+                  onAnimationStart={handleCenterAnimationStart}
+                  onAnimationComplete={handleCenterAnimationComplete}
+                  className="flex h-full min-h-0 w-full flex-1 flex-col will-change-transform"
+                >
+                  <PreviewTheater />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
         </div>
         <TimelineConsole />
       </main>
@@ -132,48 +208,80 @@ export function AuditionView() {
       {/* RIGHT FLANK: 300px Fixed Width */}
       <aside className="flex w-[300px] shrink-0 flex-col gap-2">
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
-          <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-            {mode === "customize" ? (
-              <motion.div
-                key="customize-telemetry"
-                custom={direction}
-                variants={cassetteVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={cassetteTransition}
-                className="flex h-full min-h-0 w-full flex-1 flex-col"
-              >
+          {isRightSliding && (
+            <>
+              <div className="progressive-blur-left pointer-events-none absolute inset-y-0 left-0 z-40 w-5" />
+              <div className="progressive-blur-right pointer-events-none absolute inset-y-0 right-0 z-40 w-5" />
+            </>
+          )}
+          {isTest ? (
+            mode === "customize" ? (
+              <div className="flex h-full min-h-0 w-full flex-1 flex-col">
                 <CustomizeTelemetrySlab />
-              </motion.div>
+              </div>
             ) : mode === "compare" ? (
-              <motion.div
-                key="compare-telemetry"
-                custom={direction}
-                variants={cassetteVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={cassetteTransition}
-                className="flex h-full min-h-0 w-full flex-1 flex-col"
-              >
+              <div className="flex h-full min-h-0 w-full flex-1 flex-col">
                 <CompareTelemetrySlab />
-              </motion.div>
+              </div>
             ) : (
-              <motion.div
-                key="preview-advisor"
-                custom={direction}
-                variants={cassetteVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={cassetteTransition}
-                className="flex h-full min-h-0 w-full flex-1 flex-col"
-              >
+              <div className="flex h-full min-h-0 w-full flex-1 flex-col">
                 <ArchetypeAdvisorSlab />
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            )
+          ) : (
+            <AnimatePresence
+              mode="popLayout"
+              initial={false}
+              custom={direction}
+            >
+              {mode === "customize" ? (
+                <motion.div
+                  key="customize-telemetry"
+                  custom={direction}
+                  variants={blockSlideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={SATISIUM_FLANK_SLIDE_TRANSITION}
+                  onAnimationStart={handleRightAnimationStart}
+                  onAnimationComplete={handleRightAnimationComplete}
+                  className="flex h-full min-h-0 w-full flex-1 flex-col will-change-transform"
+                >
+                  <CustomizeTelemetrySlab />
+                </motion.div>
+              ) : mode === "compare" ? (
+                <motion.div
+                  key="compare-telemetry"
+                  custom={direction}
+                  variants={blockSlideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={SATISIUM_FLANK_SLIDE_TRANSITION}
+                  onAnimationStart={handleRightAnimationStart}
+                  onAnimationComplete={handleRightAnimationComplete}
+                  className="flex h-full min-h-0 w-full flex-1 flex-col will-change-transform"
+                >
+                  <CompareTelemetrySlab />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="preview-advisor"
+                  custom={direction}
+                  variants={blockSlideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={SATISIUM_FLANK_SLIDE_TRANSITION}
+                  onAnimationStart={handleRightAnimationStart}
+                  onAnimationComplete={handleRightAnimationComplete}
+                  className="flex h-full min-h-0 w-full flex-1 flex-col will-change-transform"
+                >
+                  <ArchetypeAdvisorSlab />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
         </div>
         <CompareQueueSlab />
         <ModeSwitcherSlab />

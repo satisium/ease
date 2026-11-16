@@ -13,9 +13,12 @@
  */
 
 import * as React from "react"
+import { motion, AnimatePresence } from "motion/react"
 import { useEaseStore } from "@/hooks/use-ease-store"
 import { computeCurveTelemetry, computeCurveDiff, type EaseCurve } from "@/core"
 import { cn } from "@/lib/utils"
+import { AnimatedNumber } from "@/components/ui/animated-number"
+import { SATISIUM_EASE_DECEL, SATISIUM_EASE_ACCEL } from "@/lib/motion"
 
 export interface CustomizeTelemetrySlabProps {
   className?: string
@@ -116,7 +119,10 @@ export function CustomizeTelemetrySlab({
               t95 Arrival
             </span>
             <span className="font-sans text-base font-semibold text-foreground tabular-nums">
-              {Math.round(telemetry.timeTo95Ms)}ms
+              <AnimatedNumber
+                value={Math.round(telemetry.timeTo95Ms)}
+                suffix="ms"
+              />
             </span>
           </div>
           <div className="flex flex-col pl-3">
@@ -124,7 +130,10 @@ export function CustomizeTelemetrySlab({
               Settle (ts)
             </span>
             <span className="font-sans text-base font-semibold text-foreground tabular-nums">
-              {Math.round(telemetry.settlingTimeMs)}ms
+              <AnimatedNumber
+                value={Math.round(telemetry.settlingTimeMs)}
+                suffix="ms"
+              />
             </span>
           </div>
         </div>
@@ -136,7 +145,11 @@ export function CustomizeTelemetrySlab({
               Peak Velocity
             </span>
             <span className="font-sans text-xs font-medium text-foreground tabular-nums">
-              {telemetry.peakVelocity.toFixed(1)}x
+              <AnimatedNumber
+                value={Number(telemetry.peakVelocity.toFixed(1))}
+                format={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }}
+                suffix="x"
+              />
             </span>
           </div>
 
@@ -145,7 +158,11 @@ export function CustomizeTelemetrySlab({
               Overshoot
             </span>
             <span className="font-sans text-xs font-medium text-foreground tabular-nums">
-              {telemetry.overshootPercent.toFixed(1)}%
+              <AnimatedNumber
+                value={Number(telemetry.overshootPercent.toFixed(1))}
+                format={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }}
+                suffix="%"
+              />
             </span>
           </div>
 
@@ -156,9 +173,17 @@ export function CustomizeTelemetrySlab({
                   Damping (ζ)
                 </span>
                 <span className="font-sans text-xs font-medium text-foreground tabular-nums">
-                  {telemetry.dampingRatio !== null
-                    ? telemetry.dampingRatio.toFixed(2)
-                    : "—"}
+                  {telemetry.dampingRatio !== null ? (
+                    <AnimatedNumber
+                      value={Number(telemetry.dampingRatio.toFixed(2))}
+                      format={{
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }}
+                    />
+                  ) : (
+                    "—"
+                  )}
                 </span>
               </div>
 
@@ -167,9 +192,14 @@ export function CustomizeTelemetrySlab({
                   Frequency (ωn)
                 </span>
                 <span className="font-sans text-xs font-medium text-foreground tabular-nums">
-                  {telemetry.naturalFrequency !== null
-                    ? `${Math.round(telemetry.naturalFrequency)} rad/s`
-                    : "—"}
+                  {telemetry.naturalFrequency !== null ? (
+                    <AnimatedNumber
+                      value={Math.round(telemetry.naturalFrequency)}
+                      suffix=" rad/s"
+                    />
+                  ) : (
+                    "—"
+                  )}
                 </span>
               </div>
             </>
@@ -178,37 +208,58 @@ export function CustomizeTelemetrySlab({
       </div>
 
       {/* 3. Conditional Git Diff Card (Visible ONLY when draft is dirty) */}
-      {draftCurve?.isDirty && (
-        <div className="flex flex-col gap-1.5 rounded-[12px] bg-muted p-3">
-          <div className="flex items-center justify-between">
-            <span className="truncate font-heading text-[11px] font-semibold text-foreground">
-              Diff vs {parentCurve.name}
-            </span>
-            <span className="shrink-0 rounded-[6px] bg-secondary px-1.5 py-0.5 font-sans text-[10px] text-muted-foreground tabular-nums">
-              {diff.t95DeltaMs > 0
-                ? `+${Math.round(diff.t95DeltaMs)}ms`
-                : `${Math.round(diff.t95DeltaMs)}ms`}
-            </span>
-          </div>
+      <AnimatePresence initial={false}>
+        {draftCurve?.isDirty && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, filter: "blur(2px)" }}
+            animate={{
+              opacity: 1,
+              height: "auto",
+              filter: "blur(0px)",
+              transition: { duration: 0.2, ease: SATISIUM_EASE_DECEL },
+            }}
+            exit={{
+              opacity: 0,
+              height: 0,
+              filter: "blur(2px)",
+              transition: { duration: 0.14, ease: SATISIUM_EASE_ACCEL },
+            }}
+            className="overflow-hidden"
+          >
+            <div className="flex flex-col gap-1.5 rounded-[12px] bg-muted p-3">
+              <div className="flex items-center justify-between">
+                <span className="truncate font-heading text-[11px] font-semibold text-foreground">
+                  Diff vs {parentCurve.name}
+                </span>
+                <span className="shrink-0 rounded-[6px] bg-secondary px-1.5 py-0.5 font-sans text-[10px] text-muted-foreground tabular-nums">
+                  <AnimatedNumber
+                    value={Math.round(diff.t95DeltaMs)}
+                    prefix={diff.t95DeltaMs > 0 ? "+" : ""}
+                    suffix="ms"
+                  />
+                </span>
+              </div>
 
-          <div className="flex flex-col gap-1">
-            {diff.summaryBullets.length > 0 ? (
-              diff.summaryBullets.map((bullet, idx) => (
-                <div
-                  key={idx}
-                  className="font-sans text-[11px] leading-relaxed text-muted-foreground"
-                >
-                  • {bullet}
-                </div>
-              ))
-            ) : (
-              <span className="font-sans text-[11px] text-muted-foreground">
-                Matches parent baseline
-              </span>
-            )}
-          </div>
-        </div>
-      )}
+              <div className="flex flex-col gap-1">
+                {diff.summaryBullets.length > 0 ? (
+                  diff.summaryBullets.map((bullet, idx) => (
+                    <div
+                      key={idx}
+                      className="font-sans text-[11px] leading-relaxed text-muted-foreground"
+                    >
+                      • {bullet}
+                    </div>
+                  ))
+                ) : (
+                  <span className="font-sans text-[11px] text-muted-foreground">
+                    Matches parent baseline
+                  </span>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 4. Best Use Cases */}
       <div className="mt-auto flex flex-col gap-1.5">

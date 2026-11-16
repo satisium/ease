@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { motion, AnimatePresence } from "motion/react"
 import {
   Cancel01Icon,
   ArrowRight01Icon,
@@ -10,6 +11,8 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "@/lib/utils"
 import { useEaseStore } from "@/hooks/use-ease-store"
+import { SATISIUM_CARD_POP_VARIANTS, SATISIUM_PRESS_CLASS } from "@/lib/motion"
+import { AnimatedNumber } from "@/components/ui/animated-number"
 
 export function CompareQueueSlab({ className }: { className?: string }) {
   const mode = useEaseStore((s) => s.mode)
@@ -118,11 +121,11 @@ export function CompareQueueSlab({ className }: { className?: string }) {
             Compare Queue
           </span>
           <span className="rounded-[5px] bg-secondary px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground">
-            {compareQueue.length} Staged
+            <AnimatedNumber value={compareQueue.length} suffix=" Staged" />
           </span>
           {mode === "compare" && (
             <span className="rounded-[5px] bg-foreground px-1.5 py-0.5 font-sans text-[10px] font-medium text-background">
-              {visibleCount} Active
+              <AnimatedNumber value={visibleCount} suffix=" Active" />
             </span>
           )}
         </div>
@@ -160,57 +163,70 @@ export function CompareQueueSlab({ className }: { className?: string }) {
             </span>
           </div>
         ) : (
-          compareQueue.map((item) => {
-            const isCurrent = item.curve.id === activeCurve?.id
+          <AnimatePresence mode="popLayout" initial={false}>
+            {compareQueue.map((item) => {
+              const isCurrent = item.curve.id === activeCurve?.id
 
-            return (
-              <div
-                key={item.id}
-                className={cn(
-                  "flex h-6 shrink-0 items-center justify-between px-1",
-                  isCurrent
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground"
-                )}
-              >
-                <span className="truncate font-sans text-xs">
-                  {item.curve.name}
-                </span>
+              return (
+                <motion.div
+                  layout
+                  variants={SATISIUM_CARD_POP_VARIANTS}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  key={item.id}
+                  className={cn(
+                    "flex h-6 shrink-0 items-center justify-between px-1",
+                    isCurrent
+                      ? "font-medium text-foreground"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <span className="truncate font-sans text-xs">
+                    {item.curve.name}
+                  </span>
 
-                <div className="flex items-center gap-1.5">
-                  {/* Visibility Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => toggleCompareItemVisibility(item.id)}
-                    aria-label={
-                      item.visible
-                        ? `Hide ${item.curve.name} in duel`
-                        : `Show ${item.curve.name} in duel`
-                    }
-                    className={cn(
-                      "flex size-4 cursor-pointer items-center justify-center transition-colors hover:text-foreground active:scale-95",
-                      item.visible ? "text-foreground" : "text-muted-foreground"
-                    )}
-                  >
-                    <HugeiconsIcon
-                      icon={item.visible ? ViewIcon : ViewOffSlashIcon}
-                      className="size-3"
-                    />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {/* Visibility Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => toggleCompareItemVisibility(item.id)}
+                      aria-label={
+                        item.visible
+                          ? `Hide ${item.curve.name} in duel`
+                          : `Show ${item.curve.name} in duel`
+                      }
+                      className={cn(
+                        "flex size-4 cursor-pointer items-center justify-center transition-colors hover:text-foreground",
+                        SATISIUM_PRESS_CLASS,
+                        item.visible
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      <HugeiconsIcon
+                        icon={item.visible ? ViewIcon : ViewOffSlashIcon}
+                        className="size-3"
+                      />
+                    </button>
 
-                  {/* Remove Item */}
-                  <button
-                    type="button"
-                    onClick={() => removeCompareItem(item.id)}
-                    aria-label={`Remove ${item.curve.name} from queue`}
-                    className="flex size-4 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground active:scale-95"
-                  >
-                    <HugeiconsIcon icon={Cancel01Icon} className="size-3" />
-                  </button>
-                </div>
-              </div>
-            )
-          })
+                    {/* Remove Item */}
+                    <button
+                      type="button"
+                      onClick={() => removeCompareItem(item.id)}
+                      aria-label={`Remove ${item.curve.name} from queue`}
+                      className={cn(
+                        "flex size-4 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground",
+                        SATISIUM_PRESS_CLASS
+                      )}
+                    >
+                      <HugeiconsIcon icon={Cancel01Icon} className="size-3" />
+                    </button>
+                  </div>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
         )}
       </div>
 
@@ -224,7 +240,10 @@ export function CompareQueueSlab({ className }: { className?: string }) {
               ? "Current curve already queued"
               : "Queue current curve for comparison"
           }
-          className="inline-flex h-8 flex-1 cursor-pointer items-center justify-center rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted active:scale-95"
+          className={cn(
+            "inline-flex h-8 flex-1 cursor-pointer items-center justify-center rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted",
+            SATISIUM_PRESS_CLASS
+          )}
         >
           <span>
             {isCurrentCurveQueued ? "Queued (C)" : "+ Queue Current (C)"}
@@ -236,7 +255,10 @@ export function CompareQueueSlab({ className }: { className?: string }) {
             type="button"
             onClick={exitCompare}
             aria-label="Exit compare duel mode"
-            className="inline-flex h-8 cursor-pointer items-center justify-center rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted active:scale-95"
+            className={cn(
+              "inline-flex h-8 cursor-pointer items-center justify-center rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted",
+              SATISIUM_PRESS_CLASS
+            )}
           >
             <span>Exit Duel</span>
           </button>
@@ -247,7 +269,8 @@ export function CompareQueueSlab({ className }: { className?: string }) {
             onClick={enterCompare}
             aria-label="Enter compare duel mode"
             className={cn(
-              "inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] px-3.5 font-heading text-xs font-medium transition-colors active:scale-95",
+              "inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] px-3.5 font-heading text-xs font-medium transition-colors",
+              SATISIUM_PRESS_CLASS,
               compareQueue.length >= 2
                 ? "bg-foreground text-background hover:opacity-90"
                 : "cursor-not-allowed bg-muted text-muted-foreground"

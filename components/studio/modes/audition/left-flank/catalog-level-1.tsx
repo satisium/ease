@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { AnimatePresence, motion } from "motion/react"
 import {
   ArrowLeft01Icon,
   ArrowUpRight01Icon,
@@ -14,6 +15,7 @@ import { computeCurveTelemetry } from "@/core/math/telemetry"
 import { getCanonicalPresetById } from "@/core/presets/index"
 import { findCurveInCustomTree } from "@/core/state/curve-tree-reducers"
 import { useEaseStore } from "@/hooks/use-ease-store"
+import { SATISIUM_CARD_POP_VARIANTS, SATISIUM_PRESS_CLASS } from "@/lib/motion"
 import { cn } from "@/lib/utils"
 import { PresetCurveStage } from "./preset-curve-stage"
 
@@ -139,7 +141,10 @@ export function CatalogLevel1() {
           type="button"
           onClick={backToPresets}
           aria-label="Back to preset library"
-          className="group flex cursor-pointer items-center gap-1.5 rounded-[8px] bg-secondary px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+          className={cn(
+            "group flex cursor-pointer items-center gap-1.5 rounded-[8px] bg-secondary px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted",
+            SATISIUM_PRESS_CLASS
+          )}
         >
           <HugeiconsIcon
             icon={ArrowLeft01Icon}
@@ -366,7 +371,11 @@ export function CatalogLevel1() {
                 <button
                   type="button"
                   onClick={() => stageVariantsToCompare(curve.id)}
-                  className="cursor-pointer rounded-[6px] bg-secondary px-2 py-0.5 font-sans text-[10px] font-medium text-foreground transition-colors hover:bg-muted"
+                  aria-label="Compare Variants"
+                  className={cn(
+                    "cursor-pointer rounded-[6px] bg-secondary px-2 py-0.5 font-sans text-[10px] font-medium text-foreground transition-colors hover:bg-muted",
+                    SATISIUM_PRESS_CLASS
+                  )}
                 >
                   Compare Variants
                 </button>
@@ -375,101 +384,117 @@ export function CatalogLevel1() {
 
             {/* Clean 1:1 Squircle 2-Column Grid */}
             <div className="grid grid-cols-2 gap-2">
-              {(curve.variants ?? []).map((v) => {
-                const isSelected = focusedChannel?.curve.id === v.id
+              <AnimatePresence mode="popLayout" initial={false}>
+                {(curve.variants ?? []).map((v) => {
+                  const isSelected = focusedChannel?.curve.id === v.id
 
-                return (
-                  <div
-                    key={v.id}
-                    className="group relative flex w-full flex-col"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => selectCurveForFocused(v.id)}
-                      onDoubleClick={() => drillIntoCurve(v.id)}
-                      title={`${v.name} · Click to select · Double-click to inspect`}
-                      className={cn(
-                        "group relative flex w-full cursor-pointer flex-col items-center rounded-[12px] p-1 transition-all",
-                        isSelected
-                          ? "bg-foreground text-background"
-                          : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      )}
+                  return (
+                    <motion.div
+                      key={v.id}
+                      layout
+                      variants={SATISIUM_CARD_POP_VARIANTS}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      className="group relative flex w-full flex-col"
                     >
-                      <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[9px] bg-background p-2">
-                        <MiniGraph
-                          mode={v.engine}
-                          bezier={v.bezier}
-                          spring={v.spring}
-                          className={cn(
-                            "h-full w-full stroke-2 transition-colors",
-                            isSelected
-                              ? "stroke-foreground"
-                              : "stroke-muted-foreground group-hover:stroke-foreground"
-                          )}
+                      <button
+                        type="button"
+                        onClick={() => selectCurveForFocused(v.id)}
+                        onDoubleClick={() => drillIntoCurve(v.id)}
+                        title={`${v.name} · Click to select · Double-click to inspect`}
+                        className={cn(
+                          "group relative flex w-full cursor-pointer flex-col items-center rounded-[12px] p-1 transition-all",
+                          SATISIUM_PRESS_CLASS,
+                          isSelected
+                            ? "bg-foreground text-background"
+                            : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        )}
+                      >
+                        <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[9px] bg-background p-2">
+                          <MiniGraph
+                            mode={v.engine}
+                            bezier={v.bezier}
+                            spring={v.spring}
+                            className={cn(
+                              "h-full w-full stroke-2 transition-colors",
+                              isSelected
+                                ? "stroke-foreground"
+                                : "stroke-muted-foreground group-hover:stroke-foreground"
+                            )}
+                          />
+                        </div>
+
+                        <div className="flex h-5 w-full items-center justify-center px-1">
+                          <span className="truncate font-sans text-[11px] leading-none font-medium tracking-tight">
+                            {v.name}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* Delete Variant */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteCurve(v.id)
+                        }}
+                        aria-label={`Delete ${v.name}`}
+                        title={`Delete ${v.name}`}
+                        className="absolute top-2 left-2 z-10 flex size-4.5 cursor-pointer items-center justify-center rounded-[5px] bg-background text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                      >
+                        <HugeiconsIcon
+                          icon={Delete02Icon}
+                          className="size-2.5"
                         />
-                      </div>
+                      </button>
 
-                      <div className="flex h-5 w-full items-center justify-center px-1">
-                        <span className="truncate font-sans text-[11px] leading-none font-medium tracking-tight">
-                          {v.name}
-                        </span>
-                      </div>
-                    </button>
+                      {/* Promote to Root */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          promoteVariant(curve.id, v.id)
+                        }}
+                        aria-label={`Promote ${v.name} to root`}
+                        title={`Promote ${v.name} to root`}
+                        className="absolute top-2 right-2 z-10 flex size-4.5 cursor-pointer items-center justify-center rounded-[5px] bg-background text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                      >
+                        <HugeiconsIcon
+                          icon={ArrowUpRight01Icon}
+                          className="size-2.5"
+                        />
+                      </button>
+                    </motion.div>
+                  )
+                })}
 
-                    {/* Delete Variant */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteCurve(v.id)
-                      }}
-                      aria-label={`Delete ${v.name}`}
-                      title={`Delete ${v.name}`}
-                      className="absolute top-2 left-2 z-10 flex size-4.5 cursor-pointer items-center justify-center rounded-[5px] bg-background text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
-                    >
-                      <HugeiconsIcon icon={Delete02Icon} className="size-2.5" />
-                    </button>
-
-                    {/* Promote to Root */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        promoteVariant(curve.id, v.id)
-                      }}
-                      aria-label={`Promote ${v.name} to root`}
-                      title={`Promote ${v.name} to root`}
-                      className="absolute top-2 right-2 z-10 flex size-4.5 cursor-pointer items-center justify-center rounded-[5px] bg-background text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
-                    >
-                      <HugeiconsIcon
-                        icon={ArrowUpRight01Icon}
-                        className="size-2.5"
-                      />
-                    </button>
+                {/* Action Tile: + Add Variant */}
+                <motion.button
+                  key="add-variant-button"
+                  layout
+                  type="button"
+                  onClick={() => addVariantToRoot(curve.id)}
+                  aria-label="Add variant to root curve"
+                  title="Add variant"
+                  className={cn(
+                    "group flex w-full cursor-pointer flex-col items-center rounded-[12px] bg-muted p-1 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground",
+                    SATISIUM_PRESS_CLASS
+                  )}
+                >
+                  <div className="relative flex aspect-square w-full items-center justify-center rounded-[9px] bg-background p-2">
+                    <HugeiconsIcon
+                      icon={PlusSignIcon}
+                      className="size-5 text-muted-foreground group-hover:text-foreground"
+                    />
                   </div>
-                )
-              })}
-
-              {/* Action Tile: + Add Variant */}
-              <button
-                type="button"
-                onClick={() => addVariantToRoot(curve.id)}
-                aria-label="Add variant to root curve"
-                title="Add variant"
-                className="group flex w-full cursor-pointer flex-col items-center rounded-[12px] bg-muted p-1 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
-              >
-                <div className="relative flex aspect-square w-full items-center justify-center rounded-[9px] bg-background p-2">
-                  <HugeiconsIcon
-                    icon={PlusSignIcon}
-                    className="size-5 text-muted-foreground group-hover:text-foreground"
-                  />
-                </div>
-                <div className="flex h-5 w-full items-center justify-center px-1">
-                  <span className="truncate font-sans text-[11px] leading-none font-medium tracking-tight">
-                    + Add Variant
-                  </span>
-                </div>
-              </button>
+                  <div className="flex h-5 w-full items-center justify-center px-1">
+                    <span className="truncate font-sans text-[11px] leading-none font-medium tracking-tight">
+                      + Add Variant
+                    </span>
+                  </div>
+                </motion.button>
+              </AnimatePresence>
             </div>
           </div>
         )}
@@ -485,7 +510,13 @@ export function CatalogLevel1() {
               drillIntoCurve(created.id)
             }
           }}
-          className="flex h-8 w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted active:scale-95"
+          aria-label={
+            curve.isCustom ? "Fork as New Curve" : "Fork to Custom Curves"
+          }
+          className={cn(
+            "flex h-8 w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-secondary px-3.5 font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted",
+            SATISIUM_PRESS_CLASS
+          )}
         >
           <HugeiconsIcon icon={PlusSignIcon} className="size-3.5" />
           <span>
