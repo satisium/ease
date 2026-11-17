@@ -142,11 +142,6 @@ export function useTransitionTrack(
   const currentChannels: readonly ChannelBinding[] =
     trackBindings[effectiveTrackId] ?? baseTrack.channels
 
-  const effectiveSoloChannelId =
-    (isSolo || playbackState === "scrubbing") && focusedChannelId !== "all"
-      ? focusedChannelId
-      : null
-
   // Evaluator function for this specific track
   const evaluateFrame = useCallback(
     (elapsedMs: number): TrackFrameResult | null => {
@@ -157,13 +152,19 @@ export function useTransitionTrack(
       }
 
       const conductorSnap = store.conductor.getSnapshot()
+      const isScrubbing = conductorSnap.playbackState === "scrubbing"
+      const soloChannel =
+        (isSolo || isScrubbing) && focusedChannelId !== "all"
+          ? focusedChannelId
+          : null
+
       return evaluateTrackFrame({
         track: {
           phase: baseTrack.phase,
           channels: [...currentChannels],
         },
         elapsedMs,
-        soloChannelId: effectiveSoloChannelId,
+        soloChannelId: soloChannel,
         isReducedMotion,
         protectOpacityOvershoot,
         interruptions: conductorSnap.interruptions,
@@ -175,28 +176,47 @@ export function useTransitionTrack(
       protectOpacityOvershoot,
       baseTrack.phase,
       currentChannels,
-      effectiveSoloChannelId,
+      isSolo,
+      focusedChannelId,
       isReducedMotion,
     ]
+  )
+
+  const callbacksRef = useRef<Map<string, (el: HTMLElement | null) => void>>(
+    new Map()
   )
 
   // Stable ref binder callback
   const bindRef = useCallback(
     (channelIds: string | string[]) => {
       const normalized = Array.isArray(channelIds) ? channelIds : [channelIds]
-      return (el: HTMLElement | null) => {
-        if (el) {
-          elementsRef.current.set(el, normalized)
-          // Style element immediately on attachment to prevent flash
-          const elapsed = store.conductor.getSnapshot().elapsedMs
-          const frame = evaluateFrame(elapsed)
-          if (frame) {
-            applyFrameToElement(el, normalized, currentChannels, frame.values)
+      const key = `${effectiveTrackId}::${normalized.slice().sort().join("::")}`
+
+      let callback = callbacksRef.current.get(key)
+      if (!callback) {
+        callback = (el: HTMLElement | null) => {
+          if (el) {
+            elementsRef.current.set(el, normalized)
+            // Style element immediately on attachment to prevent flash
+            const elapsed = store.conductor.getSnapshot().elapsedMs
+            const frame = evaluateFrame(elapsed)
+            if (frame) {
+              applyFrameToElement(el, normalized, currentChannels, frame.values)
+            }
+          } else {
+            for (const [existingEl] of elementsRef.current) {
+              if (!existingEl.isConnected) {
+                elementsRef.current.delete(existingEl)
+              }
+            }
           }
         }
+        callbacksRef.current.set(key, callback)
       }
+
+      return callback
     },
-    [store, evaluateFrame, currentChannels]
+    [store, effectiveTrackId, evaluateFrame, currentChannels]
   )
 
   // 120fps conductor subscriber
@@ -216,7 +236,7 @@ export function useTransitionTrack(
       onFrameRef.current?.(frame)
     }
 
-    // Apply resting frame immediately on mount / dependency changes
+    // Apply resting frame immediately on mount / focus / track / evaluator changes
     applyCurrentFrame(store.conductor.getSnapshot().elapsedMs)
 
     const unsubscribe = store.conductor.subscribe((snap) => {
@@ -226,7 +246,14 @@ export function useTransitionTrack(
     })
 
     return unsubscribe
-  }, [store, isFocused, compareItemId, evaluateFrame, currentChannels])
+  }, [
+    store,
+    isFocused,
+    compareItemId,
+    effectiveTrackId,
+    evaluateFrame,
+    currentChannels,
+  ])
 
   const triggerLive = useCallback(() => {
     store.getState().triggerLive(trackId)

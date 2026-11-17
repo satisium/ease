@@ -243,6 +243,40 @@ describe("React Adapter Hooks (Phase A)", () => {
       })
       expect(screen.getByTestId("force-mount").textContent).toBe("true")
     })
+
+    it("returns stable bindRef callbacks across idle -> playing transitions without ref churn", () => {
+      let storeInstance: ReturnType<typeof useEaseStoreApi> | null = null
+      let capturedBindRef: ((el: HTMLElement | null) => void) | null = null
+      const bindRefs: Array<(el: HTMLElement | null) => void> = []
+
+      function Habitat() {
+        const store = useEaseStoreApi()
+        storeInstance = store
+        const { bindRef } = useTransitionTrack("dialog:open")
+        const callback = bindRef("position")
+        capturedBindRef = callback
+        bindRefs.push(callback)
+        return <div ref={callback} data-testid="pos-runner" />
+      }
+
+      render(
+        <EaseStoreProvider>
+          <Habitat />
+        </EaseStoreProvider>
+      )
+
+      const initialRef = capturedBindRef
+      expect(initialRef).toBeDefined()
+
+      // Transition idle -> playing
+      act(() => {
+        storeInstance?.getState().playScoped()
+      })
+
+      // The callback identity returned by bindRef("position") remains strictly equal (===)
+      expect(capturedBindRef).toBe(initialRef)
+      expect(bindRefs.every((ref) => ref === initialRef)).toBe(true)
+    })
   })
 
   describe("useClockRef", () => {

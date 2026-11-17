@@ -174,7 +174,7 @@ export class TrackConductor {
 
   private startRafLoop(): void {
     if (this.rafId !== null) return
-    this.lastTimestamp = this.driver.now()
+    this.lastTimestamp = null
 
     const tick = (now: number) => {
       if (
@@ -185,9 +185,15 @@ export class TrackConductor {
         return
       }
 
-      const dt =
-        this.lastTimestamp !== null ? Math.max(0, now - this.lastTimestamp) : 0
-      this.lastTimestamp = now
+      let dt = 0
+      if (this.lastTimestamp === null) {
+        this.lastTimestamp = now
+        dt = 0
+      } else {
+        const rawDt = Math.max(0, now - this.lastTimestamp)
+        dt = Math.min(rawDt, 50)
+        this.lastTimestamp = now
+      }
 
       this.advanceFrame(dt)
 
@@ -292,6 +298,7 @@ export class TrackConductor {
     this.elapsedMs = 0
     this.restElapsedMs = 0
     this.playbackState = "playing"
+    this.lastTimestamp = null
     this.startRafLoop()
     this.notify()
   }
@@ -345,13 +352,17 @@ export class TrackConductor {
       this.totalDurationMs = durationMs
     }
 
-    if (this.elapsedMs >= this.totalDurationMs) {
+    if (
+      this.totalDurationMs > 0 &&
+      this.elapsedMs >= this.totalDurationMs - 2
+    ) {
       this.elapsedMs = 0
       this.interruptions = {}
     }
 
     this.restElapsedMs = 0
     this.playbackState = "playing"
+    this.lastTimestamp = null
     this.startRafLoop()
     this.notify()
   }
@@ -469,6 +480,7 @@ export class TrackConductor {
     this.elapsedMs = 0
     this.restElapsedMs = 0
     this.playbackState = "playing"
+    this.lastTimestamp = null
     this.startRafLoop()
     this.notify()
   }
