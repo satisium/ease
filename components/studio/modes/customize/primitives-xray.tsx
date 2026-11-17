@@ -159,7 +159,7 @@ export function PrimitivesXRay({
                       ref={bindRef("position")}
                       data-testid="primitive-position-wrapper"
                       className={cn(
-                        "will-change-transform",
+                        "shrink-0 will-change-transform",
                         isCompare
                           ? "w-[calc(100%-56px)]"
                           : "w-[calc(100%-64px)]"
@@ -323,7 +323,7 @@ export function PrimitivesXRay({
                 <div
                   ref={bindRef("position")}
                   data-testid="primitive-position-wrapper"
-                  className="w-[calc(100%-64px)] will-change-transform"
+                  className="w-[calc(100%-64px)] shrink-0 will-change-transform"
                 >
                   <div className="flex size-16 items-center justify-center rounded-[12px] bg-foreground">
                     <div className="size-2 rounded-full bg-background" />
