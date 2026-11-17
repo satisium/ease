@@ -315,6 +315,33 @@ describe("core/clock/track-conductor", () => {
     })
   })
 
+  describe("Frame-1 Zero Jump & Near-End Play Wrap", () => {
+    it("paints Frame 1 at exactly 0ms even after an initial RAF scheduling delay", () => {
+      const mockDriver = new MockClockDriver()
+      const conductor = new TrackConductor(mockDriver, "dialog:open")
+      conductor.triggerLive("dialog:open", 300)
+
+      // Simulate 40ms delay before browser fires first RAF callback
+      mockDriver.tick(40)
+      expect(conductor.getSnapshot().elapsedMs).toBe(0)
+
+      // Second RAF callback fires +16ms later
+      mockDriver.tick(16)
+      expect(conductor.getSnapshot().elapsedMs).toBe(16)
+    })
+
+    it("wraps near-end playScoped playback to 0ms when within 2ms of totalDuration", () => {
+      const mockDriver = new MockClockDriver()
+      const conductor = new TrackConductor(mockDriver, "dialog:open")
+      conductor.setTotalDurationMs(300)
+      conductor.seek(299)
+      expect(conductor.getSnapshot().elapsedMs).toBe(299)
+
+      conductor.playScoped()
+      expect(conductor.getSnapshot().elapsedMs).toBe(0)
+    })
+  })
+
   describe("Purity & Framework Independence", () => {
     it("has zero react, react-dom, or DOM imports in core/clock/track-conductor.ts", () => {
       const fileContent = readFileSync(
