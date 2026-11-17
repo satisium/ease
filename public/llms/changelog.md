@@ -2,6 +2,12 @@
 
 > Release notes for ease.
 
+## 0.11.1
+
+### Patch Changes
+
+- 6a6db5f: Fix Frame-1 play jump by rendering initial RAF frame at 0ms, stabilize bindRef callback references across playback transitions, wrap near-end playScoped animations, and prevent Position primitive runner flex shrinkage.
+
 ## 0.11.0
 
 ### Minor Changes
