@@ -21,6 +21,8 @@ import {
   dropdownCloseTrack,
   spotlightOpenTrack,
   spotlightCloseTrack,
+  hovercardOpenTrack,
+  hovercardCloseTrack,
 } from "./overlays"
 import { buttonPressTrack, tabsSwitchTrack } from "./controls"
 import { toastFireTrack, carouselSlideTrack } from "./disclosure"
@@ -39,6 +41,8 @@ trackRegistry.registerMany([
   dropdownCloseTrack,
   spotlightOpenTrack,
   spotlightCloseTrack,
+  hovercardOpenTrack,
+  hovercardCloseTrack,
   buttonPressTrack,
   toastFireTrack,
   tabsSwitchTrack,
@@ -62,6 +66,8 @@ export {
   dropdownCloseTrack,
   spotlightOpenTrack,
   spotlightCloseTrack,
+  hovercardOpenTrack,
+  hovercardCloseTrack,
 } from "./overlays"
 export { buttonPressTrack, tabsSwitchTrack } from "./controls"
 export { toastFireTrack, carouselSlideTrack } from "./disclosure"

@@ -11,7 +11,8 @@ import { DialogHabitat } from "@/components/studio/habitats/overlays/dialog-habi
 import { CommandPaletteHabitat } from "@/components/studio/habitats/overlays/command-palette-habitat"
 import { DrawerHabitat } from "@/components/studio/habitats/overlays/drawer-habitat"
 import { BottomSheetHabitat } from "@/components/studio/habitats/overlays/bottom-sheet-habitat"
-import { DropdownHabitat } from "@/components/studio/habitats/dropdown-habitat"
+import { DropdownHabitat } from "@/components/studio/habitats/overlays/dropdown-habitat"
+import { HoverCardHabitat } from "@/components/studio/habitats/overlays/hover-card-habitat"
 import { ButtonHabitat } from "@/components/studio/habitats/button-habitat"
 
 describe("In-Process Habitats & usePairedHabitat (Step B-3A)", () => {
@@ -563,20 +564,21 @@ describe("In-Process Habitats & usePairedHabitat (Step B-3A)", () => {
       )
 
       const toggleBtn = screen.getByLabelText("Toggle actions menu")
-      expect(screen.queryByText("Duplicate Channel")).toBeNull()
+      expect(screen.queryByText("Duplicate")).toBeNull()
 
       // Open dropdown
       act(() => {
         fireEvent.click(toggleBtn)
       })
 
-      expect(screen.getByText("Duplicate Channel")).toBeDefined()
-      expect(screen.getByText("Fork as Variant")).toBeDefined()
-      expect(screen.getByText("Copy CSS Timing")).toBeDefined()
+      expect(screen.getByText("Duplicate")).toBeDefined()
+      expect(screen.getByText("Copy link")).toBeDefined()
+      expect(screen.getByText("Export JSON")).toBeDefined()
+      expect(screen.getByText("Archive")).toBeDefined()
 
       // Popover element has transform and opacity
       const popover = screen
-        .getByText("Duplicate Channel")
+        .getByText("Duplicate")
         .closest(".will-change-transform") as HTMLElement
       expect(popover).not.toBeNull()
       expect(popover.style.transform).toContain("translate3d")
@@ -585,9 +587,127 @@ describe("In-Process Habitats & usePairedHabitat (Step B-3A)", () => {
 
       // Close via menu item
       act(() => {
-        fireEvent.click(screen.getByText("Duplicate Channel"))
+        fireEvent.click(screen.getByText("Duplicate"))
       })
       expect(storeApi!.getState().focusedTrackId).toBe("dropdown:close")
+    })
+
+    it("supports compareItemId when provided", () => {
+      render(
+        <EaseStoreProvider>
+          <DropdownHabitat compareItemId="comp-drop-1" />
+        </EaseStoreProvider>
+      )
+
+      expect(screen.getByLabelText("Toggle actions menu")).toBeDefined()
+    })
+  })
+
+  describe("HoverCardHabitat", () => {
+    it("starts at rest, opens on click or hover, displays profile card and allows follow toggle", () => {
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        storeApi = useEaseStoreApi()
+        return <HoverCardHabitat />
+      }
+
+      const { container } = render(
+        <EaseStoreProvider>
+          <Harness />
+        </EaseStoreProvider>
+      )
+
+      // Rest state
+      const triggerBtn = screen.getByRole("button", {
+        name: "Preview profile card",
+      })
+      expect(triggerBtn).toBeDefined()
+      expect(screen.getByText("@satisium")).toBeDefined()
+      expect(
+        screen.queryByRole("dialog", { name: "Satisium profile preview" })
+      ).toBeNull()
+
+      // Click to open
+      act(() => {
+        fireEvent.click(triggerBtn)
+      })
+
+      expect(storeApi!.getState().focusedTrackId).toBe("hovercard:open")
+      expect(
+        screen.getByRole("dialog", { name: "Satisium profile preview" })
+      ).toBeDefined()
+      expect(screen.getByText("Satisium")).toBeDefined()
+      expect(
+        screen.getByText("Precision motion instruments and kinetic UI tools.")
+      ).toBeDefined()
+      expect(screen.getByText("248")).toBeDefined()
+      expect(screen.getByText("14.2k")).toBeDefined()
+
+      // Follow toggle button
+      const followBtn = screen.getByRole("button", { name: "Follow Satisium" })
+      expect(followBtn).toBeDefined()
+      act(() => {
+        fireEvent.click(followBtn)
+      })
+      expect(
+        screen.getByRole("button", { name: "Unfollow Satisium" })
+      ).toBeDefined()
+
+      // Zero transition-* classes on animated elements
+      const boundElements = container.querySelectorAll("[style*='transform']")
+      for (const el of Array.from(boundElements)) {
+        const classNames = (el as HTMLElement).className || ""
+        expect(classNames).not.toContain("transition-transform")
+        expect(classNames).not.toContain("transition-all")
+      }
+
+      // Close via trigger click
+      act(() => {
+        fireEvent.click(triggerBtn)
+      })
+      expect(storeApi!.getState().focusedTrackId).toBe("hovercard:close")
+    })
+
+    it("scrubs hovercard:open to 100% with scale(1), translate3d, and opacity: 1", () => {
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        storeApi = useEaseStoreApi()
+        return <HoverCardHabitat />
+      }
+
+      const { container } = render(
+        <EaseStoreProvider>
+          <Harness />
+        </EaseStoreProvider>
+      )
+
+      // Scrub hovercard:open to 100% (280ms)
+      act(() => {
+        storeApi!.getState().focusTrack("hovercard:open")
+        storeApi!.getState().seekScoped(280)
+      })
+
+      const card = container.querySelector(
+        '[role="dialog"][aria-label="Satisium profile preview"]'
+      ) as HTMLElement
+      expect(card).not.toBeNull()
+      expect(card.style.opacity).toBe("1")
+      expect(card.style.transform).toContain("scale(1)")
+      expect(card.style.transform).toContain("translate3d(0px, 0px, 0")
+    })
+
+    it("supports compareItemId when provided", () => {
+      render(
+        <EaseStoreProvider>
+          <HoverCardHabitat compareItemId="comp-hover-1" />
+        </EaseStoreProvider>
+      )
+
+      expect(
+        screen.getByRole("button", { name: "Preview profile card" })
+      ).toBeDefined()
     })
   })
 

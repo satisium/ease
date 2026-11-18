@@ -153,15 +153,18 @@ describe("UI-Readiness Pass A: Mathematical Helpers & Catalog Polish", () => {
   })
 
   describe("Component Groups & Phase Pairing (core/registry/tracks.ts)", () => {
-    it("listComponents groups all 7 real UI components excluding primitives", () => {
+    it("listComponents groups all 10 real UI components excluding primitives", () => {
       const components = listComponents()
-      expect(components).toHaveLength(7)
+      expect(components).toHaveLength(10)
 
       const componentIds = components.map((c) => c.componentId)
       expect(componentIds).toEqual([
         "dialog",
         "drawer",
+        "sheet",
         "dropdown",
+        "spotlight",
+        "hovercard",
         "button",
         "toast",
         "tabs",

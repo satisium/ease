@@ -85,7 +85,7 @@ describe("core/registry", () => {
     })
   })
 
-  describe("trackRegistry - All 15 Built-in Transition Tracks", () => {
+  describe("trackRegistry - All 17 Built-in Transition Tracks", () => {
     const EXPECTED_TRACK_IDS = [
       "dialog:open",
       "dialog:close",
@@ -97,6 +97,8 @@ describe("core/registry", () => {
       "dropdown:close",
       "spotlight:open",
       "spotlight:close",
+      "hovercard:open",
+      "hovercard:close",
       "button:press",
       "toast:fire",
       "tabs:switch",
@@ -104,8 +106,8 @@ describe("core/registry", () => {
       "primitives:all",
     ] as const
 
-    it("contains exactly the 15 canonical tracks", () => {
-      expect(trackRegistry.list()).toHaveLength(15)
+    it("contains exactly the 17 canonical tracks", () => {
+      expect(trackRegistry.list()).toHaveLength(17)
       for (const id of EXPECTED_TRACK_IDS) {
         expect(trackRegistry.has(id)).toBe(true)
       }
@@ -120,7 +122,7 @@ describe("core/registry", () => {
 
       // listComponentTracks excludes 'primitives'
       const componentTracks = listComponentTracks()
-      expect(componentTracks).toHaveLength(14)
+      expect(componentTracks).toHaveLength(16)
       expect(componentTracks.every((t) => t.componentId !== "primitives")).toBe(
         true
       )
@@ -153,6 +155,13 @@ describe("core/registry", () => {
         "drawer:open",
         "drawer:close",
       ])
+
+      const hovercardTracks = getTracksForComponent("hovercard")
+      expect(hovercardTracks).toHaveLength(2)
+      expect(hovercardTracks.map((t) => t.id)).toEqual([
+        "hovercard:open",
+        "hovercard:close",
+      ])
     })
 
     it("assigns canonical TrackCategory to all tracks and groups listComponents by category", () => {
@@ -167,6 +176,8 @@ describe("core/registry", () => {
       expect(getTrackPlugin("dropdown:close")?.category).toBe("Overlays")
       expect(getTrackPlugin("spotlight:open")?.category).toBe("Overlays")
       expect(getTrackPlugin("spotlight:close")?.category).toBe("Overlays")
+      expect(getTrackPlugin("hovercard:open")?.category).toBe("Overlays")
+      expect(getTrackPlugin("hovercard:close")?.category).toBe("Overlays")
 
       // Controls
       expect(getTrackPlugin("button:press")?.category).toBe("Controls")

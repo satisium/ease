@@ -9,7 +9,7 @@ import { render, screen, act } from "@testing-library/react"
 import { EaseStoreProvider, useEaseStoreApi } from "@/hooks/use-ease-store"
 import { DialogHabitat } from "@/components/studio/habitats/overlays/dialog-habitat"
 import { DrawerHabitat } from "@/components/studio/habitats/overlays/drawer-habitat"
-import { DropdownHabitat } from "@/components/studio/habitats/dropdown-habitat"
+import { DropdownHabitat } from "@/components/studio/habitats/overlays/dropdown-habitat"
 import { ToastHabitat } from "@/components/studio/habitats/toast-habitat"
 
 describe("Overlay Habitats Lifecycle & Scrub Retention (Step C-8A)", () => {

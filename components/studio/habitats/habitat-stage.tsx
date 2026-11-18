@@ -7,7 +7,8 @@ import { DialogHabitat } from "./overlays/dialog-habitat"
 import { CommandPaletteHabitat } from "./overlays/command-palette-habitat"
 import { DrawerHabitat } from "./overlays/drawer-habitat"
 import { BottomSheetHabitat } from "./overlays/bottom-sheet-habitat"
-import { DropdownHabitat } from "./dropdown-habitat"
+import { DropdownHabitat } from "./overlays/dropdown-habitat"
+import { HoverCardHabitat } from "./overlays/hover-card-habitat"
 import { ButtonHabitat } from "./button-habitat"
 import { ToastHabitat } from "./toast-habitat"
 import { TabsHabitat } from "./tabs-habitat"
@@ -30,6 +31,7 @@ const HABITAT_REGISTRY: Record<
   drawer: DrawerHabitat,
   sheet: BottomSheetHabitat,
   dropdown: DropdownHabitat,
+  hovercard: HoverCardHabitat,
   button: ButtonHabitat,
   toast: ToastHabitat,
   tabs: TabsHabitat,
