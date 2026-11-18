@@ -85,7 +85,7 @@ describe("core/registry", () => {
     })
   })
 
-  describe("trackRegistry - All 28 Built-in Transition Tracks", () => {
+  describe("trackRegistry - All 30 Built-in Transition Tracks", () => {
     const EXPECTED_TRACK_IDS = [
       "dialog:open",
       "dialog:close",
@@ -114,11 +114,13 @@ describe("core/registry", () => {
       "carousel:slide",
       "accordion:open",
       "accordion:close",
+      "wizard:step",
+      "progress:run",
       "primitives:all",
     ] as const
 
-    it("contains exactly the 28 canonical tracks", () => {
-      expect(trackRegistry.list()).toHaveLength(28)
+    it("contains exactly the 30 canonical tracks", () => {
+      expect(trackRegistry.list()).toHaveLength(30)
       for (const id of EXPECTED_TRACK_IDS) {
         expect(trackRegistry.has(id)).toBe(true)
       }
@@ -133,7 +135,7 @@ describe("core/registry", () => {
 
       // listComponentTracks excludes 'primitives'
       const componentTracks = listComponentTracks()
-      expect(componentTracks).toHaveLength(27)
+      expect(componentTracks).toHaveLength(29)
       expect(componentTracks.every((t) => t.componentId !== "primitives")).toBe(
         true
       )
@@ -213,6 +215,14 @@ describe("core/registry", () => {
         "accordion:open",
         "accordion:close",
       ])
+
+      const wizardTracks = getTracksForComponent("wizard")
+      expect(wizardTracks).toHaveLength(1)
+      expect(wizardTracks.map((t) => t.id)).toEqual(["wizard:step"])
+
+      const progressTracks = getTracksForComponent("progress")
+      expect(progressTracks).toHaveLength(1)
+      expect(progressTracks.map((t) => t.id)).toEqual(["progress:run"])
     })
 
     it("assigns canonical TrackCategory to all tracks and groups listComponents by category", () => {
@@ -248,6 +258,8 @@ describe("core/registry", () => {
       expect(getTrackPlugin("carousel:slide")?.category).toBe("Disclosure")
       expect(getTrackPlugin("accordion:open")?.category).toBe("Disclosure")
       expect(getTrackPlugin("accordion:close")?.category).toBe("Disclosure")
+      expect(getTrackPlugin("wizard:step")?.category).toBe("Disclosure")
+      expect(getTrackPlugin("progress:run")?.category).toBe("Disclosure")
 
       // Lab
       expect(getTrackPlugin("primitives:all")?.category).toBe("Lab")
@@ -292,6 +304,12 @@ describe("core/registry", () => {
       ).toBe("Disclosure")
       expect(
         components.find((c) => c.componentId === "accordion")?.category
+      ).toBe("Disclosure")
+      expect(components.find((c) => c.componentId === "wizard")?.category).toBe(
+        "Disclosure"
+      )
+      expect(
+        components.find((c) => c.componentId === "progress")?.category
       ).toBe("Disclosure")
       expect(
         components.find((c) => c.componentId === "primitives")?.category

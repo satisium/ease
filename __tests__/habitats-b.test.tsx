@@ -12,6 +12,8 @@ import { FloatingInputHabitat } from "@/components/studio/habitats/controls/floa
 import { OtpShakeHabitat } from "@/components/studio/habitats/controls/otp-shake-habitat"
 import { WalletDeckHabitat } from "@/components/studio/habitats/disclosure/wallet-deck-habitat"
 import { AccordionHabitat } from "@/components/studio/habitats/disclosure/accordion-habitat"
+import { ProgressWizardHabitat } from "@/components/studio/habitats/disclosure/progress-wizard-habitat"
+import { UploadProgressHabitat } from "@/components/studio/habitats/disclosure/upload-progress-habitat"
 import { HabitatStage } from "@/components/studio/habitats/habitat-stage"
 import { PreviewTheater } from "@/components/studio/modes/audition/center-stage/preview-theater"
 
@@ -836,6 +838,184 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
     })
   })
 
+  describe("ProgressWizardHabitat", () => {
+    it("renders step 1, advances on Continue click, scales progress bar, and glides cards on Back click", () => {
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        const api = useEaseStoreApi()
+        React.useEffect(() => {
+          storeApi = api
+        }, [api])
+        return <ProgressWizardHabitat />
+      }
+
+      const { container } = render(
+        <TestWrapper>
+          <Harness />
+        </TestWrapper>
+      )
+
+      expect(screen.getByText("Step 1 of 3")).toBeInTheDocument()
+      expect(screen.getByText("Workspace Identity")).toBeInTheDocument()
+
+      const backBtn = screen.getByRole("button", {
+        name: "Previous wizard step",
+      })
+      const nextBtn = screen.getByRole("button", { name: "Next wizard step" })
+
+      expect(backBtn).toBeDisabled()
+      expect(nextBtn).toBeInTheDocument()
+
+      // Sliding track initial transform
+      const track = container.querySelector(
+        ".flex.w-full.will-change-transform"
+      ) as HTMLElement
+      expect(track).toBeInTheDocument()
+      expect(track.style.transform).toBe("translate3d(0.000%, 0px, 0px)")
+
+      // Click next step (Continue)
+      fireEvent.click(nextBtn)
+      expect(screen.getByText("Step 2 of 3")).toBeInTheDocument()
+      expect(screen.getByText("Motion Defaults")).toBeInTheDocument()
+      expect(backBtn).not.toBeDisabled()
+
+      // Scrub wizard:step to 380ms (100% complete of forward slide)
+      act(() => {
+        storeApi!.getState().focusTrack("wizard:step")
+        storeApi!.getState().seekScoped(380)
+      })
+
+      // Track translated to -100%
+      expect(track.style.transform).toBe("translate3d(-100.000%, 0px, 0px)")
+
+      // Progress bar scaled to 2/3 (0.6667)
+      const bar = container.querySelector(
+        ".origin-left.rounded-full"
+      ) as HTMLElement
+      expect(bar.style.transform).toBe("scaleX(0.6667)")
+
+      // Now click Back
+      fireEvent.click(backBtn)
+      expect(screen.getByText("Step 1 of 3")).toBeInTheDocument()
+      expect(screen.getByText("Workspace Identity")).toBeInTheDocument()
+      expect(backBtn).toBeDisabled()
+
+      // Scrub wizard:step to 380ms (100% complete of backward slide)
+      act(() => {
+        storeApi!.getState().seekScoped(380)
+      })
+
+      // Track translated cleanly back toward 0.000%
+      expect(track.style.transform).toBe("translate3d(0.000%, 0px, 0px)")
+      expect(bar.style.transform).toBe("scaleX(0.3333)")
+
+      // Zero opacity hacks: cards maintain opacity: 1
+      const cards = container.querySelectorAll(".w-full.shrink-0")
+      expect(cards.length).toBe(3)
+      for (const card of Array.from(cards)) {
+        expect((card as HTMLElement).style.opacity).not.toBe("0")
+      }
+
+      // Zero CSS transitions
+      const animatedElements = container.querySelectorAll(
+        "[style*='transform'], [style*='opacity']"
+      )
+      for (const el of Array.from(animatedElements)) {
+        const classNames = (el as HTMLElement).className || ""
+        expect(classNames).not.toContain("transition-transform")
+        expect(classNames).not.toContain("transition-all")
+      }
+    })
+
+    it("supports compareItemId when provided", () => {
+      render(
+        <TestWrapper>
+          <ProgressWizardHabitat compareItemId="comp-wizard-1" />
+        </TestWrapper>
+      )
+
+      expect(
+        screen.getByRole("button", { name: "Next wizard step" })
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe("UploadProgressHabitat", () => {
+    it("renders file card, advances progress from 0% -> 50% -> 100% on scrub, and updates scaleX", () => {
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        const api = useEaseStoreApi()
+        React.useEffect(() => {
+          storeApi = api
+        }, [api])
+        return <UploadProgressHabitat />
+      }
+
+      const { container } = render(
+        <TestWrapper>
+          <Harness />
+        </TestWrapper>
+      )
+
+      expect(screen.getByText("ease-tokens-v1.json")).toBeInTheDocument()
+      expect(screen.getByText("2.4 MB")).toBeInTheDocument()
+      expect(screen.getByText("0%")).toBeInTheDocument()
+
+      const uploadBtn = screen.getByRole("button", {
+        name: "Start upload progress",
+      })
+      expect(uploadBtn).toBeInTheDocument()
+
+      // Initial scaleX is 0
+      const fillBar = container.querySelector(
+        ".origin-left.rounded-full"
+      ) as HTMLElement
+      expect(fillBar).toBeInTheDocument()
+      expect(fillBar.style.transform).toMatch(/scaleX\(0(\.0000)?\)/)
+
+      // Scrub progress:run to 700ms (50% complete)
+      act(() => {
+        storeApi!.getState().focusTrack("progress:run")
+        storeApi!.getState().seekScoped(700)
+      })
+
+      expect(screen.getByText("50%")).toBeInTheDocument()
+      expect(fillBar.style.transform).toBe("scaleX(0.5000)")
+
+      // Scrub progress:run to 1400ms (100% complete)
+      act(() => {
+        storeApi!.getState().seekScoped(1400)
+      })
+
+      expect(screen.getByText("100%")).toBeInTheDocument()
+      expect(fillBar.style.transform).toBe("scaleX(1.0000)")
+
+      // Zero CSS transitions
+      const animatedElements = container.querySelectorAll(
+        "[style*='transform'], [style*='opacity']"
+      )
+      for (const el of Array.from(animatedElements)) {
+        const classNames = (el as HTMLElement).className || ""
+        expect(classNames).not.toContain("transition-transform")
+        expect(classNames).not.toContain("transition-all")
+      }
+    })
+
+    it("supports compareItemId when provided", () => {
+      render(
+        <TestWrapper>
+          <UploadProgressHabitat compareItemId="comp-progress-1" />
+        </TestWrapper>
+      )
+
+      expect(
+        screen.getByRole("button", { name: "Start upload progress" })
+      ).toBeInTheDocument()
+    })
+  })
+
   describe("HabitatStage & PreviewTheater", () => {
     it("mounts in-process HabitatStage without any iframe sandbox", () => {
       const { container } = render(
@@ -902,6 +1082,12 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
               onClick={() => store.getState().focusTrack("accordion:open")}
             >
               Switch to Accordion
+            </button>
+            <button onClick={() => store.getState().focusTrack("wizard:step")}>
+              Switch to Wizard
+            </button>
+            <button onClick={() => store.getState().focusTrack("progress:run")}>
+              Switch to Progress
             </button>
           </div>
         )
@@ -980,6 +1166,16 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
       expect(
         screen.getByRole("button", { name: "Why use springs over Bézier?" })
       ).toBeInTheDocument()
+
+      // Switch to Wizard
+      fireEvent.click(screen.getByText("Switch to Wizard"))
+      expect(
+        screen.getByRole("button", { name: "Next wizard step" })
+      ).toBeInTheDocument()
+
+      // Switch to Progress
+      fireEvent.click(screen.getByText("Switch to Progress"))
+      expect(screen.getByText("ease-tokens-v1.json")).toBeInTheDocument()
     })
 
     it("renders PrimitivesXRay without duplicate filter bar when focusedTrack is primitives:all", () => {
