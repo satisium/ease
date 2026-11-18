@@ -1,13 +1,19 @@
 # Ease — Complete AI Knowledge Base
 
 > Source: https://ease.satisium.com
-> Generated: 2026-11-17T06:20:17.376Z
+> Generated: 2026-11-18T11:48:43.150Z
 > Pages: 11
 
 ---
 
 # Changelog
 <source>https://ease.satisium.com/docs/changelog</source>
+
+## 0.12.0
+
+### Minor Changes
+
+- 1d8cfeb: Implement 21 flagship component habitats across Overlays, Controls, Disclosure, and Landing, modularize track registry and Zustand store slices, add Newsreader editorial font, add toolbar track reset, and set Primitives X-Ray as studio default.
 
 ## 0.11.1
 

@@ -2,6 +2,12 @@
 
 > Release notes for ease.
 
+## 0.12.0
+
+### Minor Changes
+
+- 1d8cfeb: Implement 21 flagship component habitats across Overlays, Controls, Disclosure, and Landing, modularize track registry and Zustand store slices, add Newsreader editorial font, add toolbar track reset, and set Primitives X-Ray as studio default.
+
 ## 0.11.1
 
 ### Patch Changes
