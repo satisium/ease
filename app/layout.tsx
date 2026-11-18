@@ -4,6 +4,7 @@ import {
   Inter,
   IBM_Plex_Mono,
   Caveat,
+  Newsreader,
 } from "next/font/google"
 import { Suspense } from "react"
 import { Analytics } from "@vercel/analytics/next"
@@ -50,6 +51,12 @@ const fontCode = IBM_Plex_Mono({
 const fontCaveat = Caveat({
   subsets: ["latin"],
   variable: "--font-caveat",
+  display: "swap",
+})
+
+const fontEditorial = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-editorial",
   display: "swap",
 })
 
@@ -140,7 +147,8 @@ export default function RootLayout({
         fontBody.variable,
         fontCode.variable,
         fontCaveat.variable,
-        fontBrand.variable
+        fontBrand.variable,
+        fontEditorial.variable
       )}
     >
       <head>
