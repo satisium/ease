@@ -3,8 +3,10 @@
 import * as React from "react"
 import { getTrackPlugin } from "@/core"
 import { useEaseStore } from "@/hooks/use-ease-store"
-import { DialogHabitat } from "./dialog-habitat"
-import { DrawerHabitat } from "./drawer-habitat"
+import { DialogHabitat } from "./overlays/dialog-habitat"
+import { CommandPaletteHabitat } from "./overlays/command-palette-habitat"
+import { DrawerHabitat } from "./overlays/drawer-habitat"
+import { BottomSheetHabitat } from "./overlays/bottom-sheet-habitat"
 import { DropdownHabitat } from "./dropdown-habitat"
 import { ButtonHabitat } from "./button-habitat"
 import { ToastHabitat } from "./toast-habitat"
@@ -17,6 +19,21 @@ import {
 
 export interface HabitatStageProps {
   compareItemId?: string
+}
+
+const HABITAT_REGISTRY: Record<
+  string,
+  React.ComponentType<HabitatStageProps>
+> = {
+  dialog: DialogHabitat,
+  spotlight: CommandPaletteHabitat,
+  drawer: DrawerHabitat,
+  sheet: BottomSheetHabitat,
+  dropdown: DropdownHabitat,
+  button: ButtonHabitat,
+  toast: ToastHabitat,
+  tabs: TabsHabitat,
+  carousel: CarouselHabitat,
 }
 
 export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
@@ -73,37 +90,23 @@ export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
     normalizedChannelId,
   ])
 
-  switch (componentId) {
-    case "dialog":
-      return <DialogHabitat compareItemId={compareItemId} />
-    case "drawer":
-      return <DrawerHabitat compareItemId={compareItemId} />
-    case "dropdown":
-      return <DropdownHabitat compareItemId={compareItemId} />
-    case "button":
-      return <ButtonHabitat compareItemId={compareItemId} />
-    case "toast":
-      return <ToastHabitat compareItemId={compareItemId} />
-    case "tabs":
-      return <TabsHabitat compareItemId={compareItemId} />
-    case "carousel":
-      return <CarouselHabitat compareItemId={compareItemId} />
-    case "primitives":
-      if (compareItemId) {
-        return (
-          <PrimitivesXRay
-            compareItemId={compareItemId}
-            controlledFilter={controlledFilter}
-          />
-        )
-      }
+  if (componentId === "primitives") {
+    if (compareItemId) {
       return (
         <PrimitivesXRay
-          isPreviewMode={mode === "preview"}
-          controlledFilter={normalizedChannelId}
+          compareItemId={compareItemId}
+          controlledFilter={controlledFilter}
         />
       )
-    default:
-      return <DialogHabitat compareItemId={compareItemId} />
+    }
+    return (
+      <PrimitivesXRay
+        isPreviewMode={mode === "preview"}
+        controlledFilter={normalizedChannelId}
+      />
+    )
   }
+
+  const Habitat = HABITAT_REGISTRY[componentId] ?? DialogHabitat
+  return <Habitat compareItemId={compareItemId} />
 }
