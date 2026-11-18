@@ -51,7 +51,6 @@ const fontCaveat = Caveat({
   subsets: ["latin"],
   variable: "--font-caveat",
   display: "swap",
-  weight: ["500", "600"],
 })
 
 export const metadata: Metadata = {

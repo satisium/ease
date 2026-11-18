@@ -19,7 +19,12 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { motion, AnimatePresence, LayoutGroup } from "motion/react"
 import { HabitatStage } from "@/components/studio/habitats/habitat-stage"
 import { useEaseStore } from "@/hooks/use-ease-store"
-import { trackRegistry, getPairedTrackId, listComponents } from "@/core"
+import {
+  trackRegistry,
+  getPairedTrackId,
+  listComponents,
+  TrackCategory,
+} from "@/core"
 import { PrimitivesXRay, type PrimitiveFilter } from "./primitives-xray"
 import { cn } from "@/lib/utils"
 import {
@@ -51,6 +56,14 @@ export interface CustomizeMicroPreviewProps {
   className?: string
 }
 
+const COMPONENT_CATEGORIES: readonly TrackCategory[] = [
+  "Overlays",
+  "Controls",
+  "Disclosure",
+  "Landing",
+  "Lab",
+] as const
+
 export function CustomizeMicroPreview({
   className,
 }: CustomizeMicroPreviewProps) {
@@ -73,6 +86,16 @@ export function CustomizeMicroPreview({
   const channelMenuRef = React.useRef<HTMLDivElement>(null)
 
   const components = React.useMemo(() => listComponents(), [])
+  const categorizedComponents = React.useMemo(() => {
+    const list: { category: TrackCategory; items: typeof components }[] = []
+    for (const cat of COMPONENT_CATEGORIES) {
+      const items = components.filter((c) => c.category === cat)
+      if (items.length > 0) {
+        list.push({ category: cat, items })
+      }
+    }
+    return list
+  }, [components])
   const track = trackRegistry.get(focusedTrackId)
   const componentLabel = track?.componentLabel ?? "Component"
   const activeChannel = track?.channels.find((c) => c.id === focusedChannelId)
@@ -175,40 +198,49 @@ export function CustomizeMicroPreview({
                     initial="initial"
                     animate="animate"
                     exit={process.env.NODE_ENV === "test" ? undefined : "exit"}
-                    className="absolute top-full left-0 z-50 mt-1 flex w-48 origin-top-left flex-col gap-0.5 rounded-[12px] bg-background p-1 select-none"
+                    className="absolute top-full left-0 z-50 mt-1 no-scrollbar flex max-h-[300px] w-48 origin-top-left flex-col gap-0.5 overflow-y-auto rounded-[12px] bg-background p-1 select-none"
                   >
-                    <span className="px-2 py-1 font-sans text-[10px] text-muted-foreground uppercase">
-                      Components
-                    </span>
-                    {components.map((comp) => {
-                      const isSelected = comp.componentId === track?.componentId
-                      const firstTrack = comp.tracks[0]
-                      return (
-                        <button
-                          key={comp.componentId}
-                          type="button"
-                          aria-label={`Select ${comp.componentLabel} component`}
-                          onClick={() => {
-                            if (firstTrack) {
-                              focusTrack(firstTrack.id)
-                              enterCustomize()
-                            }
-                            setIsComponentMenuOpen(false)
-                          }}
-                          className={cn(
-                            "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
-                            isSelected
-                              ? "bg-secondary font-medium text-foreground"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                          )}
-                        >
-                          <span>{comp.componentLabel}</span>
-                          {isSelected && (
-                            <span className="size-1.5 rounded-full bg-foreground" />
-                          )}
-                        </button>
-                      )
-                    })}
+                    <span className="sr-only">Components</span>
+                    {categorizedComponents.map((group) => (
+                      <div
+                        key={group.category}
+                        className="flex flex-col gap-0.5"
+                      >
+                        <div className="px-2 pt-1.5 pb-0.5 font-sans text-[10px] font-medium text-muted-foreground">
+                          {group.category}
+                        </div>
+                        {group.items.map((comp) => {
+                          const isSelected =
+                            comp.componentId === track?.componentId
+                          const firstTrack = comp.tracks[0]
+                          return (
+                            <button
+                              key={comp.componentId}
+                              type="button"
+                              aria-label={`Select ${comp.componentLabel} component`}
+                              onClick={() => {
+                                if (firstTrack) {
+                                  focusTrack(firstTrack.id)
+                                  enterCustomize()
+                                }
+                                setIsComponentMenuOpen(false)
+                              }}
+                              className={cn(
+                                "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
+                                isSelected
+                                  ? "bg-secondary font-medium text-foreground"
+                                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                              )}
+                            >
+                              <span>{comp.componentLabel}</span>
+                              {isSelected && (
+                                <span className="size-1.5 rounded-full bg-foreground" />
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ))}
                   </motion.div>
                 )}
               </AnimatePresence>

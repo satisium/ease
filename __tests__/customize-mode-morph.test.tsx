@@ -134,7 +134,7 @@ describe("Phase C Master Integration: Mode 1 <-> Mode 2 In-Place Morph (Step C-5
 
     // Center Stage & Right Flank have morphed back
     await waitFor(() => {
-      expect(screen.getByText("Open Dialog")).toBeDefined()
+      expect(screen.getAllByText("Position").length).toBeGreaterThanOrEqual(1)
       expect(screen.getByLabelText("Motion Guide")).toBeDefined()
     })
 

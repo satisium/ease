@@ -2,7 +2,12 @@
 
 import * as React from "react"
 import { motion, AnimatePresence, LayoutGroup } from "motion/react"
-import { listComponents, trackRegistry, getPairedTrackId } from "@/core"
+import {
+  listComponents,
+  trackRegistry,
+  getPairedTrackId,
+  TrackCategory,
+} from "@/core"
 import { useEaseStore } from "@/hooks/use-ease-store"
 import {
   ArrowDown01Icon,
@@ -15,6 +20,14 @@ import {
   SATISIUM_PRESS_CLASS,
   SATISIUM_SPRING_PILL,
 } from "@/lib/motion"
+
+const COMPONENT_CATEGORIES: readonly TrackCategory[] = [
+  "Overlays",
+  "Controls",
+  "Disclosure",
+  "Landing",
+  "Lab",
+] as const
 
 export function CompareDock() {
   const globalCompareTarget = useEaseStore((s) => s.globalCompareTarget)
@@ -65,6 +78,16 @@ export function CompareDock() {
     () => listComponents({ includePrimitives: true }),
     []
   )
+  const categorizedComponents = React.useMemo(() => {
+    const list: { category: TrackCategory; items: typeof components }[] = []
+    for (const cat of COMPONENT_CATEGORIES) {
+      const items = components.filter((c) => c.category === cat)
+      if (items.length > 0) {
+        list.push({ category: cat, items })
+      }
+    }
+    return list
+  }, [components])
   const currentTrack = React.useMemo(
     () =>
       trackRegistry.get(globalCompareTarget.trackId) ?? trackRegistry.list()[0],
@@ -139,46 +162,51 @@ export function CompareDock() {
               initial="initial"
               animate="animate"
               exit={process.env.NODE_ENV === "test" ? undefined : "exit"}
-              className="absolute bottom-full left-0 z-50 mb-2 flex w-48 origin-bottom-left flex-col gap-0.5 rounded-[12px] bg-card p-1 select-none"
+              className="absolute bottom-full left-0 z-50 mb-2 no-scrollbar flex max-h-[300px] w-48 origin-bottom-left flex-col gap-0.5 overflow-y-auto rounded-[12px] bg-card p-1 select-none"
             >
-              <span className="px-2 py-0.5 font-sans text-[10px] text-muted-foreground uppercase">
-                Components
-              </span>
-              {components.map((comp) => {
-                const isSelected =
-                  comp.componentId === currentGroup?.componentId
-                const firstTrack = comp.tracks[0]
-                return (
-                  <button
-                    key={comp.componentId}
-                    type="button"
-                    onClick={() => {
-                      if (firstTrack) {
-                        setGlobalCompareTarget({
-                          trackId: firstTrack.id,
-                          channelId: "all",
-                        })
-                      }
-                      setIsComponentMenuOpen(false)
-                    }}
-                    className={cn(
-                      "flex w-full cursor-pointer items-center justify-between rounded-[6px] px-2 py-1 text-left font-sans text-xs transition-colors",
-                      isSelected
-                        ? "bg-secondary font-medium text-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                    aria-label={`Select ${comp.componentLabel}`}
-                  >
-                    <span>{comp.componentLabel}</span>
-                    {isSelected && (
-                      <HugeiconsIcon
-                        icon={CheckmarkCircle02Icon}
-                        className="size-3 text-foreground"
-                      />
-                    )}
-                  </button>
-                )
-              })}
+              <span className="sr-only">Components</span>
+              {categorizedComponents.map((group) => (
+                <div key={group.category} className="flex flex-col gap-0.5">
+                  <div className="px-2 pt-1.5 pb-0.5 font-sans text-[10px] font-medium text-muted-foreground">
+                    {group.category}
+                  </div>
+                  {group.items.map((comp) => {
+                    const isSelected =
+                      comp.componentId === currentGroup?.componentId
+                    const firstTrack = comp.tracks[0]
+                    return (
+                      <button
+                        key={comp.componentId}
+                        type="button"
+                        onClick={() => {
+                          if (firstTrack) {
+                            setGlobalCompareTarget({
+                              trackId: firstTrack.id,
+                              channelId: "all",
+                            })
+                          }
+                          setIsComponentMenuOpen(false)
+                        }}
+                        className={cn(
+                          "flex w-full cursor-pointer items-center justify-between rounded-[6px] px-2 py-1 text-left font-sans text-xs transition-colors",
+                          isSelected
+                            ? "bg-secondary font-medium text-foreground"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        )}
+                        aria-label={`Select ${comp.componentLabel}`}
+                      >
+                        <span>{comp.componentLabel}</span>
+                        {isSelected && (
+                          <HugeiconsIcon
+                            icon={CheckmarkCircle02Icon}
+                            className="size-3 text-foreground"
+                          />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              ))}
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,9 +1,13 @@
 import * as React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, act } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AuditionToolbar } from "@/components/studio/modes/audition/center-stage/audition-toolbar"
-import { EaseStoreProvider, useEaseStore } from "@/hooks/use-ease-store"
+import {
+  EaseStoreProvider,
+  useEaseStore,
+  useEaseStoreApi,
+} from "@/hooks/use-ease-store"
 import { StudioUiProvider } from "@/components/studio/studio-ui-context"
 
 function TestWrapper({ children }: { children: React.ReactNode }) {
@@ -267,5 +271,47 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
 
     expect(screen.getByTestId("probe-channel").textContent).toBe("position")
     expect(screen.getByText("Position")).toBeInTheDocument()
+  })
+
+  it("enables Reset button when track is modified and restores defaults on click", () => {
+    let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+    function StoreCapture() {
+      const api = useEaseStoreApi()
+      React.useEffect(() => {
+        storeApi = api
+      }, [api])
+      return null
+    }
+
+    render(
+      <TestWrapper>
+        <AuditionToolbar />
+        <StoreCapture />
+      </TestWrapper>
+    )
+
+    const resetBtn = screen.getByRole("button", {
+      name: /Reset component to default curves/i,
+    })
+    expect(resetBtn).toBeInTheDocument()
+    // Initially unmodified -> disabled
+    expect(resetBtn).toBeDisabled()
+
+    // Modify a channel duration inside act
+    act(() => {
+      storeApi!.getState().setFocusedDurationMs(999)
+    })
+
+    // Now track is modified -> button becomes enabled
+    expect(resetBtn).not.toBeDisabled()
+
+    // Click Reset inside act
+    act(() => {
+      fireEvent.click(resetBtn)
+    })
+
+    // Track is restored back to default -> button disabled again
+    expect(resetBtn).toBeDisabled()
   })
 })
