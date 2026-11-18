@@ -5,6 +5,7 @@ import {
   ArrowDown01Icon,
   ArrowUpRight01Icon,
   CheckmarkCircle02Icon,
+  Layers01Icon,
   RotateLeft01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -62,7 +63,6 @@ const COMPONENT_CATEGORIES: readonly TrackCategory[] = [
   "Controls",
   "Disclosure",
   "Landing",
-  "Lab",
 ] as const
 
 export function AuditionToolbar() {
@@ -153,7 +153,7 @@ export function AuditionToolbar() {
   const componentDisplayLabel =
     currentPlugin?.componentId === "primitives"
       ? "Primitives"
-      : (currentPlugin?.componentLabel ?? "Modal Dialog")
+      : (currentPlugin?.componentLabel ?? "Primitives")
 
   const pairedTrackId = React.useMemo(
     () => getPairedTrackId(focusedTrackId),
@@ -233,6 +233,65 @@ export function AuditionToolbar() {
               className="absolute bottom-full left-0 z-50 mb-2 no-scrollbar flex max-h-[300px] w-48 origin-bottom-left flex-col gap-0.5 overflow-y-auto rounded-[12px] bg-card p-1 select-none"
             >
               <span className="sr-only">Components</span>
+              {/* Featured Lab / Primitives block */}
+              {(() => {
+                const primComp = components.find(
+                  (c) => c.componentId === "primitives"
+                )
+                if (!primComp) return null
+                const isSelected = currentPlugin?.componentId === "primitives"
+                const firstTrack = primComp.tracks[0]
+                return (
+                  <div className="mb-1.5 rounded-[10px] bg-muted p-1">
+                    <div className="flex items-center justify-between px-2 pt-0.5 pb-1">
+                      <span className="font-sans text-[10px] font-medium text-muted-foreground">
+                        Lab
+                      </span>
+                      <span className="rounded-[4px] bg-background px-1.5 py-0.5 font-sans text-[9px] font-medium text-muted-foreground">
+                        Default
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Primitives"
+                      onClick={() => {
+                        if (firstTrack) {
+                          focusTrack(firstTrack.id)
+                        }
+                        setIsComponentMenuOpen(false)
+                      }}
+                      className={cn(
+                        "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left transition-colors",
+                        isSelected
+                          ? "bg-background text-foreground"
+                          : "text-foreground hover:bg-background"
+                      )}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <HugeiconsIcon
+                          icon={Layers01Icon}
+                          className="size-3.5 shrink-0 text-foreground"
+                        />
+                        <span className="font-heading text-xs font-semibold">
+                          Primitives
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded-[4px] bg-background px-1.5 py-0.5 font-sans text-[9px] font-medium text-muted-foreground">
+                          4-in-1
+                        </span>
+                        {isSelected && (
+                          <HugeiconsIcon
+                            icon={CheckmarkCircle02Icon}
+                            className="size-3 text-foreground"
+                          />
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                )
+              })()}
+
               {categorizedComponents.map((group) => (
                 <div key={group.category} className="flex flex-col gap-0.5">
                   <div className="px-2 pt-1.5 pb-0.5 font-sans text-[10px] font-medium text-muted-foreground">

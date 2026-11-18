@@ -187,6 +187,7 @@ export function createPersistenceSlice(
         searchQuery: "",
       })
 
+      ctx.conductor.focusTrack(p.focusedTrackId, ctx.computeDuration())
       ctx.syncDuration()
     },
 

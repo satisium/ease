@@ -126,6 +126,10 @@ export function createWorkspaceSlice(
       const scope: DraftScope = inTree ? inTree.scope : "preset"
       ctx.set({
         mode: "customize",
+        customizePreviewMode:
+          state.focusedTrackId === "primitives:all"
+            ? "primitives"
+            : "component",
         draftCurve: startDraftReducer(curve, scope),
         activeLibraryTab: curve.engine,
       })

@@ -105,7 +105,7 @@ export class TrackConductor {
   private totalDurationMs = 280
   private playbackState: PlaybackState = "idle"
   private interactionMode: InteractionMode = "live"
-  private focusedTrackId = "dialog:open"
+  private focusedTrackId = "primitives:all"
   private isPinned = false
   private isLooping = false
   private loopDelayMs = 400
@@ -113,7 +113,7 @@ export class TrackConductor {
   private isSoloActive = false
   private interruptions: Record<string, ChannelInterruptSnapshot> = {}
 
-  constructor(driver?: ClockDriver, initialTrackId = "dialog:open") {
+  constructor(driver?: ClockDriver, initialTrackId = "primitives:all") {
     this.driver = driver ?? createDefaultClockDriver()
     this.focusedTrackId = initialTrackId
   }
@@ -500,4 +500,4 @@ export class TrackConductor {
 }
 
 /** Pre-instantiated default TrackConductor singleton. */
-export const trackConductor = new TrackConductor()
+export const trackConductor = new TrackConductor(undefined, "dialog:open")

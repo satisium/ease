@@ -14,7 +14,7 @@
  */
 
 import * as React from "react"
-import { ArrowDown01Icon } from "@hugeicons/core-free-icons"
+import { ArrowDown01Icon, Layers01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { motion, AnimatePresence, LayoutGroup } from "motion/react"
 import { HabitatStage } from "@/components/studio/habitats/habitat-stage"
@@ -61,7 +61,6 @@ const COMPONENT_CATEGORIES: readonly TrackCategory[] = [
   "Controls",
   "Disclosure",
   "Landing",
-  "Lab",
 ] as const
 
 export function CustomizeMicroPreview({
@@ -85,7 +84,10 @@ export function CustomizeMicroPreview({
   const componentMenuRef = React.useRef<HTMLDivElement>(null)
   const channelMenuRef = React.useRef<HTMLDivElement>(null)
 
-  const components = React.useMemo(() => listComponents(), [])
+  const components = React.useMemo(
+    () => listComponents({ includePrimitives: true }),
+    []
+  )
   const categorizedComponents = React.useMemo(() => {
     const list: { category: TrackCategory; items: typeof components }[] = []
     for (const cat of COMPONENT_CATEGORIES) {
@@ -201,6 +203,59 @@ export function CustomizeMicroPreview({
                     className="absolute top-full left-0 z-50 mt-1 no-scrollbar flex max-h-[300px] w-48 origin-top-left flex-col gap-0.5 overflow-y-auto rounded-[12px] bg-background p-1 select-none"
                   >
                     <span className="sr-only">Components</span>
+                    {/* Featured Lab / Primitives block */}
+                    {(() => {
+                      const primComp = components.find(
+                        (c) => c.componentId === "primitives"
+                      )
+                      if (!primComp) return null
+                      const isSelected = track?.componentId === "primitives"
+                      return (
+                        <div className="mb-1.5 rounded-[10px] bg-muted p-1">
+                          <div className="flex items-center justify-between px-2 pt-0.5 pb-1">
+                            <span className="font-sans text-[10px] font-medium text-muted-foreground">
+                              Lab
+                            </span>
+                            <span className="rounded-[4px] bg-background px-1.5 py-0.5 font-sans text-[9px] font-medium text-muted-foreground">
+                              Default
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            aria-label="Primitives"
+                            onClick={() => {
+                              handleToggleMode("primitives")
+                              setIsComponentMenuOpen(false)
+                            }}
+                            className={cn(
+                              "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left transition-colors",
+                              isSelected
+                                ? "bg-secondary text-foreground"
+                                : "text-foreground hover:bg-secondary"
+                            )}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <HugeiconsIcon
+                                icon={Layers01Icon}
+                                className="size-3.5 shrink-0 text-foreground"
+                              />
+                              <span className="font-heading text-xs font-semibold">
+                                Primitives
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="rounded-[4px] bg-background px-1.5 py-0.5 font-sans text-[9px] font-medium text-muted-foreground">
+                                4-in-1
+                              </span>
+                              {isSelected && (
+                                <span className="size-1.5 rounded-full bg-foreground" />
+                              )}
+                            </div>
+                          </button>
+                        </div>
+                      )
+                    })()}
+
                     {categorizedComponents.map((group) => (
                       <div
                         key={group.category}

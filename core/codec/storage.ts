@@ -386,10 +386,12 @@ export function mergeTrackBindings(
 
     const hasChannelMismatch =
       !canonical ||
-      rawChannels.length !== canonical.channels.length ||
-      rawChannels.some((sc: unknown, i: number) => {
+      rawChannels.some((sc: unknown) => {
         if (!sc || typeof sc !== "object") return true
-        return (sc as { id?: unknown }).id !== canonical.channels[i]?.id
+        const id = (sc as { id?: unknown }).id
+        return (
+          typeof id !== "string" || !canonical.channels.some((c) => c.id === id)
+        )
       })
 
     if (hasChannelMismatch) {
@@ -511,12 +513,12 @@ export function serializeEaseStorage(data: SerializeEaseDataInput): string {
   }))
 
   const globalCompareTarget = {
-    trackId: data.globalCompareTarget?.trackId ?? "dialog:open",
+    trackId: data.globalCompareTarget?.trackId ?? "primitives:all",
     channelId: data.globalCompareTarget?.channelId ?? "all",
   }
 
   const focusedTrackId =
-    data.focusedTrackId ?? data.activeTrackId ?? "dialog:open"
+    data.focusedTrackId ?? data.activeTrackId ?? "primitives:all"
   const focusedChannelId =
     data.focusedChannelId ?? data.activeChannelId ?? "all"
 
@@ -524,7 +526,7 @@ export function serializeEaseStorage(data: SerializeEaseDataInput): string {
     data.activeTrackId ??
     (data.customizePreviewMode === "primitives" && data.stashedComponentTrackId
       ? data.stashedComponentTrackId
-      : (data.focusedTrackId ?? "dialog:open"))
+      : (data.focusedTrackId ?? "primitives:all"))
 
   const activeChannelId =
     data.activeChannelId ??
@@ -602,10 +604,10 @@ export function deserializeEaseStorage(
     draftCurve: null,
     trackBindings: defaultBindings,
     compareQueue: [],
-    globalCompareTarget: { trackId: "dialog:open", channelId: "all" },
+    globalCompareTarget: { trackId: "primitives:all", channelId: "all" },
     mode: "preview",
-    customizePreviewMode: "component",
-    focusedTrackId: "dialog:open",
+    customizePreviewMode: "primitives",
+    focusedTrackId: "primitives:all",
     focusedChannelId: "all",
     stashedComponentTrackId: null,
     stashedComponentChannelId: null,
@@ -615,7 +617,7 @@ export function deserializeEaseStorage(
     preferredExporter: "tailwind",
     exportScope: "ease",
     loopDelayMs: 400,
-    activeTrackId: "dialog:open",
+    activeTrackId: "primitives:all",
     activeChannelId: "all",
   }
 
@@ -706,7 +708,7 @@ export function deserializeEaseStorage(
         typeof parsed.globalCompareTarget.trackId === "string" &&
         parsed.globalCompareTarget.trackId.trim()
           ? parsed.globalCompareTarget.trackId.trim()
-          : "dialog:open",
+          : "primitives:all",
       channelId:
         parsed.globalCompareTarget &&
         typeof parsed.globalCompareTarget.channelId === "string" &&
@@ -723,9 +725,6 @@ export function deserializeEaseStorage(
       mode = "customize"
     }
 
-    const customizePreviewMode: "component" | "primitives" =
-      parsed.customizePreviewMode === "primitives" ? "primitives" : "component"
-
     // 7. Track & Channel IDs (supporting both focusedTrackId and legacy activeTrackId)
     const rawTrackId = parsed.focusedTrackId ?? parsed.activeTrackId
     const focusedTrackId =
@@ -738,6 +737,15 @@ export function deserializeEaseStorage(
       typeof rawChannelId === "string" && rawChannelId.trim()
         ? rawChannelId.trim()
         : fallback.focusedChannelId
+
+    const customizePreviewMode: "component" | "primitives" =
+      parsed.customizePreviewMode === "primitives"
+        ? "primitives"
+        : parsed.customizePreviewMode === "component"
+          ? "component"
+          : focusedTrackId === "primitives:all"
+            ? "primitives"
+            : "component"
 
     const stashedComponentTrackId =
       typeof parsed.stashedComponentTrackId === "string" &&

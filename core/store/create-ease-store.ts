@@ -73,12 +73,12 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
   let initialBindings = defaultBindings
   let initialCompareQueue: CompareItem[] = []
   let initialGlobalCompareTarget: CompareGlobalTarget = {
-    trackId: "dialog:open",
+    trackId: "primitives:all",
     channelId: "all",
   }
   let initialMode: StudioMode = "preview"
-  let initialCustomizePreviewMode: "component" | "primitives" = "component"
-  let initialTrackId = "dialog:open"
+  let initialCustomizePreviewMode: "component" | "primitives" = "primitives"
+  let initialTrackId = "primitives:all"
   let initialChannelId: string | "all" = "all"
   let initialStashedComponentTrackId: string | null = null
   let initialStashedComponentChannelId: string | null = null
@@ -305,7 +305,7 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
     { channels: finalState.trackBindings[finalState.focusedTrackId] ?? [] },
     finalState.isReducedMotion
   )
-  conductor.setTotalDurationMs(initialDuration)
+  conductor.focusTrack(finalState.focusedTrackId, initialDuration)
   fullStore.setState({ totalDurationMs: initialDuration })
 
   // Single-subscriber persistence watcher (ignores 120fps clock/playback/lens ticks)
