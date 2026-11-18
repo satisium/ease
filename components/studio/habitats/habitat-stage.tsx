@@ -22,6 +22,8 @@ import { WalletDeckHabitat } from "./disclosure/wallet-deck-habitat"
 import { AccordionHabitat } from "./disclosure/accordion-habitat"
 import { ProgressWizardHabitat } from "./disclosure/progress-wizard-habitat"
 import { UploadProgressHabitat } from "./disclosure/upload-progress-habitat"
+import { HeroRevealHabitat } from "./landing/hero-reveal-habitat"
+import { FlipWordsHabitat } from "./landing/flip-words-habitat"
 import {
   PrimitivesXRay,
   type PrimitiveFilter,
@@ -54,6 +56,8 @@ const HABITAT_REGISTRY: Record<
   accordion: AccordionHabitat,
   wizard: ProgressWizardHabitat,
   progress: UploadProgressHabitat,
+  hero: HeroRevealHabitat,
+  flipwords: FlipWordsHabitat,
 }
 
 export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
