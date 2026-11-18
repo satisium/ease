@@ -122,7 +122,7 @@ export {
   wizardStepTrack,
   progressRunTrack,
 } from "./disclosure"
-export { landingTracks } from "./landing"
+export { landingTracks, heroRevealTrack, flipWordsCycleTrack } from "./landing"
 export { primitivesAllTrack } from "./primitives"
 
 // ============================================================================
