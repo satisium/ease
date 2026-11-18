@@ -24,7 +24,19 @@ import {
   hovercardOpenTrack,
   hovercardCloseTrack,
 } from "./overlays"
-import { buttonPressTrack, tabsSwitchTrack } from "./controls"
+import {
+  buttonPressTrack,
+  pillExpandTrack,
+  pillCollapseTrack,
+  tabsSwitchTrack,
+  ctaPressTrack,
+  sidebarExpandTrack,
+  sidebarCollapseTrack,
+  togglesPressTrack,
+  inputFocusTrack,
+  inputBlurTrack,
+  otpVerifyTrack,
+} from "./controls"
 import { toastFireTrack, carouselSlideTrack } from "./disclosure"
 import { landingTracks } from "./landing"
 import { primitivesAllTrack } from "./primitives"
@@ -44,8 +56,17 @@ trackRegistry.registerMany([
   hovercardOpenTrack,
   hovercardCloseTrack,
   buttonPressTrack,
+  pillExpandTrack,
+  pillCollapseTrack,
   toastFireTrack,
   tabsSwitchTrack,
+  ctaPressTrack,
+  sidebarExpandTrack,
+  sidebarCollapseTrack,
+  togglesPressTrack,
+  inputFocusTrack,
+  inputBlurTrack,
+  otpVerifyTrack,
   carouselSlideTrack,
   ...landingTracks,
   primitivesAllTrack,
@@ -69,7 +90,19 @@ export {
   hovercardOpenTrack,
   hovercardCloseTrack,
 } from "./overlays"
-export { buttonPressTrack, tabsSwitchTrack } from "./controls"
+export {
+  buttonPressTrack,
+  pillExpandTrack,
+  pillCollapseTrack,
+  tabsSwitchTrack,
+  ctaPressTrack,
+  sidebarExpandTrack,
+  sidebarCollapseTrack,
+  togglesPressTrack,
+  inputFocusTrack,
+  inputBlurTrack,
+  otpVerifyTrack,
+} from "./controls"
 export { toastFireTrack, carouselSlideTrack } from "./disclosure"
 export { landingTracks } from "./landing"
 export { primitivesAllTrack } from "./primitives"
@@ -186,6 +219,10 @@ export function getPairedTrackId(trackId: string): string | null {
     exit: "enter",
     press: "release",
     release: "press",
+    expand: "collapse",
+    collapse: "expand",
+    focus: "blur",
+    blur: "focus",
   }
 
   const opposite = opposites[phase]
