@@ -132,8 +132,8 @@ describe("UI-Readiness Pass A: Mathematical Helpers & Catalog Polish", () => {
   })
 
   describe("Popular Presets Catalog (core/presets/index.ts)", () => {
-    it("contains 15 curated IDs that all exist in canonical presets", () => {
-      expect(POPULAR_PRESET_IDS.length).toBe(15)
+    it("contains 17 curated IDs that all exist in canonical presets", () => {
+      expect(POPULAR_PRESET_IDS.length).toBe(17)
 
       for (const id of POPULAR_PRESET_IDS) {
         const found = getCanonicalPresetById(id)

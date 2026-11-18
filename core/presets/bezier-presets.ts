@@ -40,6 +40,40 @@ export const CANONICAL_BEZIER_PRESETS: readonly EaseCurve[] = [
     useCases: ["Modal Dialogs", "Sheet Entrances", "Cards Expanding"],
   },
   {
+    id: "ios-sheet",
+    name: "iOS Sheet",
+    engine: "bezier",
+    bezier: { p1: { x: 0.32, y: 0.72 }, p2: { x: 0, y: 1 } },
+    spring: { mass: 1, stiffness: 400, damping: 32, velocity: 0 },
+    suggestedDurationMs: 360,
+    category: "Entrances & Decel",
+    description:
+      "Signature iOS bottom sheet entrance curve with a swift initial rise and plush deceleration.",
+    useCases: [
+      "Bottom sheets",
+      "Action sheets",
+      "Mobile drawers",
+      "Modal overlays",
+    ],
+  },
+  {
+    id: "quint-out",
+    name: "Quint Out",
+    engine: "bezier",
+    bezier: { p1: { x: 0.22, y: 1 }, p2: { x: 0.36, y: 1 } },
+    spring: { mass: 1, stiffness: 400, damping: 32, velocity: 0 },
+    suggestedDurationMs: 220,
+    category: "Entrances & Decel",
+    description:
+      "Quintic deceleration with instantaneous high-velocity takeoff and immediate cushioned arrival.",
+    useCases: [
+      "Fast tooltips",
+      "Micro-interactions",
+      "Dropdown menus",
+      "Quick alerts",
+    ],
+  },
+  {
     id: "ease",
     name: "Default Ease",
     engine: "bezier",

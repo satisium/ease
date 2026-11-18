@@ -28,6 +28,13 @@ export type ViewportPreset = "desktop" | "tablet" | "mobile"
 export type TrackPhase = "enter" | "exit" | "state"
 
 /**
+ * Top-level categorized component domain grouping.
+ * Organizes interactive components in studio pickers and catalogs.
+ */
+export type TrackCategory =
+  "Overlays" | "Controls" | "Disclosure" | "Landing" | "Lab"
+
+/**
  * Spring duration reconciliation modes.
  * - "fit": Perceptual-Fit Mode. Maps spring character (damping ratio ζ) to the channel's
  *          choreographed durationMs so component timings remain synchronized.
@@ -188,6 +195,8 @@ export interface TransitionTrackPlugin {
   componentId: string
   /** Display label for the component (e.g. "Modal Dialog"). */
   componentLabel: string
+  /** Categorical grouping (e.g. "Overlays", "Controls", "Disclosure", "Landing", "Lab"). */
+  category?: TrackCategory
   /** Phase lifecycle of this track. */
   phase: TrackPhase
   /** Phase display label (e.g. "Entrance", "Exit"). */
@@ -305,6 +314,8 @@ export interface DuelEvaluation {
 export interface TrackFrameResult {
   /** Numerical value evaluated for each channel by channel ID. */
   values: Record<string, number>
+  /** Eased 0..1 normalized progress for each channel, preserving spring overshoot. */
+  progressByChannel: Record<string, number>
   /** True when all channels in the track have settled at rest. */
   isComplete: boolean
   /** Exact wall-clock elapsed time evaluated in milliseconds. */

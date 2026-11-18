@@ -182,6 +182,23 @@ describe("core/math/evaluator", () => {
       expect(f280.values.scale).toBe(1)
       expect(f280.isComplete).toBe(true)
     })
+
+    it("evaluates progressByChannel with normalized 0..1 progress across lifecycle", () => {
+      const f0 = evaluateTrackFrame({ track: enterTrack, elapsedMs: 0 })
+      expect(f0.progressByChannel.backdrop).toBe(0)
+      expect(f0.progressByChannel.translateY).toBe(0)
+      expect(f0.progressByChannel.scale).toBe(0)
+
+      const f200 = evaluateTrackFrame({ track: enterTrack, elapsedMs: 200 })
+      expect(f200.progressByChannel.backdrop).toBe(1)
+      expect(f200.progressByChannel.translateY).toBeGreaterThan(0)
+      expect(f200.progressByChannel.translateY).toBeLessThan(1)
+
+      const f280 = evaluateTrackFrame({ track: enterTrack, elapsedMs: 280 })
+      expect(f280.progressByChannel.backdrop).toBe(1)
+      expect(f280.progressByChannel.translateY).toBe(1)
+      expect(f280.progressByChannel.scale).toBe(1)
+    })
   })
 
   describe("Smart Opacity Protection", () => {
@@ -237,10 +254,14 @@ describe("core/math/evaluator", () => {
       // Sibling channels should be held at their fully open resting state
       expect(frame.values.backdrop).toBe(backdropChannel.to) // 0.5
       expect(frame.values.translateY).toBe(translateYChannel.to) // 0
+      expect(frame.progressByChannel.backdrop).toBe(1)
+      expect(frame.progressByChannel.translateY).toBe(1)
 
       // Soloed channel should actively animate
       expect(frame.values.scale).toBeGreaterThan(scaleChannel.from)
       expect(frame.values.scale).toBeLessThan(scaleChannel.to)
+      expect(frame.progressByChannel.scale).toBeGreaterThan(0)
+      expect(frame.progressByChannel.scale).toBeLessThan(1)
     })
 
     it("locks sibling channels to visible open start state (channel.from) during Exit", () => {
@@ -255,10 +276,14 @@ describe("core/math/evaluator", () => {
       // so modal doesn't vanish while auditioning scale
       expect(frame.values.backdrop).toBe(0.5) // exitTrack backdrop.from
       expect(frame.values.translateY).toBe(0) // exitTrack translateY.from
+      expect(frame.progressByChannel.backdrop).toBe(0)
+      expect(frame.progressByChannel.translateY).toBe(0)
 
       // Soloed scale should actively animate 1 -> 0.94
       expect(frame.values.scale).toBeLessThan(1)
       expect(frame.values.scale).toBeGreaterThan(0.94)
+      expect(frame.progressByChannel.scale).toBeGreaterThan(0)
+      expect(frame.progressByChannel.scale).toBeLessThan(1)
     })
   })
 

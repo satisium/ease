@@ -1,0 +1,83 @@
+import type { TransitionTrackPlugin } from "../../schema"
+import { createChannel } from "./shared"
+
+// ============================================================================
+// Primitives X-Ray Track (State)
+// ============================================================================
+export const primitivesAllTrack: TransitionTrackPlugin = {
+  id: "primitives:all",
+  componentId: "primitives",
+  componentLabel: "Primitives X-Ray",
+  category: "Lab",
+  phase: "state",
+  phaseLabel: "Full Range Inspection",
+  triggerLabel: "Run Test Suite",
+  channels: [
+    createChannel({
+      id: "position",
+      label: "Translate X",
+      property: "translateX",
+      from: 0,
+      to: 100,
+      unit: "%",
+      durationMs: 300,
+      delayMs: 0,
+      curveId: "ease-out-quart",
+      roleTitle: "Linear Path X-Ray",
+      guidance:
+        "Translational reference track for inspecting arrival kinetics.",
+      recommendedRangeMs: [200, 400],
+      recommendedPresetIds: [
+        "ease-out-quart",
+        "snappy-spring",
+        "expo-out",
+        "linear",
+      ],
+    }),
+    createChannel({
+      id: "scale",
+      label: "Scale",
+      property: "scale",
+      from: 0.5,
+      to: 1.0,
+      unit: "",
+      durationMs: 300,
+      delayMs: 0,
+      curveId: "expo-out",
+      roleTitle: "Scale X-Ray",
+      guidance: "Scalar reference for verifying non-linear expansion.",
+      recommendedRangeMs: [200, 400],
+      recommendedPresetIds: ["expo-out", "snappy-spring", "ease-out-quart"],
+    }),
+    createChannel({
+      id: "opacity",
+      label: "Opacity",
+      property: "opacity",
+      from: 0,
+      to: 1.0,
+      unit: "",
+      durationMs: 300,
+      delayMs: 0,
+      curveId: "linear",
+      roleTitle: "Opacity X-Ray",
+      guidance: "Alpha channel reference for verifying clamp protection.",
+      recommendedRangeMs: [150, 350],
+      recommendedPresetIds: ["linear", "ease-out", "material-decelerate"],
+    }),
+    createChannel({
+      id: "rotate",
+      label: "Rotate",
+      property: "rotate",
+      from: 0,
+      to: 180,
+      unit: "deg",
+      durationMs: 300,
+      delayMs: 0,
+      curveId: "snappy-spring",
+      roleTitle: "Angular X-Ray",
+      guidance: "Rotational reference for inspecting overshoot physics.",
+      recommendedRangeMs: [250, 450],
+      recommendedPresetIds: ["snappy-spring", "ios-fluid", "material-pop"],
+    }),
+  ],
+}

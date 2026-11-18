@@ -369,10 +369,30 @@ export function mergeTrackBindings(
 
   const rawMap = savedBindings as Record<string, unknown>
   const result: TrackChannelMap = {}
+  const LEGACY_DURATIONS = new Set([180, 200, 240, 280, 340])
+  const UPGRADED_DURATIONS = new Set([360, 380, 420, 480])
 
   for (const [trackId, defaultChannels] of Object.entries(defaults)) {
     const rawChannels = rawMap[trackId]
+    const canonical = trackRegistry.get(trackId)
+
     if (!Array.isArray(rawChannels)) {
+      result[trackId] = defaultChannels.map((c) => ({
+        ...c,
+        curve: cloneCurve(c.curve),
+      }))
+      continue
+    }
+
+    const hasChannelMismatch =
+      !canonical ||
+      rawChannels.length !== canonical.channels.length ||
+      rawChannels.some((sc: unknown, i: number) => {
+        if (!sc || typeof sc !== "object") return true
+        return (sc as { id?: unknown }).id !== canonical.channels[i]?.id
+      })
+
+    if (hasChannelMismatch) {
       result[trackId] = defaultChannels.map((c) => ({
         ...c,
         curve: cloneCurve(c.curve),
@@ -389,6 +409,20 @@ export function mergeTrackBindings(
       ) as Record<string, unknown> | undefined
 
       if (!savedCh) {
+        return {
+          ...defaultCh,
+          curve: cloneCurve(defaultCh.curve),
+        }
+      }
+
+      // Check if stored channel is using legacy pre-F1 duration while canonical is upgraded
+      const sbdNum = Number(savedCh.savedBezierDurationMs)
+      const isLegacyStaleDuration =
+        Number.isFinite(sbdNum) &&
+        LEGACY_DURATIONS.has(Math.round(sbdNum)) &&
+        UPGRADED_DURATIONS.has(defaultCh.savedBezierDurationMs)
+
+      if (isLegacyStaleDuration) {
         return {
           ...defaultCh,
           curve: cloneCurve(defaultCh.curve),
@@ -412,7 +446,6 @@ export function mergeTrackBindings(
           : defaultCh.durationMs
 
       // Validate savedBezierDurationMs
-      const sbdNum = Number(savedCh.savedBezierDurationMs)
       const savedBezierDurationMs =
         Number.isFinite(sbdNum) && sbdNum >= 1
           ? Math.round(sbdNum)

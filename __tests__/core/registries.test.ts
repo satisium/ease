@@ -8,6 +8,7 @@ import {
   getTrackPlugin,
   getTracksForComponent,
   listComponentTracks,
+  listComponents,
   trackRegistry,
 } from "../../core/registry/tracks"
 
@@ -84,14 +85,18 @@ describe("core/registry", () => {
     })
   })
 
-  describe("trackRegistry - All 11 Built-in Transition Tracks", () => {
+  describe("trackRegistry - All 15 Built-in Transition Tracks", () => {
     const EXPECTED_TRACK_IDS = [
       "dialog:open",
       "dialog:close",
       "drawer:open",
       "drawer:close",
+      "sheet:open",
+      "sheet:close",
       "dropdown:open",
       "dropdown:close",
+      "spotlight:open",
+      "spotlight:close",
       "button:press",
       "toast:fire",
       "tabs:switch",
@@ -99,8 +104,8 @@ describe("core/registry", () => {
       "primitives:all",
     ] as const
 
-    it("contains exactly the 11 canonical tracks", () => {
-      expect(trackRegistry.list()).toHaveLength(11)
+    it("contains exactly the 15 canonical tracks", () => {
+      expect(trackRegistry.list()).toHaveLength(15)
       for (const id of EXPECTED_TRACK_IDS) {
         expect(trackRegistry.has(id)).toBe(true)
       }
@@ -115,7 +120,7 @@ describe("core/registry", () => {
 
       // listComponentTracks excludes 'primitives'
       const componentTracks = listComponentTracks()
-      expect(componentTracks).toHaveLength(10)
+      expect(componentTracks).toHaveLength(14)
       expect(componentTracks.every((t) => t.componentId !== "primitives")).toBe(
         true
       )
@@ -128,12 +133,72 @@ describe("core/registry", () => {
         "dialog:close",
       ])
 
+      const spotlightTracks = getTracksForComponent("spotlight")
+      expect(spotlightTracks).toHaveLength(2)
+      expect(spotlightTracks.map((t) => t.id)).toEqual([
+        "spotlight:open",
+        "spotlight:close",
+      ])
+
+      const sheetTracks = getTracksForComponent("sheet")
+      expect(sheetTracks).toHaveLength(2)
+      expect(sheetTracks.map((t) => t.id)).toEqual([
+        "sheet:open",
+        "sheet:close",
+      ])
+
       const drawerTracks = getTracksForComponent("drawer")
       expect(drawerTracks).toHaveLength(2)
       expect(drawerTracks.map((t) => t.id)).toEqual([
         "drawer:open",
         "drawer:close",
       ])
+    })
+
+    it("assigns canonical TrackCategory to all tracks and groups listComponents by category", () => {
+      // Overlays
+      expect(getTrackPlugin("dialog:open")?.category).toBe("Overlays")
+      expect(getTrackPlugin("dialog:close")?.category).toBe("Overlays")
+      expect(getTrackPlugin("drawer:open")?.category).toBe("Overlays")
+      expect(getTrackPlugin("drawer:close")?.category).toBe("Overlays")
+      expect(getTrackPlugin("sheet:open")?.category).toBe("Overlays")
+      expect(getTrackPlugin("sheet:close")?.category).toBe("Overlays")
+      expect(getTrackPlugin("dropdown:open")?.category).toBe("Overlays")
+      expect(getTrackPlugin("dropdown:close")?.category).toBe("Overlays")
+      expect(getTrackPlugin("spotlight:open")?.category).toBe("Overlays")
+      expect(getTrackPlugin("spotlight:close")?.category).toBe("Overlays")
+
+      // Controls
+      expect(getTrackPlugin("button:press")?.category).toBe("Controls")
+      expect(getTrackPlugin("tabs:switch")?.category).toBe("Controls")
+
+      // Disclosure
+      expect(getTrackPlugin("toast:fire")?.category).toBe("Disclosure")
+      expect(getTrackPlugin("carousel:slide")?.category).toBe("Disclosure")
+
+      // Lab
+      expect(getTrackPlugin("primitives:all")?.category).toBe("Lab")
+
+      // listComponents categorization
+      const components = listComponents({ includePrimitives: true })
+      expect(components.find((c) => c.componentId === "dialog")?.category).toBe(
+        "Overlays"
+      )
+      expect(components.find((c) => c.componentId === "sheet")?.category).toBe(
+        "Overlays"
+      )
+      expect(
+        components.find((c) => c.componentId === "spotlight")?.category
+      ).toBe("Overlays")
+      expect(components.find((c) => c.componentId === "button")?.category).toBe(
+        "Controls"
+      )
+      expect(components.find((c) => c.componentId === "toast")?.category).toBe(
+        "Disclosure"
+      )
+      expect(
+        components.find((c) => c.componentId === "primitives")?.category
+      ).toBe("Lab")
     })
 
     it("Strict Integrity Sweep: all channels obey Duration Integrity Law & verified preset IDs", () => {
