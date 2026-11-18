@@ -189,9 +189,9 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
     const expectedComponents = [
       { label: "Drawer Sheet", trackId: "drawer:open" },
       { label: "Filter Dropdown", trackId: "dropdown:open" },
-      { label: "Tactile Button", trackId: "button:press" },
+      { label: "Morphing Button", trackId: "button:press" },
       { label: "Status Toast", trackId: "toast:fire" },
-      { label: "Segmented Tabs", trackId: "tabs:switch" },
+      { label: "Segmented Control", trackId: "tabs:switch" },
       { label: "Inertial Carousel", trackId: "carousel:slide" },
       { label: "Modal Dialog", trackId: "dialog:open" },
     ]

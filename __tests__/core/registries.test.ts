@@ -85,7 +85,7 @@ describe("core/registry", () => {
     })
   })
 
-  describe("trackRegistry - All 17 Built-in Transition Tracks", () => {
+  describe("trackRegistry - All 26 Built-in Transition Tracks", () => {
     const EXPECTED_TRACK_IDS = [
       "dialog:open",
       "dialog:close",
@@ -100,14 +100,23 @@ describe("core/registry", () => {
       "hovercard:open",
       "hovercard:close",
       "button:press",
+      "pill:expand",
+      "pill:collapse",
       "toast:fire",
       "tabs:switch",
+      "cta:press",
+      "sidebar:expand",
+      "sidebar:collapse",
+      "toggles:press",
+      "input:focus",
+      "input:blur",
+      "otp:verify",
       "carousel:slide",
       "primitives:all",
     ] as const
 
-    it("contains exactly the 17 canonical tracks", () => {
-      expect(trackRegistry.list()).toHaveLength(17)
+    it("contains exactly the 26 canonical tracks", () => {
+      expect(trackRegistry.list()).toHaveLength(26)
       for (const id of EXPECTED_TRACK_IDS) {
         expect(trackRegistry.has(id)).toBe(true)
       }
@@ -122,7 +131,7 @@ describe("core/registry", () => {
 
       // listComponentTracks excludes 'primitives'
       const componentTracks = listComponentTracks()
-      expect(componentTracks).toHaveLength(16)
+      expect(componentTracks).toHaveLength(25)
       expect(componentTracks.every((t) => t.componentId !== "primitives")).toBe(
         true
       )
@@ -162,6 +171,39 @@ describe("core/registry", () => {
         "hovercard:open",
         "hovercard:close",
       ])
+
+      const pillTracks = getTracksForComponent("pill")
+      expect(pillTracks).toHaveLength(2)
+      expect(pillTracks.map((t) => t.id)).toEqual([
+        "pill:expand",
+        "pill:collapse",
+      ])
+
+      const ctaTracks = getTracksForComponent("cta")
+      expect(ctaTracks).toHaveLength(1)
+      expect(ctaTracks.map((t) => t.id)).toEqual(["cta:press"])
+
+      const sidebarTracks = getTracksForComponent("sidebar")
+      expect(sidebarTracks).toHaveLength(2)
+      expect(sidebarTracks.map((t) => t.id)).toEqual([
+        "sidebar:expand",
+        "sidebar:collapse",
+      ])
+
+      const togglesTracks = getTracksForComponent("toggles")
+      expect(togglesTracks).toHaveLength(1)
+      expect(togglesTracks.map((t) => t.id)).toEqual(["toggles:press"])
+
+      const inputTracks = getTracksForComponent("input")
+      expect(inputTracks).toHaveLength(2)
+      expect(inputTracks.map((t) => t.id)).toEqual([
+        "input:focus",
+        "input:blur",
+      ])
+
+      const otpTracks = getTracksForComponent("otp")
+      expect(otpTracks).toHaveLength(1)
+      expect(otpTracks.map((t) => t.id)).toEqual(["otp:verify"])
     })
 
     it("assigns canonical TrackCategory to all tracks and groups listComponents by category", () => {
@@ -181,7 +223,16 @@ describe("core/registry", () => {
 
       // Controls
       expect(getTrackPlugin("button:press")?.category).toBe("Controls")
+      expect(getTrackPlugin("pill:expand")?.category).toBe("Controls")
+      expect(getTrackPlugin("pill:collapse")?.category).toBe("Controls")
       expect(getTrackPlugin("tabs:switch")?.category).toBe("Controls")
+      expect(getTrackPlugin("cta:press")?.category).toBe("Controls")
+      expect(getTrackPlugin("sidebar:expand")?.category).toBe("Controls")
+      expect(getTrackPlugin("sidebar:collapse")?.category).toBe("Controls")
+      expect(getTrackPlugin("toggles:press")?.category).toBe("Controls")
+      expect(getTrackPlugin("input:focus")?.category).toBe("Controls")
+      expect(getTrackPlugin("input:blur")?.category).toBe("Controls")
+      expect(getTrackPlugin("otp:verify")?.category).toBe("Controls")
 
       // Disclosure
       expect(getTrackPlugin("toast:fire")?.category).toBe("Disclosure")
@@ -202,6 +253,24 @@ describe("core/registry", () => {
         components.find((c) => c.componentId === "spotlight")?.category
       ).toBe("Overlays")
       expect(components.find((c) => c.componentId === "button")?.category).toBe(
+        "Controls"
+      )
+      expect(components.find((c) => c.componentId === "pill")?.category).toBe(
+        "Controls"
+      )
+      expect(components.find((c) => c.componentId === "cta")?.category).toBe(
+        "Controls"
+      )
+      expect(
+        components.find((c) => c.componentId === "sidebar")?.category
+      ).toBe("Controls")
+      expect(
+        components.find((c) => c.componentId === "toggles")?.category
+      ).toBe("Controls")
+      expect(components.find((c) => c.componentId === "input")?.category).toBe(
+        "Controls"
+      )
+      expect(components.find((c) => c.componentId === "otp")?.category).toBe(
         "Controls"
       )
       expect(components.find((c) => c.componentId === "toast")?.category).toBe(

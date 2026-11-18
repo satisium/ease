@@ -5,7 +5,7 @@
 
 import * as React from "react"
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { render, screen, act, fireEvent } from "@testing-library/react"
+import { render, screen, act, fireEvent, within } from "@testing-library/react"
 import { EaseStoreProvider, useEaseStoreApi } from "@/hooks/use-ease-store"
 import { DialogHabitat } from "@/components/studio/habitats/overlays/dialog-habitat"
 import { CommandPaletteHabitat } from "@/components/studio/habitats/overlays/command-palette-habitat"
@@ -13,7 +13,8 @@ import { DrawerHabitat } from "@/components/studio/habitats/overlays/drawer-habi
 import { BottomSheetHabitat } from "@/components/studio/habitats/overlays/bottom-sheet-habitat"
 import { DropdownHabitat } from "@/components/studio/habitats/overlays/dropdown-habitat"
 import { HoverCardHabitat } from "@/components/studio/habitats/overlays/hover-card-habitat"
-import { ButtonHabitat } from "@/components/studio/habitats/button-habitat"
+import { MorphButtonHabitat } from "@/components/studio/habitats/controls/morph-button-habitat"
+import { DynamicPillHabitat } from "@/components/studio/habitats/controls/dynamic-pill-habitat"
 
 describe("In-Process Habitats & usePairedHabitat (Step B-3A)", () => {
   beforeEach(() => {
@@ -711,38 +712,254 @@ describe("In-Process Habitats & usePairedHabitat (Step B-3A)", () => {
     })
   })
 
-  describe("ButtonHabitat", () => {
-    it("increments taps, calls triggerLive, and applies scale & opacity without CSS transition lag", () => {
-      render(
+  describe("MorphButtonHabitat", () => {
+    it("starts at rest, triggers live on click, and scrubs through Deploying, Deployed, strokeDashoffset, and scale pulse", () => {
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        storeApi = useEaseStoreApi()
+        return <MorphButtonHabitat />
+      }
+
+      const { container } = render(
         <EaseStoreProvider>
-          <ButtonHabitat />
+          <Harness />
         </EaseStoreProvider>
       )
 
-      expect(screen.getByText("Tactile Button")).toBeDefined()
-      expect(screen.getByText("0 Taps")).toBeDefined()
+      const button = screen.getByRole("button", {
+        name: "Deploy changes status button",
+      })
+      expect(button).toBeDefined()
+      expect(screen.getByText("Deploy Changes")).toBeDefined()
 
-      const button = screen
-        .getByText("Commit Kinetic Action")
-        .closest("button") as HTMLElement
-      expect(button).not.toBeNull()
-
-      // Initial styles applied via bindRef
-      expect(button.style.transform).toContain("scale")
-      expect(button.style.opacity).toBeDefined()
-
-      // Click button
+      // Click to trigger live
       act(() => {
         fireEvent.click(button)
       })
+      expect(storeApi!.getState().focusedTrackId).toBe("button:press")
 
-      expect(screen.getByText("1 Taps")).toBeDefined()
+      // Scrub to 70ms: scale channel undergoes impulse compression (scale < 1.0)
+      act(() => {
+        storeApi!.getState().focusTrack("button:press")
+        storeApi!.getState().seekScoped(70)
+      })
+      expect(button.style.transform).toContain("scale(0.9")
 
-      // Verify zero conflicting transitions
-      const classNames = button.className || ""
-      expect(classNames).not.toContain("transition-transform")
-      expect(classNames).not.toContain("transition-opacity")
-      expect(classNames).not.toContain("transition-all")
+      // Scrub to 120ms (morph midpoint clampedM ~ 0.49): Deploying is active
+      act(() => {
+        storeApi!.getState().seekScoped(120)
+      })
+      const deployingSpan = screen
+        .getByText("Deploying")
+        .closest(".absolute") as HTMLElement
+      expect(deployingSpan).not.toBeNull()
+      expect(parseFloat(deployingSpan.style.opacity)).toBeGreaterThan(0.8)
+
+      // Scrub to 100% (680ms): Deployed is active and strokeDashoffset is 0.00
+      act(() => {
+        storeApi!.getState().seekScoped(680)
+      })
+      const deployedSpan = screen
+        .getByText("Deployed")
+        .closest(".absolute") as HTMLElement
+      expect(deployedSpan).not.toBeNull()
+      expect(parseFloat(deployedSpan.style.opacity)).toBe(1)
+
+      const checkPath = container.querySelector(
+        "path[stroke-dasharray='24']"
+      ) as SVGPathElement
+      expect(checkPath).not.toBeNull()
+      expect(checkPath.style.strokeDashoffset).toBe("0.00")
+      expect(button.style.width).toMatch(/116(\.0)?px/)
+
+      // Strict 120fps Invariant: Zero CSS transition classes on animated elements
+      const animatedElements = container.querySelectorAll(
+        "[style*='transform'], [style*='opacity'], [style*='width']"
+      )
+      for (const el of Array.from(animatedElements)) {
+        const classNames = (el as HTMLElement).className || ""
+        expect(classNames).not.toContain("transition-transform")
+        expect(classNames).not.toContain("transition-opacity")
+        expect(classNames).not.toContain("transition-all")
+      }
+    })
+
+    it("auto-settles back to Deploy Changes after live playback completes", () => {
+      vi.useFakeTimers()
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        storeApi = useEaseStoreApi()
+        return <MorphButtonHabitat />
+      }
+
+      render(
+        <EaseStoreProvider>
+          <Harness />
+        </EaseStoreProvider>
+      )
+
+      // Trigger live and complete
+      act(() => {
+        storeApi!.conductor.focusTrack("button:press")
+        storeApi!.conductor.triggerLive("button:press")
+        storeApi!.conductor.seek(1.0)
+        storeApi!.setState({ playbackState: "idle" })
+      })
+
+      // Advance timers past 1100ms delay + 220ms settle transition
+      act(() => {
+        vi.advanceTimersByTime(1400)
+      })
+
+      const button = screen.getByRole("button", {
+        name: "Deploy changes status button",
+      })
+      expect(button.style.width).toMatch(/138(\.0)?px/)
+
+      vi.useRealTimers()
+    })
+
+    it("supports compareItemId when provided", () => {
+      render(
+        <EaseStoreProvider>
+          <MorphButtonHabitat compareItemId="comp-btn-1" />
+        </EaseStoreProvider>
+      )
+
+      expect(
+        screen.getByRole("button", { name: "Deploy changes status button" })
+      ).toBeDefined()
+    })
+  })
+
+  describe("DynamicPillHabitat", () => {
+    it("starts in compact mode, expands on click to reveal media controls, and collapses on dismiss", () => {
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        storeApi = useEaseStoreApi()
+        return <DynamicPillHabitat />
+      }
+
+      const { container } = render(
+        <EaseStoreProvider>
+          <Harness />
+        </EaseStoreProvider>
+      )
+
+      // Rest view: compact pill
+      const expandBtn = screen.getByRole("button", {
+        name: "Expand dynamic action pill",
+      })
+      expect(expandBtn).toBeDefined()
+      expect(within(expandBtn).getByText("Midnight Kinetics")).toBeDefined()
+
+      // Click to expand
+      act(() => {
+        fireEvent.click(expandBtn)
+      })
+
+      expect(storeApi!.getState().focusedTrackId).toBe("pill:expand")
+      expect(screen.getByText("Satisium Audio")).toBeDefined()
+      expect(screen.getByText("1:18")).toBeDefined()
+      expect(screen.getByText("3:42")).toBeDefined()
+
+      // Interactive playback controls
+      const playPauseBtn = screen.getByRole("button", { name: "Pause track" })
+      expect(playPauseBtn).toBeDefined()
+      act(() => {
+        fireEvent.click(playPauseBtn)
+      })
+      expect(screen.getByRole("button", { name: "Play track" })).toBeDefined()
+
+      // Next track button
+      const nextBtn = screen.getByRole("button", { name: "Next track" })
+      act(() => {
+        fireEvent.click(nextBtn)
+      })
+      expect(screen.getAllByText("Glass Physics").length).toBeGreaterThan(0)
+      expect(screen.getByText("Studio Mix")).toBeDefined()
+
+      // Prev track button
+      const prevBtn = screen.getByRole("button", { name: "Previous track" })
+      act(() => {
+        fireEvent.click(prevBtn)
+      })
+      expect(screen.getAllByText("Midnight Kinetics").length).toBeGreaterThan(0)
+
+      // Collapse button
+      const collapseBtn = screen.getByRole("button", {
+        name: "Collapse dynamic action pill",
+      })
+      expect(collapseBtn).toBeDefined()
+
+      // Click to collapse
+      act(() => {
+        fireEvent.click(collapseBtn)
+      })
+      expect(storeApi!.getState().focusedTrackId).toBe("pill:collapse")
+
+      // Zero transition-* classes on animated elements
+      const animatedElements = container.querySelectorAll(
+        "[style*='transform'], [style*='opacity'], [style*='clip-path']"
+      )
+      for (const el of Array.from(animatedElements)) {
+        const classNames = (el as HTMLElement).className || ""
+        expect(classNames).not.toContain("transition-transform")
+        expect(classNames).not.toContain("transition-opacity")
+        expect(classNames).not.toContain("transition-all")
+      }
+    })
+
+    it("scrubs pill:expand with GPU clip-path and scale3d transform", () => {
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        storeApi = useEaseStoreApi()
+        return <DynamicPillHabitat />
+      }
+
+      const { container } = render(
+        <EaseStoreProvider>
+          <Harness />
+        </EaseStoreProvider>
+      )
+
+      const capsule = container.querySelector(
+        ".will-change-\\[clip-path\\,transform\\]"
+      ) as HTMLElement
+      expect(capsule).not.toBeNull()
+
+      // At rest (0%)
+      expect(capsule.style.clipPath).toBe(
+        "inset(0px 68.00px 96.00px 68.00px round 18.00px)"
+      )
+      expect(capsule.style.transform).toBe("scale3d(1.0000, 1.0000, 1)")
+
+      // Scrub pill:expand to 100% (420ms)
+      act(() => {
+        storeApi!.getState().focusTrack("pill:expand")
+        storeApi!.getState().seekScoped(420)
+      })
+
+      expect(capsule.style.clipPath).toBe(
+        "inset(0px 0.00px 0.00px 0.00px round 26.00px)"
+      )
+      expect(capsule.style.transform).toContain("scale3d")
+    })
+
+    it("supports compareItemId when provided", () => {
+      render(
+        <EaseStoreProvider>
+          <DynamicPillHabitat compareItemId="comp-pill-1" />
+        </EaseStoreProvider>
+      )
+
+      expect(
+        screen.getByRole("button", { name: "Expand dynamic action pill" })
+      ).toBeDefined()
     })
   })
 })

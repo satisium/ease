@@ -153,9 +153,9 @@ describe("UI-Readiness Pass A: Mathematical Helpers & Catalog Polish", () => {
   })
 
   describe("Component Groups & Phase Pairing (core/registry/tracks.ts)", () => {
-    it("listComponents groups all 10 real UI components excluding primitives", () => {
+    it("listComponents groups all 16 real UI components excluding primitives", () => {
       const components = listComponents()
-      expect(components).toHaveLength(10)
+      expect(components).toHaveLength(16)
 
       const componentIds = components.map((c) => c.componentId)
       expect(componentIds).toEqual([
@@ -166,8 +166,14 @@ describe("UI-Readiness Pass A: Mathematical Helpers & Catalog Polish", () => {
         "spotlight",
         "hovercard",
         "button",
+        "pill",
         "toast",
         "tabs",
+        "cta",
+        "sidebar",
+        "toggles",
+        "input",
+        "otp",
         "carousel",
       ])
 
@@ -198,10 +204,25 @@ describe("UI-Readiness Pass A: Mathematical Helpers & Catalog Polish", () => {
       expect(getPairedTrackId("dropdown:open")).toBe("dropdown:close")
       expect(getPairedTrackId("dropdown:close")).toBe("dropdown:open")
 
+      // Pill pairing
+      expect(getPairedTrackId("pill:expand")).toBe("pill:collapse")
+      expect(getPairedTrackId("pill:collapse")).toBe("pill:expand")
+
+      // Sidebar pairing
+      expect(getPairedTrackId("sidebar:expand")).toBe("sidebar:collapse")
+      expect(getPairedTrackId("sidebar:collapse")).toBe("sidebar:expand")
+
+      // Input pairing
+      expect(getPairedTrackId("input:focus")).toBe("input:blur")
+      expect(getPairedTrackId("input:blur")).toBe("input:focus")
+
       // Single-phase tracks return null
       expect(getPairedTrackId("toast:fire")).toBeNull()
       expect(getPairedTrackId("button:press")).toBeNull()
       expect(getPairedTrackId("tabs:switch")).toBeNull()
+      expect(getPairedTrackId("cta:press")).toBeNull()
+      expect(getPairedTrackId("toggles:press")).toBeNull()
+      expect(getPairedTrackId("otp:verify")).toBeNull()
       expect(getPairedTrackId("carousel:slide")).toBeNull()
 
       // Invalid or empty tracks return null

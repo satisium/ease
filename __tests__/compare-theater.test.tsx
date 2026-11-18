@@ -206,9 +206,9 @@ describe("Phase D Step D-1: Compare Theater, Duel Tiles & Habitat compareItemId"
       fireEvent.click(tile2OverrideBtn)
     })
 
-    // Select Segmented Tabs override
+    // Select Segmented Control override
     const tabsOverrideOption = screen.getByLabelText(
-      "Override to Segmented Tabs"
+      "Override to Segmented Control"
     )
     act(() => {
       fireEvent.click(tabsOverrideOption)
@@ -217,8 +217,8 @@ describe("Phase D Step D-1: Compare Theater, Duel Tiles & Habitat compareItemId"
     // Tile 1 still renders Filters (3)
     expect(screen.getByText("Filters (3)")).toBeDefined()
 
-    // Tile 2 now renders Segmented Tabs Stage
-    expect(screen.getByText("Segmented Tabs Stage")).toBeDefined()
+    // Tile 2 now renders Segmented Control Overview tab
+    expect(screen.getByRole("tab", { name: "Overview tab" })).toBeDefined()
   })
 
   it("clicking Trigger All plays synchronized frames; clicking Use applies winner and exits Compare Mode", () => {
