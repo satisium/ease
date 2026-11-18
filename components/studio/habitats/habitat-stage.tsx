@@ -20,6 +20,8 @@ import { FloatingInputHabitat } from "./controls/floating-input-habitat"
 import { OtpShakeHabitat } from "./controls/otp-shake-habitat"
 import { WalletDeckHabitat } from "./disclosure/wallet-deck-habitat"
 import { AccordionHabitat } from "./disclosure/accordion-habitat"
+import { ProgressWizardHabitat } from "./disclosure/progress-wizard-habitat"
+import { UploadProgressHabitat } from "./disclosure/upload-progress-habitat"
 import {
   PrimitivesXRay,
   type PrimitiveFilter,
@@ -50,6 +52,8 @@ const HABITAT_REGISTRY: Record<
   otp: OtpShakeHabitat,
   carousel: WalletDeckHabitat,
   accordion: AccordionHabitat,
+  wizard: ProgressWizardHabitat,
+  progress: UploadProgressHabitat,
 }
 
 export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
