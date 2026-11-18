@@ -42,6 +42,8 @@ import {
   carouselSlideTrack,
   accordionOpenTrack,
   accordionCloseTrack,
+  wizardStepTrack,
+  progressRunTrack,
 } from "./disclosure"
 import { landingTracks } from "./landing"
 import { primitivesAllTrack } from "./primitives"
@@ -75,6 +77,8 @@ trackRegistry.registerMany([
   carouselSlideTrack,
   accordionOpenTrack,
   accordionCloseTrack,
+  wizardStepTrack,
+  progressRunTrack,
   ...landingTracks,
   primitivesAllTrack,
 ])
@@ -115,6 +119,8 @@ export {
   carouselSlideTrack,
   accordionOpenTrack,
   accordionCloseTrack,
+  wizardStepTrack,
+  progressRunTrack,
 } from "./disclosure"
 export { landingTracks } from "./landing"
 export { primitivesAllTrack } from "./primitives"

@@ -220,3 +220,102 @@ export const accordionCloseTrack: TransitionTrackPlugin = {
     }),
   ],
 }
+
+// ============================================================================
+// 4. Progress Wizard Track (Step Transition)
+// ============================================================================
+export const wizardStepTrack: TransitionTrackPlugin = {
+  id: "wizard:step",
+  componentId: "wizard",
+  componentLabel: "Progress Wizard",
+  category: "Disclosure",
+  phase: "state",
+  phaseLabel: "Step Transition",
+  triggerLabel: "Next Step",
+  channels: [
+    createChannel({
+      id: "slide",
+      label: "Card Slide",
+      property: "translateX",
+      from: 0,
+      to: -100,
+      unit: "%",
+      durationMs: 380,
+      delayMs: 0,
+      curveId: "ios-sheet",
+      roleTitle: "Full-Card Slide",
+      guidance:
+        "Slides 100% opaque wizard cards seamlessly along the horizontal viewport track.",
+      recommendedRangeMs: [260, 480],
+      recommendedPresetIds: [
+        "ios-sheet",
+        "expo-out",
+        "quint-out",
+        "snappy-spring",
+      ],
+    }),
+    createChannel({
+      id: "progress",
+      label: "Progress Fill",
+      property: "scale",
+      from: 0.333,
+      to: 0.667,
+      unit: "",
+      durationMs: 380,
+      delayMs: 0,
+      curveId: "ios-sheet",
+      roleTitle: "Segmented Bar Fill",
+      guidance:
+        "Scales the top progress indicator smoothly via GPU scaleX in lockstep with content.",
+      recommendedRangeMs: [260, 480],
+      recommendedPresetIds: ["ios-sheet", "expo-out", "quint-out", "linear"],
+    }),
+  ],
+}
+
+// ============================================================================
+// 5. Upload Progress Track (Linear Proof)
+// ============================================================================
+export const progressRunTrack: TransitionTrackPlugin = {
+  id: "progress:run",
+  componentId: "progress",
+  componentLabel: "Upload Progress",
+  category: "Disclosure",
+  phase: "state",
+  phaseLabel: "Progress Run",
+  triggerLabel: "Start Upload",
+  channels: [
+    createChannel({
+      id: "fill",
+      label: "Upload Fill",
+      property: "scale",
+      from: 0,
+      to: 1,
+      unit: "",
+      durationMs: 1400,
+      delayMs: 0,
+      curveId: "linear",
+      roleTitle: "Linear Velocity Proof",
+      guidance:
+        "Progress indicators need steady linear motion so users never feel a fake stall at 95%.",
+      recommendedRangeMs: [800, 2200],
+      recommendedPresetIds: ["linear", "ease-in-out", "quint-out", "expo-out"],
+    }),
+    createChannel({
+      id: "shimmer",
+      label: "Sweep Pass",
+      property: "translateX",
+      from: -100,
+      to: 320,
+      unit: "%",
+      durationMs: 1400,
+      delayMs: 0,
+      curveId: "linear",
+      roleTitle: "Specular Sweep",
+      guidance:
+        "Travels cleanly along the active track at matching constant speed.",
+      recommendedRangeMs: [800, 2200],
+      recommendedPresetIds: ["linear", "ease-in-out"],
+    }),
+  ],
+}
