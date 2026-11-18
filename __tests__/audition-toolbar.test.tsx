@@ -190,9 +190,9 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
       { label: "Drawer Sheet", trackId: "drawer:open" },
       { label: "Filter Dropdown", trackId: "dropdown:open" },
       { label: "Morphing Button", trackId: "button:press" },
-      { label: "Status Toast", trackId: "toast:fire" },
+      { label: "Toast Stack", trackId: "toast:fire" },
       { label: "Segmented Control", trackId: "tabs:switch" },
-      { label: "Inertial Carousel", trackId: "carousel:slide" },
+      { label: "Wallet Card Deck", trackId: "carousel:slide" },
       { label: "Modal Dialog", trackId: "dialog:open" },
     ]
 

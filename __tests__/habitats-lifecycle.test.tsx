@@ -10,7 +10,7 @@ import { EaseStoreProvider, useEaseStoreApi } from "@/hooks/use-ease-store"
 import { DialogHabitat } from "@/components/studio/habitats/overlays/dialog-habitat"
 import { DrawerHabitat } from "@/components/studio/habitats/overlays/drawer-habitat"
 import { DropdownHabitat } from "@/components/studio/habitats/overlays/dropdown-habitat"
-import { ToastHabitat } from "@/components/studio/habitats/toast-habitat"
+import { ToastStackHabitat } from "@/components/studio/habitats/disclosure/toast-stack-habitat"
 
 describe("Overlay Habitats Lifecycle & Scrub Retention (Step C-8A)", () => {
   beforeEach(() => {
@@ -176,7 +176,7 @@ describe("Overlay Habitats Lifecycle & Scrub Retention (Step C-8A)", () => {
 
     render(
       <EaseStoreProvider>
-        <ToastHabitat />
+        <ToastStackHabitat />
       </EaseStoreProvider>
     )
     expect(

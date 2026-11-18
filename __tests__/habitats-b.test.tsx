@@ -3,14 +3,14 @@ import { render, screen, fireEvent, act } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { EaseStoreProvider, useEaseStoreApi } from "@/hooks/use-ease-store"
 import { StudioUiProvider } from "@/components/studio/studio-ui-context"
-import { ToastHabitat } from "@/components/studio/habitats/toast-habitat"
+import { ToastStackHabitat } from "@/components/studio/habitats/disclosure/toast-stack-habitat"
 import { SegmentedTabsHabitat } from "@/components/studio/habitats/controls/segmented-tabs-habitat"
 import { ShimmerCtaHabitat } from "@/components/studio/habitats/controls/shimmer-cta-habitat"
 import { CollapsibleSidebarHabitat } from "@/components/studio/habitats/controls/collapsible-sidebar-habitat"
 import { TactileTogglesHabitat } from "@/components/studio/habitats/controls/tactile-toggles-habitat"
 import { FloatingInputHabitat } from "@/components/studio/habitats/controls/floating-input-habitat"
 import { OtpShakeHabitat } from "@/components/studio/habitats/controls/otp-shake-habitat"
-import { CarouselHabitat } from "@/components/studio/habitats/carousel-habitat"
+import { WalletDeckHabitat } from "@/components/studio/habitats/disclosure/wallet-deck-habitat"
 import { HabitatStage } from "@/components/studio/habitats/habitat-stage"
 import { PreviewTheater } from "@/components/studio/modes/audition/center-stage/preview-theater"
 
@@ -23,11 +23,11 @@ function TestWrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
-  describe("ToastHabitat", () => {
-    it("renders trigger at rest and reveals toast on trigger click and dismisses cleanly", () => {
+  describe("ToastStackHabitat", () => {
+    it("renders stacked toasts and responds to Send notification toast trigger", () => {
       render(
         <TestWrapper>
-          <ToastHabitat />
+          <ToastStackHabitat />
         </TestWrapper>
       )
 
@@ -36,24 +36,59 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
       })
       expect(triggerBtn).toBeInTheDocument()
 
-      // Toast is initially not mounted
-      expect(screen.queryByText("Invite sent")).not.toBeInTheDocument()
+      // Stacked toasts are mounted
+      expect(screen.getByText("Changes published")).toBeInTheDocument()
+      expect(screen.getByText("Event created")).toBeInTheDocument()
+      expect(screen.getByText("Invite link copied")).toBeInTheDocument()
 
-      // Fire toast
+      // Click trigger advances or re-triggers toast
       fireEvent.click(triggerBtn)
-      expect(screen.getByText("Invite sent")).toBeInTheDocument()
-      expect(
-        screen.getByText("Dispatched to team@satisium.com")
-      ).toBeInTheDocument()
+      expect(screen.getByText("Invite link copied")).toBeInTheDocument()
+    })
 
-      // Dismiss button
-      const dismissBtn = screen.getByRole("button", {
-        name: /Dismiss notification toast/i,
+    it("scrubs toast:fire and validates kinetic transform and opacity interpolation", () => {
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        const api = useEaseStoreApi()
+        React.useEffect(() => {
+          storeApi = api
+        }, [api])
+        return <ToastStackHabitat />
+      }
+
+      const { container } = render(
+        <TestWrapper>
+          <Harness />
+        </TestWrapper>
+      )
+
+      // Scrub to 380ms (100% complete)
+      act(() => {
+        storeApi!.getState().focusTrack("toast:fire")
+        storeApi!.getState().seekScoped(380)
       })
-      expect(dismissBtn).toBeInTheDocument()
-      fireEvent.click(dismissBtn)
 
-      expect(screen.queryByText("Invite sent")).not.toBeInTheDocument()
+      const cards = container.querySelectorAll("[data-toast-slot]")
+      expect(cards.length).toBe(3)
+      // Slot 0 incoming front card should be at full opacity and translate3d(0px, 0.00px, 0px)
+      const frontCard = cards[0] as HTMLElement
+      expect(Number(frontCard.style.opacity)).toBeCloseTo(1, 2)
+      expect(frontCard.style.transform).toContain(
+        "translate3d(0px, 0.00px, 0px)"
+      )
+    })
+
+    it("supports compareItemId when provided", () => {
+      render(
+        <TestWrapper>
+          <ToastStackHabitat compareItemId="comp-toast-1" />
+        </TestWrapper>
+      )
+
+      expect(
+        screen.getByRole("button", { name: /Send notification toast/i })
+      ).toBeInTheDocument()
     })
   })
 
@@ -584,31 +619,78 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
     })
   })
 
-  describe("CarouselHabitat", () => {
-    it("navigates slides forward and backward cleanly", () => {
-      render(
+  describe("WalletDeckHabitat", () => {
+    it("renders wallet card deck and shuffles cards forward", () => {
+      const { container } = render(
         <TestWrapper>
-          <CarouselHabitat />
+          <WalletDeckHabitat />
         </TestWrapper>
       )
 
-      expect(screen.getByText("Media Carousel Stage")).toBeInTheDocument()
+      expect(screen.getByText("Satisium Core")).toBeInTheDocument()
+      expect(screen.getByText("Kinetic Lab")).toBeInTheDocument()
+      expect(screen.getByText("Spring Physics")).toBeInTheDocument()
       expect(screen.getByText("01 / 03")).toBeInTheDocument()
 
-      const nextBtn = screen.getByRole("button", { name: /Next slide/i })
-      const prevBtn = screen.getByRole("button", { name: /Previous slide/i })
+      const nextBtn = screen.getByRole("button", { name: /Next card slide/i })
+      expect(nextBtn).toBeInTheDocument()
 
-      // Next
+      // Click next card slide advances
       fireEvent.click(nextBtn)
       expect(screen.getByText("02 / 03")).toBeInTheDocument()
 
-      // Next again
-      fireEvent.click(nextBtn)
+      // Click card itself also advances
+      const cards = container.querySelectorAll("[data-card-slot]")
+      expect(cards.length).toBe(3)
+      fireEvent.click(cards[0])
       expect(screen.getByText("03 / 03")).toBeInTheDocument()
+    })
 
-      // Prev
-      fireEvent.click(prevBtn)
-      expect(screen.getByText("02 / 03")).toBeInTheDocument()
+    it("scrubs carousel:slide with lateral arc shuffle and depth promotion", () => {
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        const api = useEaseStoreApi()
+        React.useEffect(() => {
+          storeApi = api
+        }, [api])
+        return <WalletDeckHabitat />
+      }
+
+      const { container } = render(
+        <TestWrapper>
+          <Harness />
+        </TestWrapper>
+      )
+
+      // Scrub carousel:slide to 240ms (50% apex lateral sweep)
+      act(() => {
+        storeApi!.getState().focusTrack("carousel:slide")
+        storeApi!.getState().seekScoped(240)
+      })
+
+      const cards = container.querySelectorAll("[data-card-slot]")
+      expect(cards.length).toBe(3)
+      const frontCard = cards[0] as HTMLElement
+      expect(frontCard.style.transform).toContain("translate3d")
+
+      // Scrub to 480ms (100% complete)
+      act(() => {
+        storeApi!.getState().seekScoped(480)
+      })
+      expect(frontCard.style.transform).toContain("scale(0.8800)")
+    })
+
+    it("supports compareItemId when provided", () => {
+      render(
+        <TestWrapper>
+          <WalletDeckHabitat compareItemId="comp-carousel-1" />
+        </TestWrapper>
+      )
+
+      expect(
+        screen.getByRole("button", { name: /Next card slide/i })
+      ).toBeInTheDocument()
     })
   })
 
@@ -744,7 +826,7 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
 
       // Switch to Carousel
       fireEvent.click(screen.getByText("Switch to Carousel"))
-      expect(screen.getByText("Media Carousel Stage")).toBeInTheDocument()
+      expect(screen.getByText("Satisium Core")).toBeInTheDocument()
     })
 
     it("renders PrimitivesXRay without duplicate filter bar when focusedTrack is primitives:all", () => {
