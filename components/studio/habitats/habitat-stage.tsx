@@ -19,6 +19,7 @@ import { TactileTogglesHabitat } from "./controls/tactile-toggles-habitat"
 import { FloatingInputHabitat } from "./controls/floating-input-habitat"
 import { OtpShakeHabitat } from "./controls/otp-shake-habitat"
 import { WalletDeckHabitat } from "./disclosure/wallet-deck-habitat"
+import { AccordionHabitat } from "./disclosure/accordion-habitat"
 import {
   PrimitivesXRay,
   type PrimitiveFilter,
@@ -48,6 +49,7 @@ const HABITAT_REGISTRY: Record<
   input: FloatingInputHabitat,
   otp: OtpShakeHabitat,
   carousel: WalletDeckHabitat,
+  accordion: AccordionHabitat,
 }
 
 export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
