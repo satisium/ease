@@ -11,14 +11,14 @@ import { DropdownHabitat } from "./overlays/dropdown-habitat"
 import { HoverCardHabitat } from "./overlays/hover-card-habitat"
 import { MorphButtonHabitat } from "./controls/morph-button-habitat"
 import { DynamicPillHabitat } from "./controls/dynamic-pill-habitat"
-import { ToastHabitat } from "./toast-habitat"
+import { ToastStackHabitat } from "./disclosure/toast-stack-habitat"
 import { SegmentedTabsHabitat } from "./controls/segmented-tabs-habitat"
 import { ShimmerCtaHabitat } from "./controls/shimmer-cta-habitat"
 import { CollapsibleSidebarHabitat } from "./controls/collapsible-sidebar-habitat"
 import { TactileTogglesHabitat } from "./controls/tactile-toggles-habitat"
 import { FloatingInputHabitat } from "./controls/floating-input-habitat"
 import { OtpShakeHabitat } from "./controls/otp-shake-habitat"
-import { CarouselHabitat } from "./carousel-habitat"
+import { WalletDeckHabitat } from "./disclosure/wallet-deck-habitat"
 import {
   PrimitivesXRay,
   type PrimitiveFilter,
@@ -40,14 +40,14 @@ const HABITAT_REGISTRY: Record<
   hovercard: HoverCardHabitat,
   button: MorphButtonHabitat,
   pill: DynamicPillHabitat,
-  toast: ToastHabitat,
+  toast: ToastStackHabitat,
   tabs: SegmentedTabsHabitat,
   cta: ShimmerCtaHabitat,
   sidebar: CollapsibleSidebarHabitat,
   toggles: TactileTogglesHabitat,
   input: FloatingInputHabitat,
   otp: OtpShakeHabitat,
-  carousel: CarouselHabitat,
+  carousel: WalletDeckHabitat,
 }
 
 export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
