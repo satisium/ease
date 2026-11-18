@@ -1,11 +1,23 @@
 import * as React from "react"
 import { render, screen, fireEvent, act } from "@testing-library/react"
 import { describe, expect, it, vi, beforeEach } from "vitest"
-import { EaseStoreProvider, useEaseStore } from "@/hooks/use-ease-store"
+import {
+  EaseStoreProvider,
+  useEaseStore,
+  useEaseStoreApi,
+} from "@/hooks/use-ease-store"
 import { ArchetypeAdvisorSlab } from "@/components/studio/modes/audition/right-flank/archetype-advisor-slab"
 import { CompareQueueSlab } from "@/components/studio/modes/audition/right-flank/compare-queue-slab"
 import { ExportSlab } from "@/components/studio/modes/audition/right-flank/export-slab"
 import { ExportDialog } from "@/components/studio/export-dialog"
+
+function TestRigInitializer({ children }: { children: React.ReactNode }) {
+  const store = useEaseStoreApi()
+  if (store.getState().focusedTrackId !== "dialog:open") {
+    store.getState().focusTrack("dialog:open")
+  }
+  return <>{children}</>
+}
 
 function StoreProbe() {
   const focusedChannel = useEaseStore((s) => s.getFocusedChannel())
@@ -34,6 +46,7 @@ function StoreProbe() {
 
 function StoreActions() {
   const selectCurveForFocused = useEaseStore((s) => s.selectCurveForFocused)
+  const focusTrack = useEaseStore((s) => s.focusTrack)
   const focusChannel = useEaseStore((s) => s.focusChannel)
   const enterCustomize = useEaseStore((s) => s.enterCustomize)
   const updateDraft = useEaseStore((s) => s.updateDraft)
@@ -44,6 +57,13 @@ function StoreActions() {
 
   return (
     <div>
+      <button
+        type="button"
+        data-testid="btn-focus-dialog"
+        onClick={() => focusTrack("dialog:open")}
+      >
+        Focus Dialog
+      </button>
       <button
         type="button"
         data-testid="btn-select-material-decelerate"
@@ -101,21 +121,30 @@ function StoreActions() {
   )
 }
 
+function ExportDialogWrapper() {
+  const isExportOpen = useEaseStore((s) => s.isExportOpen)
+  return <ExportDialog key={isExportOpen ? "open" : "closed"} />
+}
+
 function TestRig() {
   return (
     <EaseStoreProvider>
-      <ArchetypeAdvisorSlab />
-      <CompareQueueSlab />
-      <ExportSlab />
-      <ExportDialog />
-      <StoreProbe />
-      <StoreActions />
+      <TestRigInitializer>
+        <ArchetypeAdvisorSlab />
+        <CompareQueueSlab />
+        <ExportSlab />
+        <ExportDialogWrapper />
+        <StoreProbe />
+        <StoreActions />
+      </TestRigInitializer>
     </EaseStoreProvider>
   )
 }
 
 describe("Right Flank & Export Dialog (Step B-4A)", () => {
   beforeEach(() => {
+    document.body.innerHTML = ""
+    window.localStorage.clear()
     vi.restoreAllMocks()
     Object.assign(navigator, {
       clipboard: {
@@ -135,7 +164,7 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
       expect(screen.getByText("Surface Elevation")).toBeInTheDocument()
 
       // Quiet, borderless active curve & duration line
-      expect(screen.getByText("280ms")).toBeInTheDocument()
+      expect(screen.getByText("380ms")).toBeInTheDocument()
     })
 
     it("applies recommended preset while preserving channel duration integrity", () => {
@@ -183,11 +212,11 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
       expect(screen.getByText("1 Staged")).toBeInTheDocument()
       expect(duelBtn).toBeDisabled()
 
-      // 2. Select another curve (Quart Out) and queue it
-      const quartBtn = screen.getByRole("button", {
-        name: /Apply Ease Out Quart preset/i,
+      // 2. Select another curve (Quint Out) and queue it
+      const quintBtn = screen.getByRole("button", {
+        name: /Apply Quint Out preset/i,
       })
-      fireEvent.click(quartBtn)
+      fireEvent.click(quintBtn)
       fireEvent.click(
         screen.getByRole("button", {
           name: /Queue current curve for comparison/i,
@@ -288,9 +317,12 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
     it("selecting Material Decelerate with focusedChannelId === 'all' exports Material Decelerate's exact cubic-bezier, not Backdrop's Expo In; switching between Ease Only and Snippet updates CSS, Tailwind, Motion, GSAP", async () => {
       render(<TestRig />)
 
-      // Ensure focusedChannelId is "all" and select Material Decelerate
-      fireEvent.click(screen.getByTestId("btn-focus-all-channels"))
-      fireEvent.click(screen.getByTestId("btn-select-material-decelerate"))
+      // Ensure focusedTrack is dialog:open, focusedChannelId is "all" and select Material Decelerate
+      act(() => {
+        fireEvent.click(screen.getByTestId("btn-focus-dialog"))
+        fireEvent.click(screen.getByTestId("btn-focus-all-channels"))
+        fireEvent.click(screen.getByTestId("btn-select-material-decelerate"))
+      })
 
       expect(screen.getByTestId("probe-focused-channel-id").textContent).toBe(
         "all"
@@ -385,7 +417,7 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
       // Title
       expect(screen.getByText("Export Motion Kinetics")).toBeInTheDocument()
       // Prominent curve name
-      expect(dialogContent.textContent).toContain("Decelerate")
+      expect(dialogContent.textContent).toContain("Ease Out")
       // Pill
       expect(dialogContent.textContent).toMatch(/Cubic Bézier · \d+ms/)
       // Not dirty, so no "Unsaved Draft *"

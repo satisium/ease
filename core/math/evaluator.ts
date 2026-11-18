@@ -308,6 +308,7 @@ export function evaluateTrackFrame(
   } = options
 
   const values: Record<string, number> = {}
+  const progressByChannel: Record<string, number> = {}
   let isComplete = true
 
   const isSoloActive = Boolean(soloChannelId && soloChannelId !== "all")
@@ -319,6 +320,7 @@ export function evaluateTrackFrame(
       // Exit: locked at rest initial position (channel.from)
       const restValue = track.phase === "exit" ? channel.from : channel.to
       values[channel.id] = restValue
+      progressByChannel[channel.id] = track.phase === "exit" ? 0 : 1
       // Sibling does not block track completion
       continue
     }
@@ -330,6 +332,7 @@ export function evaluateTrackFrame(
     })
 
     values[channel.id] = evalResult.value
+    progressByChannel[channel.id] = evalResult.progress
     if (!evalResult.isComplete) {
       isComplete = false
     }
@@ -337,6 +340,7 @@ export function evaluateTrackFrame(
 
   return {
     values,
+    progressByChannel,
     isComplete,
     elapsedMs,
   }

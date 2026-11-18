@@ -78,7 +78,7 @@ describe("UI-Readiness Pass B: Store Ergonomics & 120fps Invariants", () => {
     }
 
     // Verify clock is advancing
-    expect(conductor.getSnapshot().elapsedMs).toBe(160)
+    expect(conductor.getSnapshot().elapsedMs).toBe(144)
     expect(conductor.getSnapshot().playbackState).toBe("playing")
 
     // CRITICAL INVARIANT: The Zustand store must NOT have notified listeners on these ticks!
@@ -94,7 +94,9 @@ describe("UI-Readiness Pass B: Store Ergonomics & 120fps Invariants", () => {
     expect(store.getState().speed).toBe(0.5)
 
     // Finish animation
-    clock.advance(500)
+    for (let i = 0; i < 25; i++) {
+      clock.advance(20)
+    }
     // When playback transitions to "resting" (breather delay), playbackState updates
     expect(store.getState().playbackState).toBe("resting")
     // Scrubber isolation invariant: triggerLive interactionMode is "live", so isPlaying is false
@@ -225,6 +227,7 @@ describe("UI-Readiness Pass B: Store Ergonomics & 120fps Invariants", () => {
 
   it("evaluates individual Compare contender tile frames with evaluateCompareItemFrame", () => {
     const store = createEaseStore()
+    store.getState().setGlobalCompareTarget({ trackId: "dialog:open" })
     const curve1 = getCanonicalPresetById("expo-out")!
     const curve2 = getCanonicalPresetById("snappy-spring")!
 
@@ -266,7 +269,8 @@ describe("UI-Readiness Pass B: Store Ergonomics & 120fps Invariants", () => {
     store.getState().stageActiveCurveToCompare()
     store.getState().enterCompare()
 
-    expect(store.getState().globalCompareTarget.trackId).toBe("dialog:open")
+    expect(store.getState().globalCompareTarget.trackId).toBe("primitives:all")
+    store.getState().setGlobalCompareTarget({ trackId: "dialog:open" })
 
     // Start playback and advance mid-flight
     store.getState().playScoped()

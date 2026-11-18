@@ -3,13 +3,27 @@
 import * as React from "react"
 import { getTrackPlugin } from "@/core"
 import { useEaseStore } from "@/hooks/use-ease-store"
-import { DialogHabitat } from "./dialog-habitat"
-import { DrawerHabitat } from "./drawer-habitat"
-import { DropdownHabitat } from "./dropdown-habitat"
-import { ButtonHabitat } from "./button-habitat"
-import { ToastHabitat } from "./toast-habitat"
-import { TabsHabitat } from "./tabs-habitat"
-import { CarouselHabitat } from "./carousel-habitat"
+import { DialogHabitat } from "./overlays/dialog-habitat"
+import { CommandPaletteHabitat } from "./overlays/command-palette-habitat"
+import { DrawerHabitat } from "./overlays/drawer-habitat"
+import { BottomSheetHabitat } from "./overlays/bottom-sheet-habitat"
+import { DropdownHabitat } from "./overlays/dropdown-habitat"
+import { HoverCardHabitat } from "./overlays/hover-card-habitat"
+import { MorphButtonHabitat } from "./controls/morph-button-habitat"
+import { DynamicPillHabitat } from "./controls/dynamic-pill-habitat"
+import { ToastStackHabitat } from "./disclosure/toast-stack-habitat"
+import { SegmentedTabsHabitat } from "./controls/segmented-tabs-habitat"
+import { ShimmerCtaHabitat } from "./controls/shimmer-cta-habitat"
+import { CollapsibleSidebarHabitat } from "./controls/collapsible-sidebar-habitat"
+import { TactileTogglesHabitat } from "./controls/tactile-toggles-habitat"
+import { FloatingInputHabitat } from "./controls/floating-input-habitat"
+import { OtpShakeHabitat } from "./controls/otp-shake-habitat"
+import { WalletDeckHabitat } from "./disclosure/wallet-deck-habitat"
+import { AccordionHabitat } from "./disclosure/accordion-habitat"
+import { ProgressWizardHabitat } from "./disclosure/progress-wizard-habitat"
+import { UploadProgressHabitat } from "./disclosure/upload-progress-habitat"
+import { HeroRevealHabitat } from "./landing/hero-reveal-habitat"
+import { FlipWordsHabitat } from "./landing/flip-words-habitat"
 import {
   PrimitivesXRay,
   type PrimitiveFilter,
@@ -17,6 +31,33 @@ import {
 
 export interface HabitatStageProps {
   compareItemId?: string
+}
+
+const HABITAT_REGISTRY: Record<
+  string,
+  React.ComponentType<HabitatStageProps>
+> = {
+  dialog: DialogHabitat,
+  spotlight: CommandPaletteHabitat,
+  drawer: DrawerHabitat,
+  sheet: BottomSheetHabitat,
+  dropdown: DropdownHabitat,
+  hovercard: HoverCardHabitat,
+  button: MorphButtonHabitat,
+  pill: DynamicPillHabitat,
+  toast: ToastStackHabitat,
+  tabs: SegmentedTabsHabitat,
+  cta: ShimmerCtaHabitat,
+  sidebar: CollapsibleSidebarHabitat,
+  toggles: TactileTogglesHabitat,
+  input: FloatingInputHabitat,
+  otp: OtpShakeHabitat,
+  carousel: WalletDeckHabitat,
+  accordion: AccordionHabitat,
+  wizard: ProgressWizardHabitat,
+  progress: UploadProgressHabitat,
+  hero: HeroRevealHabitat,
+  flipwords: FlipWordsHabitat,
 }
 
 export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
@@ -73,37 +114,23 @@ export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
     normalizedChannelId,
   ])
 
-  switch (componentId) {
-    case "dialog":
-      return <DialogHabitat compareItemId={compareItemId} />
-    case "drawer":
-      return <DrawerHabitat compareItemId={compareItemId} />
-    case "dropdown":
-      return <DropdownHabitat compareItemId={compareItemId} />
-    case "button":
-      return <ButtonHabitat compareItemId={compareItemId} />
-    case "toast":
-      return <ToastHabitat compareItemId={compareItemId} />
-    case "tabs":
-      return <TabsHabitat compareItemId={compareItemId} />
-    case "carousel":
-      return <CarouselHabitat compareItemId={compareItemId} />
-    case "primitives":
-      if (compareItemId) {
-        return (
-          <PrimitivesXRay
-            compareItemId={compareItemId}
-            controlledFilter={controlledFilter}
-          />
-        )
-      }
+  if (componentId === "primitives") {
+    if (compareItemId) {
       return (
         <PrimitivesXRay
-          isPreviewMode={mode === "preview"}
-          controlledFilter={normalizedChannelId}
+          compareItemId={compareItemId}
+          controlledFilter={controlledFilter}
         />
       )
-    default:
-      return <DialogHabitat compareItemId={compareItemId} />
+    }
+    return (
+      <PrimitivesXRay
+        isPreviewMode={mode === "preview"}
+        controlledFilter={normalizedChannelId}
+      />
+    )
   }
+
+  const Habitat = HABITAT_REGISTRY[componentId] ?? DialogHabitat
+  return <Habitat compareItemId={compareItemId} />
 }

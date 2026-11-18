@@ -274,6 +274,11 @@ describe("TimelineConsole & 120fps SatisSlider (Step B-1)", () => {
       </StudioUiProvider>
     )
 
+    // Focus dialog:open for duration editing test
+    act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
+    })
+
     // Pin
     const pinBtn = screen.getByLabelText("Pin active curve")
     expect(storeApi!.getState().isPinned).toBe(false)
@@ -301,12 +306,12 @@ describe("TimelineConsole & 120fps SatisSlider (Step B-1)", () => {
     expect(numInput).toBeDefined()
 
     act(() => {
-      fireEvent.change(numInput, { target: { value: "350" } })
+      fireEvent.change(numInput, { target: { value: "500" } })
       fireEvent.keyDown(numInput, { key: "Enter" })
     })
 
     // Commits duration
-    expect(screen.getByText("350ms")).toBeDefined()
+    expect(screen.getByText("500ms")).toBeDefined()
   })
 
   it("isolates live component interactions from scrubber: triggerLive keeps isPlaying false and leaves elapsed untouched, while playScoped activates playback", () => {

@@ -9,7 +9,7 @@ import { render, screen, act, fireEvent } from "@testing-library/react"
 import { EaseStoreProvider, useEaseStoreApi } from "@/hooks/use-ease-store"
 import { StudioUiProvider } from "@/components/studio/studio-ui-context"
 import { TimelineConsole } from "@/components/studio/modes/audition/center-stage/timeline-console"
-import { DialogHabitat } from "@/components/studio/habitats/dialog-habitat"
+import { DialogHabitat } from "@/components/studio/habitats/overlays/dialog-habitat"
 import { useTransitionTrack } from "@/hooks/use-transition-track"
 
 describe("Scrubber Block & Channel-Targeting Integration", () => {
@@ -52,8 +52,9 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
       </EaseStoreProvider>
     )
 
-    // Select translateY channel
+    // Focus dialog:open and select translateY channel
     act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
       storeApi!.getState().focusChannel("translateY")
     })
 
@@ -69,10 +70,10 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
 
     // During scrubbing on translateY:
     // translateY is animating/scrubbed
-    // backdrop is locked to rest destination (0.45)
+    // backdrop is locked to rest destination (0.28)
     // scale is locked to rest destination (1.0)
     expect(lastFrameValues.translateY).toBeDefined()
-    expect(lastFrameValues.backdrop).toBeCloseTo(0.45, 2)
+    expect(lastFrameValues.backdrop).toBeCloseTo(0.28, 2)
     expect(lastFrameValues.scale).toBeCloseTo(1.0, 2)
 
     // Now start Play with isSolo = false
@@ -84,13 +85,13 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
     expect(storeApi!.conductor.getSnapshot().playbackState).toBe("playing")
     // When playing in context with isSolo === false, all channels animate from their initial values
     // At t=0 of dialog:open:
-    // backdrop starts at 0, translateY starts at 36, scale starts at 0.92
+    // backdrop starts at 0, translateY starts at 12, scale starts at 0.96
     expect(lastFrameValues.backdrop).toBeCloseTo(0, 1)
-    expect(lastFrameValues.translateY).toBeCloseTo(36, 1)
-    expect(lastFrameValues.scale).toBeCloseTo(0.92, 2)
+    expect(lastFrameValues.translateY).toBeCloseTo(12, 1)
+    expect(lastFrameValues.scale).toBeCloseTo(0.96, 2)
   })
 
-  it("2. updates totalDurationMs to 180ms when backdrop is selected and scrubbed, matching readout 180ms / 180ms", () => {
+  it("2. updates totalDurationMs to 320ms when backdrop is selected and scrubbed, matching readout 320ms / 320ms", () => {
     let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
 
     function TestHarness() {
@@ -110,23 +111,24 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
 
     // Focus backdrop channel on dialog:open
     act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
       storeApi!.getState().focusChannel("backdrop")
     })
 
-    // Scrub to 100% of backdrop duration (180ms)
+    // Scrub to 100% of backdrop duration (320ms)
     act(() => {
-      storeApi!.getState().seekScoped(180)
+      storeApi!.getState().seekScoped(320)
     })
 
-    // Store totalDurationMs and conductor totalDurationMs must be 180ms
-    expect(storeApi!.getState().totalDurationMs).toBe(180)
-    expect(storeApi!.conductor.getSnapshot().totalDurationMs).toBe(180)
-    expect(storeApi!.conductor.getSnapshot().elapsedMs).toBe(180)
+    // Store totalDurationMs and conductor totalDurationMs must be 320ms
+    expect(storeApi!.getState().totalDurationMs).toBe(320)
+    expect(storeApi!.conductor.getSnapshot().totalDurationMs).toBe(320)
+    expect(storeApi!.conductor.getSnapshot().elapsedMs).toBe(320)
 
-    // Verify right-hand readout shows 180ms / 180ms (both elapsed span and total button match 180ms)
-    expect(screen.getAllByText("180ms").length).toBe(2)
+    // Verify right-hand readout shows 320ms / 320ms (both elapsed span and total button match 320ms)
+    expect(screen.getAllByText("320ms").length).toBe(2)
     expect(
-      screen.getByLabelText("Total duration 180ms. Click to edit")
+      screen.getByLabelText("Total duration 320ms. Click to edit")
     ).toBeDefined()
   })
 
@@ -158,9 +160,10 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
 
     const fill = screen.getByTestId("satis-slider-fill")
 
-    // Seek/play to 100%
+    // Seek/play to 100% on dialog:open
     act(() => {
-      storeApi!.getState().seekScoped(305)
+      storeApi!.getState().focusTrack("dialog:open")
+      storeApi!.getState().seekScoped(380)
     })
 
     // Conductor is at 100%
@@ -197,12 +200,16 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
       </EaseStoreProvider>
     )
 
+    act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
+    })
+
     // Initially modal is closed
-    expect(screen.queryByDisplayValue("Satishkumar")).toBeNull()
+    expect(screen.queryByRole("dialog", { name: "Edit Profile" })).toBeNull()
 
     // Scrub dialog:open to 100% (progress >= 0.99)
     act(() => {
-      storeApi!.getState().seekScoped(305)
+      storeApi!.getState().seekScoped(380)
     })
 
     // Modal dialog is mounted and open

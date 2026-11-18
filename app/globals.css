@@ -224,6 +224,7 @@
   --font-body: var(--font-body), ui-sans-serif, system-ui;
   --font-code: var(--font-code), ui-monospace, monospace;
   --font-caveat: var(--font-caveat), "Caveat", cursive;
+  --font-editorial: var(--font-editorial), Georgia, serif;
 
   --font-sans: var(--font-body);
   --font-mono: var(--font-code);

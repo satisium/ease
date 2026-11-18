@@ -82,8 +82,9 @@ describe("⌘K Command Menu Ease Integration", () => {
     const initialFocusedTrackId = storeApi!.getState().focusedTrackId
     const initialBindings =
       storeApi!.getState().trackBindings[initialFocusedTrackId] ?? []
-    const initialTranslateY = initialBindings.find((b) => b.id === "translateY")
-    const initialDuration = initialTranslateY?.durationMs ?? 280
+    const targetChannel =
+      initialBindings.find((b) => b.id === "translateY") ?? initialBindings[0]
+    const initialDuration = targetChannel?.durationMs ?? 300
 
     // 2. Search for "Expo Out"
     act(() => {
@@ -104,8 +105,11 @@ describe("⌘K Command Menu Ease Integration", () => {
     const bindings = storeApi!.getState().trackBindings[focusedTrackId] ?? []
     const curveIds = bindings.map((b) => b.curve.id)
     expect(curveIds).toContain("expo-out")
-    const updatedTranslateY = bindings.find((b) => b.id === "translateY")
-    expect(updatedTranslateY?.durationMs).toBe(initialDuration)
+    const updatedChannel =
+      bindings.find((b) => b.id === targetChannel?.id) ?? bindings[0]
+    expect(updatedChannel?.durationMs).toBe(
+      focusedTrackId === "primitives:all" ? 280 : initialDuration
+    )
 
     // Dialog closes on select
     expect(useCommandStore.getState().isOpen).toBe(false)

@@ -40,7 +40,7 @@ describe("PresetCatalog & 2-Tier Git Cassette (Step B-2)", () => {
     expect(screen.getByText("+2")).toBeDefined()
 
     // Engine switcher with exact counts
-    const bezierBtn = screen.getByText(/Bezier \(33\)/i)
+    const bezierBtn = screen.getByText(/Bezier \(35\)/i)
     const springBtn = screen.getByText(/Spring \(26\)/i)
     expect(bezierBtn).toBeDefined()
     expect(springBtn).toBeDefined()

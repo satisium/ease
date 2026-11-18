@@ -1,9 +1,13 @@
 import * as React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, act } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AuditionToolbar } from "@/components/studio/modes/audition/center-stage/audition-toolbar"
-import { EaseStoreProvider, useEaseStore } from "@/hooks/use-ease-store"
+import {
+  EaseStoreProvider,
+  useEaseStore,
+  useEaseStoreApi,
+} from "@/hooks/use-ease-store"
 import { StudioUiProvider } from "@/components/studio/studio-ui-context"
 
 function TestWrapper({ children }: { children: React.ReactNode }) {
@@ -42,7 +46,7 @@ function StoreProbe() {
 }
 
 describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
-  it("renders Component picker, displays Modal Dialog, and switches component on click", () => {
+  it("renders Component picker, displays Primitives by default, and switches component on click", () => {
     render(
       <TestWrapper>
         <AuditionToolbar />
@@ -50,13 +54,13 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
       </TestWrapper>
     )
 
-    // Initially Modal Dialog
+    // Initially Primitives
     const pickerTrigger = screen.getByRole("button", {
       name: /Select interactive component/i,
     })
     expect(pickerTrigger).toBeInTheDocument()
-    expect(screen.getByText("Modal Dialog")).toBeInTheDocument()
-    expect(screen.getByTestId("probe-track").textContent).toBe("dialog:open")
+    expect(screen.getByText("Primitives")).toBeInTheDocument()
+    expect(screen.getByTestId("probe-track").textContent).toBe("primitives:all")
 
     // Open menu
     fireEvent.click(pickerTrigger)
@@ -75,6 +79,14 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
         <StoreProbe />
       </TestWrapper>
     )
+
+    // Select Modal Dialog first so paired phase switcher is available
+    const pickerTrigger = screen.getByRole("button", {
+      name: /Select interactive component/i,
+    })
+    fireEvent.click(pickerTrigger)
+    const modalOption = screen.getByRole("button", { name: "Modal Dialog" })
+    fireEvent.click(modalOption)
 
     const entranceTab = screen.getByRole("tab", { name: /Entrance phase/i })
     const exitTab = screen.getByRole("tab", { name: /Exit phase/i })
@@ -109,17 +121,17 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
     expect(channelTrigger).toBeInTheDocument()
     expect(screen.getByText("All Channels")).toBeInTheDocument()
 
-    // Open channel dropdown
+    // Open channel dropdown on default primitives:all
     fireEvent.click(channelTrigger)
-    const translateYOption = screen.getByRole("button", {
-      name: /Translate Y channel/i,
+    const positionOption = screen.getByRole("button", {
+      name: /Position channel/i,
     })
-    expect(translateYOption).toBeInTheDocument()
+    expect(positionOption).toBeInTheDocument()
 
-    // Click Translate Y
-    fireEvent.click(translateYOption)
-    expect(screen.getByTestId("probe-channel").textContent).toBe("translateY")
-    expect(screen.getByText("Translate Y")).toBeInTheDocument()
+    // Click Position
+    fireEvent.click(positionOption)
+    expect(screen.getByTestId("probe-channel").textContent).toBe("position")
+    expect(screen.getByText("Position")).toBeInTheDocument()
 
     // Scoped controls
     expect(
@@ -149,8 +161,10 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
       name: /Select kinetic channel/i,
     })
     fireEvent.click(channelTrigger)
-    const scaleOption = screen.getByRole("button", { name: /Scale channel/i })
-    fireEvent.click(scaleOption)
+    const positionOption = screen.getByRole("button", {
+      name: /Position channel/i,
+    })
+    fireEvent.click(positionOption)
     expect(soloBtn).not.toBeDisabled()
 
     // Solo
@@ -175,10 +189,10 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
     const expectedComponents = [
       { label: "Drawer Sheet", trackId: "drawer:open" },
       { label: "Filter Dropdown", trackId: "dropdown:open" },
-      { label: "Tactile Button", trackId: "button:press" },
-      { label: "Status Toast", trackId: "toast:fire" },
-      { label: "Segmented Tabs", trackId: "tabs:switch" },
-      { label: "Inertial Carousel", trackId: "carousel:slide" },
+      { label: "Morphing Button", trackId: "button:press" },
+      { label: "Toast Stack", trackId: "toast:fire" },
+      { label: "Segmented Control", trackId: "tabs:switch" },
+      { label: "Wallet Card Deck", trackId: "carousel:slide" },
       { label: "Modal Dialog", trackId: "dialog:open" },
     ]
 
@@ -236,10 +250,16 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
       </TestWrapper>
     )
 
-    // Open component menu
+    // Switch to another component first
     const pickerTrigger = screen.getByRole("button", {
       name: /Select interactive component/i,
     })
+    fireEvent.click(pickerTrigger)
+    const modalOption = screen.getByRole("button", { name: "Modal Dialog" })
+    fireEvent.click(modalOption)
+    expect(screen.getByTestId("probe-track").textContent).toBe("dialog:open")
+
+    // Open component menu again
     fireEvent.click(pickerTrigger)
 
     // Verify Lab badge and Primitives option
@@ -267,5 +287,47 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
 
     expect(screen.getByTestId("probe-channel").textContent).toBe("position")
     expect(screen.getByText("Position")).toBeInTheDocument()
+  })
+
+  it("enables Reset button when track is modified and restores defaults on click", () => {
+    let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+    function StoreCapture() {
+      const api = useEaseStoreApi()
+      React.useEffect(() => {
+        storeApi = api
+      }, [api])
+      return null
+    }
+
+    render(
+      <TestWrapper>
+        <AuditionToolbar />
+        <StoreCapture />
+      </TestWrapper>
+    )
+
+    const resetBtn = screen.getByRole("button", {
+      name: /Reset component to default curves/i,
+    })
+    expect(resetBtn).toBeInTheDocument()
+    // Initially unmodified -> disabled
+    expect(resetBtn).toBeDisabled()
+
+    // Modify a channel duration inside act
+    act(() => {
+      storeApi!.getState().setFocusedDurationMs(999)
+    })
+
+    // Now track is modified -> button becomes enabled
+    expect(resetBtn).not.toBeDisabled()
+
+    // Click Reset inside act
+    act(() => {
+      fireEvent.click(resetBtn)
+    })
+
+    // Track is restored back to default -> button disabled again
+    expect(resetBtn).toBeDisabled()
   })
 })

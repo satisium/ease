@@ -132,8 +132,8 @@ describe("UI-Readiness Pass A: Mathematical Helpers & Catalog Polish", () => {
   })
 
   describe("Popular Presets Catalog (core/presets/index.ts)", () => {
-    it("contains 15 curated IDs that all exist in canonical presets", () => {
-      expect(POPULAR_PRESET_IDS.length).toBe(15)
+    it("contains 17 curated IDs that all exist in canonical presets", () => {
+      expect(POPULAR_PRESET_IDS.length).toBe(17)
 
       for (const id of POPULAR_PRESET_IDS) {
         const found = getCanonicalPresetById(id)
@@ -153,19 +153,33 @@ describe("UI-Readiness Pass A: Mathematical Helpers & Catalog Polish", () => {
   })
 
   describe("Component Groups & Phase Pairing (core/registry/tracks.ts)", () => {
-    it("listComponents groups all 7 real UI components excluding primitives", () => {
+    it("listComponents groups all 21 real UI components excluding primitives", () => {
       const components = listComponents()
-      expect(components).toHaveLength(7)
+      expect(components).toHaveLength(21)
 
       const componentIds = components.map((c) => c.componentId)
       expect(componentIds).toEqual([
         "dialog",
         "drawer",
+        "sheet",
         "dropdown",
+        "spotlight",
+        "hovercard",
         "button",
+        "pill",
         "toast",
         "tabs",
+        "cta",
+        "sidebar",
+        "toggles",
+        "input",
+        "otp",
         "carousel",
+        "accordion",
+        "wizard",
+        "progress",
+        "hero",
+        "flipwords",
       ])
 
       // Strictly excludes primitives X-ray
@@ -195,11 +209,34 @@ describe("UI-Readiness Pass A: Mathematical Helpers & Catalog Polish", () => {
       expect(getPairedTrackId("dropdown:open")).toBe("dropdown:close")
       expect(getPairedTrackId("dropdown:close")).toBe("dropdown:open")
 
+      // Pill pairing
+      expect(getPairedTrackId("pill:expand")).toBe("pill:collapse")
+      expect(getPairedTrackId("pill:collapse")).toBe("pill:expand")
+
+      // Sidebar pairing
+      expect(getPairedTrackId("sidebar:expand")).toBe("sidebar:collapse")
+      expect(getPairedTrackId("sidebar:collapse")).toBe("sidebar:expand")
+
+      // Input pairing
+      expect(getPairedTrackId("input:focus")).toBe("input:blur")
+      expect(getPairedTrackId("input:blur")).toBe("input:focus")
+
+      // Accordion pairing
+      expect(getPairedTrackId("accordion:open")).toBe("accordion:close")
+      expect(getPairedTrackId("accordion:close")).toBe("accordion:open")
+
       // Single-phase tracks return null
       expect(getPairedTrackId("toast:fire")).toBeNull()
       expect(getPairedTrackId("button:press")).toBeNull()
       expect(getPairedTrackId("tabs:switch")).toBeNull()
+      expect(getPairedTrackId("cta:press")).toBeNull()
+      expect(getPairedTrackId("toggles:press")).toBeNull()
+      expect(getPairedTrackId("otp:verify")).toBeNull()
       expect(getPairedTrackId("carousel:slide")).toBeNull()
+      expect(getPairedTrackId("wizard:step")).toBeNull()
+      expect(getPairedTrackId("progress:run")).toBeNull()
+      expect(getPairedTrackId("hero:reveal")).toBeNull()
+      expect(getPairedTrackId("flipwords:cycle")).toBeNull()
 
       // Invalid or empty tracks return null
       expect(getPairedTrackId("")).toBeNull()

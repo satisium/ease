@@ -62,10 +62,10 @@ describe("Headless EaseStore Integration (core/store/create-ease-store)", () => 
     store.getState().focusTrack("drawer:open")
     expect(store.getState().focusedTrackId).toBe("drawer:open")
 
-    // 2. Focus "translateX" channel and record baseline duration
-    store.getState().focusChannel("translateX")
+    // 2. Focus "containerClip" channel and record baseline duration
+    store.getState().focusChannel("containerClip")
     const channelBefore = store.getState().getFocusedChannel()!
-    expect(channelBefore.id).toBe("translateX")
+    expect(channelBefore.id).toBe("containerClip")
     const baselineDuration = channelBefore.durationMs
     const baselineSaved = channelBefore.savedBezierDurationMs
 
@@ -116,7 +116,7 @@ describe("Headless EaseStore Integration (core/store/create-ease-store)", () => 
     // Track-wide export compilation
     const trackCss = store.getState().getActiveExportCode("css", "track")
     expect(trackCss).toContain("Drawer Sheet (Entrance)")
-    expect(trackCss).toContain(".drawer-backdrop")
+    expect(trackCss).toContain(".drawer-containerClip")
   })
 
   it("handles Scoped Track & Auto-Capture: unpinned auto-captures focus; pinned prevents focus theft", () => {
@@ -296,17 +296,18 @@ describe("Headless EaseStore Integration (core/store/create-ease-store)", () => 
   it("computes compare mode duration across all channels and respects tile overrideTrackId", () => {
     const store = createEaseStore()
     store.getState().enterCompare()
+    store
+      .getState()
+      .setGlobalCompareTarget({ trackId: "dialog:open", channelId: "all" })
     expect(store.getState().globalCompareTarget.channelId).toBe("all")
 
     // Stage custom root and its variants
     const root = store.getState().customCurves[0]
     store.getState().stageVariantsToCompare(root.id)
 
-    // With dialog:open and channelId="all", duration must be >= 280ms
-    // (channels: backdrop 180ms, translateY 40+240=280ms, scale 40+240=280ms)
-    // and not 180ms (which was the bug that erroneously took channels[0])
+    // With dialog:open and channelId="all", duration must be >= 380ms
     const compareDuration = store.conductor.getSnapshot().totalDurationMs
-    expect(compareDuration).toBeGreaterThanOrEqual(280)
+    expect(compareDuration).toBeGreaterThanOrEqual(380)
 
     // Now override the first compare item's track to "drawer:open"
     const firstItemId = store.getState().compareQueue[0].id
@@ -314,25 +315,25 @@ describe("Headless EaseStore Integration (core/store/create-ease-store)", () => 
       .getState()
       .setCompareTileOverride(firstItemId, { trackId: "drawer:open" })
 
-    // In "drawer:open", translateX duration is 340ms (delay 0ms + 340ms)
+    // In "drawer:open", duration is 480ms
     const overriddenDuration = store.conductor.getSnapshot().totalDurationMs
-    expect(overriddenDuration).toBeGreaterThanOrEqual(340)
+    expect(overriddenDuration).toBeGreaterThanOrEqual(480)
 
     // Overriding specific channel ID
     store.getState().setCompareTileOverride(firstItemId, {
       trackId: "drawer:open",
-      channelId: "backdrop",
+      channelId: "containerClip",
     })
     expect(
       store.conductor.getSnapshot().totalDurationMs
-    ).toBeGreaterThanOrEqual(280)
+    ).toBeGreaterThanOrEqual(380)
 
-    // If global target is set to backdrop on dialog:open, and first item has channelId backdrop on drawer:open
+    // If global target is set to backdrop on dialog:open, and first item has channelId containerClip on drawer:open
     store
       .getState()
       .setGlobalCompareTarget({ trackId: "dialog:open", channelId: "backdrop" })
-    // dialog:open backdrop is 180ms, first item drawer:open backdrop is 240ms -> max is 240ms
-    expect(store.conductor.getSnapshot().totalDurationMs).toBe(240)
+    // dialog:open backdrop is 320ms, first item drawer:open containerClip is 480ms -> max is 480ms
+    expect(store.conductor.getSnapshot().totalDurationMs).toBe(480)
   })
 
   it("handles interruptActive with continuous velocity on paired and unpaired tracks", () => {
@@ -405,7 +406,7 @@ describe("Headless EaseStore Integration (core/store/create-ease-store)", () => 
     // Reset focused track
     store.getState().resetFocusedTrack()
     const resetBackdrop = store.getState().trackBindings["dialog:open"][0]
-    expect(resetBackdrop.durationMs).toBe(180)
+    expect(resetBackdrop.durationMs).toBe(320)
     expect(resetBackdrop.delayMs).toBe(0)
   })
 

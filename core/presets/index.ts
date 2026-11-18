@@ -55,6 +55,8 @@ export const DEFAULT_FALLBACK_CURVE: EaseCurve =
 export const POPULAR_PRESET_IDS: readonly string[] = [
   "expo-out",
   "ease-out-quart",
+  "ios-sheet",
+  "quint-out",
   "material-decelerate",
   "material-emphasized",
   "material-standard",

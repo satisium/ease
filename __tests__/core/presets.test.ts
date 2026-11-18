@@ -7,6 +7,7 @@ import {
   CANONICAL_SPRING_PRESETS,
   DEFAULT_CUSTOM_CURVES,
   DEFAULT_FALLBACK_CURVE,
+  POPULAR_PRESET_IDS,
   getCanonicalPresetById,
 } from "../../core/presets/index"
 
@@ -45,12 +46,36 @@ describe("core/presets", () => {
         velocity: 0,
       })
       expect(snappy?.suggestedDurationMs).toBe(240)
+
+      // Signature Studio Curves: iOS Sheet & Quint Out
+      const iosSheet = getCanonicalPresetById("ios-sheet")
+      expect(iosSheet).toBeDefined()
+      expect(iosSheet?.name).toBe("iOS Sheet")
+      expect(iosSheet?.bezier).toEqual({
+        p1: { x: 0.32, y: 0.72 },
+        p2: { x: 0, y: 1 },
+      })
+      expect(iosSheet?.category).toBe("Entrances & Decel")
+      expect(iosSheet?.suggestedDurationMs).toBe(360)
+
+      const quintOut = getCanonicalPresetById("quint-out")
+      expect(quintOut).toBeDefined()
+      expect(quintOut?.name).toBe("Quint Out")
+      expect(quintOut?.bezier).toEqual({
+        p1: { x: 0.22, y: 1 },
+        p2: { x: 0.36, y: 1 },
+      })
+      expect(quintOut?.category).toBe("Entrances & Decel")
+      expect(quintOut?.suggestedDurationMs).toBe(220)
+
+      expect(POPULAR_PRESET_IDS).toContain("ios-sheet")
+      expect(POPULAR_PRESET_IDS).toContain("quint-out")
     })
 
-    it("has exact counts: 33 Béziers and 26 Springs (59 total)", () => {
-      expect(CANONICAL_BEZIER_PRESETS).toHaveLength(33)
+    it("has exact counts: 35 Béziers and 26 Springs (61 total)", () => {
+      expect(CANONICAL_BEZIER_PRESETS).toHaveLength(35)
       expect(CANONICAL_SPRING_PRESETS).toHaveLength(26)
-      expect(ALL_CANONICAL_PRESETS).toHaveLength(59)
+      expect(ALL_CANONICAL_PRESETS).toHaveLength(61)
     })
   })
 
