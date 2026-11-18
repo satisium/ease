@@ -125,3 +125,98 @@ export const carouselSlideTrack: TransitionTrackPlugin = {
     }),
   ],
 }
+
+// ============================================================================
+// 3. Smooth FAQ Accordion Tracks (Expand / Collapse)
+// ============================================================================
+export const accordionOpenTrack: TransitionTrackPlugin = {
+  id: "accordion:open",
+  componentId: "accordion",
+  componentLabel: "Smooth Accordion",
+  category: "Disclosure",
+  phase: "enter",
+  phaseLabel: "Expand",
+  triggerLabel: "Expand Item",
+  channels: [
+    createChannel({
+      id: "reveal",
+      label: "Disclosure Glide",
+      property: "translateY",
+      from: 0,
+      to: 1,
+      unit: "",
+      durationMs: 360,
+      delayMs: 0,
+      curveId: "ios-sheet",
+      roleTitle: "Zero-Reflow Accordion",
+      guidance:
+        "Expands container mask and shifts sibling rows via GPU transforms without layout reflow.",
+      recommendedRangeMs: [260, 440],
+      recommendedPresetIds: [
+        "ios-sheet",
+        "quint-out",
+        "expo-out",
+        "material-standard",
+      ],
+    }),
+    createChannel({
+      id: "contentOpacity",
+      label: "Answer Fade",
+      property: "opacity",
+      from: 0,
+      to: 1,
+      unit: "",
+      durationMs: 240,
+      delayMs: 45,
+      curveId: "ease-out",
+      roleTitle: "Copy Reveal",
+      guidance: "Softly reveals answer copy slightly after the row opens.",
+      recommendedRangeMs: [160, 300],
+      recommendedPresetIds: ["ease-out", "quint-out", "linear"],
+    }),
+  ],
+}
+
+export const accordionCloseTrack: TransitionTrackPlugin = {
+  id: "accordion:close",
+  componentId: "accordion",
+  componentLabel: "Smooth Accordion",
+  category: "Disclosure",
+  phase: "exit",
+  phaseLabel: "Collapse",
+  triggerLabel: "Collapse Item",
+  channels: [
+    createChannel({
+      id: "reveal",
+      label: "Disclosure Close",
+      property: "translateY",
+      from: 1,
+      to: 0,
+      unit: "",
+      durationMs: 280,
+      delayMs: 0,
+      curveId: "quint-out",
+      roleTitle: "Accordion Collapse",
+      guidance:
+        "Settles sibling rows smoothly back up into collapsed alignment.",
+      recommendedRangeMs: [200, 340],
+      recommendedPresetIds: ["quint-out", "ios-sheet", "expo-out"],
+    }),
+    createChannel({
+      id: "contentOpacity",
+      label: "Answer Dissolve",
+      property: "opacity",
+      from: 1,
+      to: 0,
+      unit: "",
+      durationMs: 160,
+      delayMs: 0,
+      curveId: "material-standard",
+      roleTitle: "Early Copy Clear",
+      guidance:
+        "Fades text ahead of the closing clip mask so copy never clips mid-line.",
+      recommendedRangeMs: [120, 220],
+      recommendedPresetIds: ["material-standard", "ease-out", "quint-out"],
+    }),
+  ],
+}

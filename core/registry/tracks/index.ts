@@ -37,7 +37,12 @@ import {
   inputBlurTrack,
   otpVerifyTrack,
 } from "./controls"
-import { toastFireTrack, carouselSlideTrack } from "./disclosure"
+import {
+  toastFireTrack,
+  carouselSlideTrack,
+  accordionOpenTrack,
+  accordionCloseTrack,
+} from "./disclosure"
 import { landingTracks } from "./landing"
 import { primitivesAllTrack } from "./primitives"
 
@@ -68,6 +73,8 @@ trackRegistry.registerMany([
   inputBlurTrack,
   otpVerifyTrack,
   carouselSlideTrack,
+  accordionOpenTrack,
+  accordionCloseTrack,
   ...landingTracks,
   primitivesAllTrack,
 ])
@@ -103,7 +110,12 @@ export {
   inputBlurTrack,
   otpVerifyTrack,
 } from "./controls"
-export { toastFireTrack, carouselSlideTrack } from "./disclosure"
+export {
+  toastFireTrack,
+  carouselSlideTrack,
+  accordionOpenTrack,
+  accordionCloseTrack,
+} from "./disclosure"
 export { landingTracks } from "./landing"
 export { primitivesAllTrack } from "./primitives"
 
