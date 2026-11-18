@@ -244,7 +244,7 @@ describe("Ease v3 Persistence Contract", () => {
 
     // Compare queue cleanly defaults to empty
     expect(store.getState().compareQueue).toEqual([])
-    expect(store.getState().globalCompareTarget.trackId).toBe("dialog:open")
+    expect(store.getState().globalCompareTarget.trackId).toBe("primitives:all")
   })
 
   it("falls back from mode 'compare' to 'preview' if compareQueue is empty on deserialize", () => {

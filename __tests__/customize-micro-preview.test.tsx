@@ -42,6 +42,7 @@ describe("CustomizeMicroPreview & Working Tree Lifecycle (Step C-5B)", () => {
 
     // Ensure customize mode is initiated
     act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
       storeApi!.getState().enterCustomize()
     })
 
@@ -183,6 +184,7 @@ describe("CustomizeMicroPreview & Working Tree Lifecycle (Step C-5B)", () => {
     )
 
     act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
       storeApi!.getState().enterCustomize()
     })
 
@@ -292,6 +294,7 @@ describe("CustomizeMicroPreview & Working Tree Lifecycle (Step C-5B)", () => {
     )
 
     act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
       storeApi!.getState().enterCustomize()
     })
 

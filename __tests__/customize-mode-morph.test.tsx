@@ -44,7 +44,7 @@ describe("Phase C Master Integration: Mode 1 <-> Mode 2 In-Place Morph (Step C-5
 
     // 1. Initial State: Mode 1 (Preview)
     expect(storeApi!.getState().mode).toBe("preview")
-    expect(screen.getByText("Open Dialog")).toBeDefined()
+    expect(screen.getAllByText("Position").length).toBeGreaterThanOrEqual(1)
     expect(screen.getByLabelText("Motion Guide")).toBeDefined()
 
     // Anchors are continuously mounted: BrandSlab, PresetCatalog, TimelineConsole, CompareQueueSlab, Export
@@ -79,7 +79,7 @@ describe("Phase C Master Integration: Mode 1 <-> Mode 2 In-Place Morph (Step C-5
     ).toBeDefined()
     expect(screen.getByLabelText("P1 X coordinate")).toBeDefined()
     expect(
-      screen.getByRole("button", { name: "Switch to Primitives X-Ray preview" })
+      screen.getByRole("button", { name: "Switch to Component preview" })
     ).toBeDefined()
 
     // Right Flank has morphed to CustomizeTelemetrySlab
@@ -106,7 +106,15 @@ describe("Phase C Master Integration: Mode 1 <-> Mode 2 In-Place Morph (Step C-5
     expect(storeApi!.getState().draftCurve?.isDirty).toBe(true)
     expect(screen.getByText(/Diff vs/i)).toBeDefined()
 
-    // 4. Switching to [ Primitives ] reveals all 4 X-Ray inspection tiles
+    // 4. Switching modes in Customize: switch to Component preview, then back to Primitives
+    const componentBtn = screen.getByRole("button", {
+      name: "Switch to Component preview",
+    })
+    act(() => {
+      fireEvent.click(componentBtn)
+    })
+    expect(screen.getByText("Open Dialog")).toBeDefined()
+
     const primitivesBtn = screen.getByRole("button", {
       name: "Switch to Primitives X-Ray preview",
     })

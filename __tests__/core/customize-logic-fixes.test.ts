@@ -72,19 +72,19 @@ describe("Mode 2 (Customize) Core Logic Fixes", () => {
   it("updates state.totalDurationMs cleanly in Primitives mode, honoring natural tempo while preserving real component duration", () => {
     const store = createEaseStore()
 
-    // 1. Focus dialog:close which has a 190ms total compound duration
+    // 1. Focus dialog:close which has a 280ms total compound duration
     store.getState().focusTrack("dialog:close")
-    expect(store.getState().totalDurationMs).toBe(190)
+    expect(store.getState().totalDurationMs).toBe(280)
 
     store.getState().enterCustomize()
-    expect(store.getState().totalDurationMs).toBe(190)
+    expect(store.getState().totalDurationMs).toBe(280)
 
     // 2. Switch to primitives
     store.getState().setCustomizePreviewMode("primitives")
     expect(store.getState().customizePreviewMode).toBe("primitives")
     expect(store.getState().focusedTrackId).toBe("primitives:all")
 
-    // Duration must NOT be frozen at 190ms
+    // Duration must NOT be frozen at 280ms
     const activeCurve = store.getState().getActiveCurve()
     expect(store.getState().totalDurationMs).toBe(
       activeCurve.suggestedDurationMs
@@ -101,11 +101,11 @@ describe("Mode 2 (Customize) Core Logic Fixes", () => {
     // 5. Switch back to component mode
     store.getState().setCustomizePreviewMode("component")
     expect(store.getState().focusedTrackId).toBe("dialog:close")
-    expect(store.getState().totalDurationMs).toBe(190)
+    expect(store.getState().totalDurationMs).toBe(280)
 
-    // On dialog:close, selecting presets preserves the Duration Integrity Law (locked at 190ms)
+    // On dialog:close, selecting presets preserves the Duration Integrity Law (locked at 280ms)
     store.getState().selectCurveForFocused("linear")
-    expect(store.getState().totalDurationMs).toBe(190)
+    expect(store.getState().totalDurationMs).toBe(280)
   })
 
   it("stashes and restores component track and channel cleanly across Primitives toggle", () => {
@@ -174,7 +174,7 @@ describe("Mode 2 (Customize) Core Logic Fixes", () => {
     // 1. null / invalid json fallback
     const fallback = deserializeEaseStorage(null)
     expect(fallback.mode).toBe("preview")
-    expect(fallback.customizePreviewMode).toBe("component")
+    expect(fallback.customizePreviewMode).toBe("primitives")
     expect(fallback.navStack).toEqual({ level: 0 })
 
     // 2. compare mode guards back to preview

@@ -124,12 +124,12 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
       const iframes = container.querySelectorAll("iframe")
       expect(iframes.length).toBe(0)
 
-      // Check preview theater section and initial Dialog habitat
+      // Check preview theater section and initial Primitives habitat
       expect(
         screen.getByRole("region", { name: /Component Preview Theater/i })
       ).toBeInTheDocument()
       expect(
-        screen.getByRole("button", { name: /Open modal dialog/i })
+        screen.getByTestId("primitive-position-wrapper")
       ).toBeInTheDocument()
     })
 
@@ -138,6 +138,9 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
         const store = useEaseStoreApi()
         return (
           <div>
+            <button onClick={() => store.getState().focusTrack("dialog:open")}>
+              Switch to Dialog
+            </button>
             <button onClick={() => store.getState().focusTrack("button:press")}>
               Switch to Button
             </button>
@@ -163,7 +166,13 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
         </TestWrapper>
       )
 
-      // Initially Dialog
+      // Initially Primitives
+      expect(
+        screen.getByTestId("primitive-position-wrapper")
+      ).toBeInTheDocument()
+
+      // Switch to Dialog
+      fireEvent.click(screen.getByText("Switch to Dialog"))
       expect(
         screen.getByRole("button", { name: /Open modal dialog/i })
       ).toBeInTheDocument()

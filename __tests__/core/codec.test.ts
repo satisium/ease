@@ -264,12 +264,12 @@ describe("core/codec", () => {
     it("falls back cleanly on null or corrupt JSON without throwing", () => {
       const fallbackNull = deserializeEaseStorage(null)
       expect(fallbackNull.version).toBe(EASE_STORAGE_VERSION)
-      expect(fallbackNull.activeTrackId).toBe("dialog:open")
+      expect(fallbackNull.activeTrackId).toBe("primitives:all")
       expect(fallbackNull.customCurves.length).toBeGreaterThan(0)
 
       const fallbackCorrupt = deserializeEaseStorage("{{{broken JSON")
       expect(fallbackCorrupt.version).toBe(EASE_STORAGE_VERSION)
-      expect(fallbackCorrupt.activeTrackId).toBe("dialog:open")
+      expect(fallbackCorrupt.activeTrackId).toBe("primitives:all")
       expect(fallbackCorrupt.customCurves.length).toBeGreaterThan(0)
     })
   })

@@ -227,6 +227,7 @@ describe("UI-Readiness Pass B: Store Ergonomics & 120fps Invariants", () => {
 
   it("evaluates individual Compare contender tile frames with evaluateCompareItemFrame", () => {
     const store = createEaseStore()
+    store.getState().setGlobalCompareTarget({ trackId: "dialog:open" })
     const curve1 = getCanonicalPresetById("expo-out")!
     const curve2 = getCanonicalPresetById("snappy-spring")!
 
@@ -268,7 +269,8 @@ describe("UI-Readiness Pass B: Store Ergonomics & 120fps Invariants", () => {
     store.getState().stageActiveCurveToCompare()
     store.getState().enterCompare()
 
-    expect(store.getState().globalCompareTarget.trackId).toBe("dialog:open")
+    expect(store.getState().globalCompareTarget.trackId).toBe("primitives:all")
+    store.getState().setGlobalCompareTarget({ trackId: "dialog:open" })
 
     // Start playback and advance mid-flight
     store.getState().playScoped()

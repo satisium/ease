@@ -173,6 +173,10 @@ describe("React Adapter Hooks (Phase A)", () => {
         </EaseStoreProvider>
       )
 
+      act(() => {
+        storeInstance?.getState().focusTrack("dialog:open")
+      })
+
       const card = screen.getByTestId("card")
       const scrim = screen.getByTestId("scrim")
 
@@ -220,6 +224,10 @@ describe("React Adapter Hooks (Phase A)", () => {
           <DrawerHabitat />
         </EaseStoreProvider>
       )
+
+      act(() => {
+        storeInstance?.getState().focusTrack("dialog:open")
+      })
 
       // Initially idle & not solo -> shouldForceMount is false
       expect(screen.getByTestId("force-mount").textContent).toBe("false")

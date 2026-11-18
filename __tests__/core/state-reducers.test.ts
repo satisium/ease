@@ -317,8 +317,8 @@ describe("core/state", () => {
 
       const dialogChannels0 = bindings0["dialog:open"]!
       const scaleChannel0 = dialogChannels0.find((c) => c.id === "scale")!
-      expect(scaleChannel0.durationMs).toBe(280)
-      expect(scaleChannel0.savedBezierDurationMs).toBe(280)
+      expect(scaleChannel0.durationMs).toBe(380)
+      expect(scaleChannel0.savedBezierDurationMs).toBe(380)
 
       // Preset or curve with a 600ms suggested duration
       const longCurve: EaseCurve = {
@@ -328,7 +328,7 @@ describe("core/state", () => {
       }
       expect(longCurve.suggestedDurationMs).toBe(600)
 
-      // Apply 600ms curve to the 280ms scale channel
+      // Apply 600ms curve to the 380ms scale channel
       const bindings1 = applyCurveToChannel(
         bindings0,
         "dialog:open",
@@ -341,9 +341,9 @@ describe("core/state", () => {
 
       // Curve replaced cleanly
       expect(scaleChannel1.curve.id).toBe("long-curve")
-      // DURATION INTEGRITY LAW: durationMs and savedBezierDurationMs MUST remain exactly 280ms!
-      expect(scaleChannel1.durationMs).toBe(280)
-      expect(scaleChannel1.savedBezierDurationMs).toBe(280)
+      // DURATION INTEGRITY LAW: durationMs and savedBezierDurationMs MUST remain exactly 380ms!
+      expect(scaleChannel1.durationMs).toBe(380)
+      expect(scaleChannel1.savedBezierDurationMs).toBe(380)
     })
 
     it("applyCurveToChannel with channelIdOrAll='all' updates all channels in the track", () => {
@@ -435,7 +435,7 @@ describe("core/state", () => {
       bindings = resetTrackChannels(bindings, "dialog:open", dialogTrack)
       expect(
         bindings["dialog:open"]!.find((c) => c.id === "scale")!.durationMs
-      ).toBe(280)
+      ).toBe(380)
     })
   })
 

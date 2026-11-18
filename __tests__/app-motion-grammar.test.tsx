@@ -362,7 +362,7 @@ describe("App Motion Grammar — Step M-1: lib/motion.ts & Shell Slab Standardiz
             ...s.compareQueue,
             {
               id: "test-tile-2",
-              curve: CANONICAL_BEZIER_PRESETS[1]!,
+              curve: CANONICAL_BEZIER_PRESETS[2]!,
               visible: true,
             },
           ],

@@ -54,7 +54,7 @@ describe("Phase D Master Integration: Mode 1 <-> Mode 2 <-> Mode 3 In-Place Morp
 
     // 1. Initial State: Mode 1 (Preview)
     expect(storeApi!.getState().mode).toBe("preview")
-    expect(screen.getByText("Open Dialog")).toBeDefined()
+    expect(screen.getAllByText("Position").length).toBeGreaterThanOrEqual(1)
     expect(screen.getByLabelText("Motion Guide")).toBeDefined()
 
     // Left flank is open
@@ -106,8 +106,8 @@ describe("Phase D Master Integration: Mode 1 <-> Mode 2 <-> Mode 3 In-Place Morp
     expect(screen.getAllByText("Snappy Spring").length).toBeGreaterThanOrEqual(
       2
     )
-    const openDialogButtons = screen.getAllByText("Open Dialog")
-    expect(openDialogButtons.length).toBe(2)
+    const positionLabels = screen.getAllByText("Position")
+    expect(positionLabels.length).toBe(2)
 
     // CompareDock is mounted
     expect(screen.getByLabelText("Trigger all compare tiles")).toBeDefined()

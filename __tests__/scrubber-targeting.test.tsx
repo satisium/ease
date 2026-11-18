@@ -52,8 +52,9 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
       </EaseStoreProvider>
     )
 
-    // Select translateY channel
+    // Focus dialog:open and select translateY channel
     act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
       storeApi!.getState().focusChannel("translateY")
     })
 
@@ -110,6 +111,7 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
 
     // Focus backdrop channel on dialog:open
     act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
       storeApi!.getState().focusChannel("backdrop")
     })
 
@@ -158,8 +160,9 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
 
     const fill = screen.getByTestId("satis-slider-fill")
 
-    // Seek/play to 100%
+    // Seek/play to 100% on dialog:open
     act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
       storeApi!.getState().seekScoped(380)
     })
 
@@ -196,6 +199,10 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
         <TestHarness />
       </EaseStoreProvider>
     )
+
+    act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
+    })
 
     // Initially modal is closed
     expect(screen.queryByRole("dialog", { name: "Edit Profile" })).toBeNull()

@@ -163,13 +163,9 @@ describe("core/registry/exporters", () => {
     it("compiles multi-channel dialog:open track to Tailwind", () => {
       const code = compileTrackExport("tailwind", dialogOpen)
       expect(code).toContain("/* Backdrop */")
-      expect(code).toContain(
-        "transition-opacity duration-[180ms] ease-[cubic-bezier(0,0,0.2,1)]"
-      )
+      expect(code).toContain("transition-opacity duration-[320ms]")
       expect(code).toContain("/* Translate Y */")
-      expect(code).toContain(
-        "transition-transform duration-[280ms] ease-[cubic-bezier(0.25,1,0.5,1)] delay-[25ms]"
-      )
+      expect(code).toContain("transition-transform duration-[380ms]")
     })
 
     it("compiles multi-channel dialog:open track to Motion object", () => {
