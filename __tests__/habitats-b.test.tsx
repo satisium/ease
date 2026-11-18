@@ -11,6 +11,7 @@ import { TactileTogglesHabitat } from "@/components/studio/habitats/controls/tac
 import { FloatingInputHabitat } from "@/components/studio/habitats/controls/floating-input-habitat"
 import { OtpShakeHabitat } from "@/components/studio/habitats/controls/otp-shake-habitat"
 import { WalletDeckHabitat } from "@/components/studio/habitats/disclosure/wallet-deck-habitat"
+import { AccordionHabitat } from "@/components/studio/habitats/disclosure/accordion-habitat"
 import { HabitatStage } from "@/components/studio/habitats/habitat-stage"
 import { PreviewTheater } from "@/components/studio/modes/audition/center-stage/preview-theater"
 
@@ -694,6 +695,147 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
     })
   })
 
+  describe("AccordionHabitat", () => {
+    it("renders 3 closed FAQ items, expands on click, shifts lower rows, and rotates icon", () => {
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        const api = useEaseStoreApi()
+        React.useEffect(() => {
+          storeApi = api
+        }, [api])
+        return <AccordionHabitat />
+      }
+
+      const { container } = render(
+        <TestWrapper>
+          <Harness />
+        </TestWrapper>
+      )
+
+      const q1Btn = screen.getByRole("button", {
+        name: "Why use springs over Bézier?",
+      })
+      const q2Btn = screen.getByRole("button", {
+        name: "When does Duration Integrity apply?",
+      })
+      const q3Btn = screen.getByRole("button", {
+        name: "Why animate only transform & opacity?",
+      })
+
+      expect(q1Btn).toHaveAttribute("aria-expanded", "false")
+      expect(q2Btn).toHaveAttribute("aria-expanded", "false")
+      expect(q3Btn).toHaveAttribute("aria-expanded", "false")
+
+      // Click row 0 (Why use springs...)
+      fireEvent.click(q1Btn)
+      expect(q1Btn).toHaveAttribute("aria-expanded", "true")
+
+      // Scrub to 360ms (100% complete of accordion:open)
+      act(() => {
+        storeApi!.getState().focusTrack("accordion:open")
+        storeApi!.getState().seekScoped(360)
+      })
+
+      const cardBgs = container.querySelectorAll("[data-card-bg]")
+      const rows = container.querySelectorAll("[data-accordion-row]")
+      const icons = container.querySelectorAll("[data-icon]")
+
+      // Row 0 background clipPath expanded to 0.00px
+      const cardBg0 = cardBgs[0] as HTMLElement
+      expect(cardBg0.style.clipPath).toContain("0.00px 0px round 11px")
+
+      // Lower rows (1 and 2) shifted down by 56px
+      const row1 = rows[1] as HTMLElement
+      const row2 = rows[2] as HTMLElement
+      expect(row1.style.transform).toContain("56.00px")
+      expect(row2.style.transform).toContain("56.00px")
+
+      // Icon rotated by 45deg
+      const icon0 = icons[0] as HTMLElement
+      expect(icon0.style.transform).toBe("rotate(45.0deg)")
+
+      // Verify zero CSS transition-* classes on animated elements
+      const animatedElements = container.querySelectorAll(
+        "[style*='transform'], [style*='opacity'], [style*='clip-path']"
+      )
+      for (const el of Array.from(animatedElements)) {
+        const classNames = (el as HTMLElement).className || ""
+        expect(classNames).not.toContain("transition-transform")
+        expect(classNames).not.toContain("transition-all")
+      }
+    })
+
+    it("handles concurrent row swap when clicking Row 0 then Row 1", () => {
+      let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+      function Harness() {
+        const api = useEaseStoreApi()
+        React.useEffect(() => {
+          storeApi = api
+        }, [api])
+        return <AccordionHabitat />
+      }
+
+      const { container } = render(
+        <TestWrapper>
+          <Harness />
+        </TestWrapper>
+      )
+
+      const q1Btn = screen.getByRole("button", {
+        name: "Why use springs over Bézier?",
+      })
+      const q2Btn = screen.getByRole("button", {
+        name: "When does Duration Integrity apply?",
+      })
+
+      // Click Row 0
+      fireEvent.click(q1Btn)
+      expect(q1Btn).toHaveAttribute("aria-expanded", "true")
+
+      // Now click Row 1 while Row 0 is open -> concurrent swap!
+      fireEvent.click(q2Btn)
+      expect(q2Btn).toHaveAttribute("aria-expanded", "true")
+      expect(q1Btn).toHaveAttribute("aria-expanded", "false")
+
+      // Scrub to halfway (180ms)
+      act(() => {
+        storeApi!.getState().focusTrack("accordion:open")
+        storeApi!.getState().seekScoped(180)
+      })
+
+      const cardBgs = container.querySelectorAll("[data-card-bg]")
+      const cardBg0 = cardBgs[0] as HTMLElement
+      const cardBg1 = cardBgs[1] as HTMLElement
+
+      // Both Row 0 and Row 1 are animating concurrently
+      expect(cardBg0.style.clipPath).toBeDefined()
+      expect(cardBg1.style.clipPath).toBeDefined()
+
+      // At end of accordion:open (360ms)
+      act(() => {
+        storeApi!.getState().seekScoped(360)
+      })
+
+      // Row 1 fully open (clipPath 0.00px), Row 0 fully closed (clipPath 56.00px)
+      expect(cardBg1.style.clipPath).toContain("0.00px 0px round 11px")
+      expect(cardBg0.style.clipPath).toContain("56.00px 0px round 11px")
+    })
+
+    it("supports compareItemId when provided", () => {
+      render(
+        <TestWrapper>
+          <AccordionHabitat compareItemId="comp-accordion-1" />
+        </TestWrapper>
+      )
+
+      expect(
+        screen.getByRole("button", { name: "Why use springs over Bézier?" })
+      ).toBeInTheDocument()
+    })
+  })
+
   describe("HabitatStage & PreviewTheater", () => {
     it("mounts in-process HabitatStage without any iframe sandbox", () => {
       const { container } = render(
@@ -755,6 +897,11 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
               onClick={() => store.getState().focusTrack("carousel:slide")}
             >
               Switch to Carousel
+            </button>
+            <button
+              onClick={() => store.getState().focusTrack("accordion:open")}
+            >
+              Switch to Accordion
             </button>
           </div>
         )
@@ -827,6 +974,12 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
       // Switch to Carousel
       fireEvent.click(screen.getByText("Switch to Carousel"))
       expect(screen.getByText("Satisium Core")).toBeInTheDocument()
+
+      // Switch to Accordion
+      fireEvent.click(screen.getByText("Switch to Accordion"))
+      expect(
+        screen.getByRole("button", { name: "Why use springs over Bézier?" })
+      ).toBeInTheDocument()
     })
 
     it("renders PrimitivesXRay without duplicate filter bar when focusedTrack is primitives:all", () => {

@@ -153,9 +153,9 @@ describe("UI-Readiness Pass A: Mathematical Helpers & Catalog Polish", () => {
   })
 
   describe("Component Groups & Phase Pairing (core/registry/tracks.ts)", () => {
-    it("listComponents groups all 16 real UI components excluding primitives", () => {
+    it("listComponents groups all 17 real UI components excluding primitives", () => {
       const components = listComponents()
-      expect(components).toHaveLength(16)
+      expect(components).toHaveLength(17)
 
       const componentIds = components.map((c) => c.componentId)
       expect(componentIds).toEqual([
@@ -175,6 +175,7 @@ describe("UI-Readiness Pass A: Mathematical Helpers & Catalog Polish", () => {
         "input",
         "otp",
         "carousel",
+        "accordion",
       ])
 
       // Strictly excludes primitives X-ray
@@ -215,6 +216,10 @@ describe("UI-Readiness Pass A: Mathematical Helpers & Catalog Polish", () => {
       // Input pairing
       expect(getPairedTrackId("input:focus")).toBe("input:blur")
       expect(getPairedTrackId("input:blur")).toBe("input:focus")
+
+      // Accordion pairing
+      expect(getPairedTrackId("accordion:open")).toBe("accordion:close")
+      expect(getPairedTrackId("accordion:close")).toBe("accordion:open")
 
       // Single-phase tracks return null
       expect(getPairedTrackId("toast:fire")).toBeNull()
