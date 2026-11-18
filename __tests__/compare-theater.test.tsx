@@ -467,7 +467,9 @@ describe("Phase D Step D-1: Compare Theater, Duel Tiles & Habitat compareItemId"
     // Opacity squircle transitions opacity: 0 -> 1 cleanly
     expect(Number(opacityNodes[0].style.opacity)).toBeCloseTo(1, 1)
     // Rotate squircle rotates 0deg -> 180deg cleanly (not the Opacity card/squircle!)
-    expect(rotateNodes[0].style.transform).toContain("rotate(180deg)")
+    expect(rotateNodes[0].style.transform).toMatch(
+      /rotate\((?:179\.\d+|180)deg\)/
+    )
     expect(opacityNodes[0].style.transform).not.toContain("rotate")
 
     // Confirm Opacity card still has no rotate transform

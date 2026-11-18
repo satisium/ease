@@ -278,7 +278,7 @@ describe("App Motion Grammar — Step M-1: lib/motion.ts & Shell Slab Standardiz
     fireEvent.click(springBtn)
     expect(storeApi!.getState().activeLibraryTab).toBe("spring")
 
-    const bezierBtn = screen.getByText(/Bezier \(33\)/i)
+    const bezierBtn = screen.getByText(/Bezier \(35\)/i)
     fireEvent.click(bezierBtn)
     expect(storeApi!.getState().activeLibraryTab).toBe("bezier")
 
@@ -753,7 +753,7 @@ describe("App Motion Grammar — Step M-1: lib/motion.ts & Shell Slab Standardiz
         </EaseStoreProvider>
       )
 
-      expect(screen.getByText(/Bezier \(33\)/i)).toBeDefined()
+      expect(screen.getByText(/Bezier \(35\)/i)).toBeDefined()
       expect(screen.getByText(/Spring \(26\)/i)).toBeDefined()
 
       // Switch to Spring
@@ -763,7 +763,7 @@ describe("App Motion Grammar — Step M-1: lib/motion.ts & Shell Slab Standardiz
       expect(screen.getByText("Snappy Spring")).toBeDefined()
 
       // Switch back to Bezier
-      const bezierBtn = screen.getByText(/Bezier \(33\)/i)
+      const bezierBtn = screen.getByText(/Bezier \(35\)/i)
       fireEvent.click(bezierBtn)
 
       expect(screen.getByText("Ease Out Quart")).toBeDefined()

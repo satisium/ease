@@ -240,7 +240,10 @@ export function useTransitionTrack(
     applyCurrentFrame(store.conductor.getSnapshot().elapsedMs)
 
     const unsubscribe = store.conductor.subscribe((snap) => {
-      if (isFocused || compareItemId) {
+      if (
+        compareItemId ||
+        (isFocused && snap.focusedTrackId === effectiveTrackId)
+      ) {
         applyCurrentFrame(snap.elapsedMs)
       }
     })
