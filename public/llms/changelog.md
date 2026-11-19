@@ -2,6 +2,12 @@
 
 > Release notes for ease.
 
+## 0.12.1
+
+### Patch Changes
+
+- 1a92ad6: docs(spec): establish living motion curriculum and documentation blueprint
+
 ## 0.12.0
 
 ### Minor Changes
