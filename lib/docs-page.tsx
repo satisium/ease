@@ -2,7 +2,6 @@ import { cache } from "react"
 import fs from "fs"
 import path from "path"
 import { getGithubLastEdit } from "fumadocs-core/content/github"
-import { registry } from "@/registry/index"
 import { SITE_URL } from "@/lib/config"
 import { REPO } from "@/lib/social-links"
 import type { CodeFile } from "@/components/code-block/types"
@@ -88,51 +87,14 @@ export async function getDocCopyPayload(pagePath: string): Promise<string> {
   return ""
 }
 
-export async function resolveDocDemos(page: {
+export async function resolveDocDemos(page?: {
   data: {
     registryKeys?: string[]
     links?: { github?: string; preview?: string }
   }
 }): Promise<DemoData[]> {
-  const pageRegistry = registry ?? {}
-  const resolvedDemos: DemoData[] = []
-
-  if (page.data.registryKeys && page.data.registryKeys.length > 0) {
-    for (const key of page.data.registryKeys) {
-      const item = pageRegistry[key]
-      if (!item) continue
-
-      const itemType = item.type || "react"
-      const renderMode = item.renderMode || "direct"
-
-      if (itemType === "video" || itemType === "image") {
-        resolvedDemos.push({
-          key,
-          type: itemType,
-          name: item.name,
-          mediaUrl: item.mediaUrl,
-          previewUrl: item.previewUrl,
-        })
-      } else {
-        const files = item.getFiles ? await item.getFiles() : {}
-        const Comp = item.component
-
-        resolvedDemos.push({
-          key,
-          type: "react",
-          name: item.name,
-          renderMode,
-          embedUrl: renderMode === "iframe" ? `/embed/${key}` : undefined,
-          component: renderMode === "direct" && Comp ? <Comp /> : null,
-          files,
-          installCommand: item.installCommand || "",
-          previewUrl: item.previewUrl,
-        })
-      }
-    }
-  }
-
-  return resolvedDemos
+  void page
+  return []
 }
 
 export function getDocBreadcrumbSchema(slugPath: string[] | undefined) {

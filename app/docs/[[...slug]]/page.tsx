@@ -188,26 +188,28 @@ export default async function Page(props: {
                 <PageBreadcrumbs pageUrl={page.url} tree={source.pageTree} />
 
                 <div className="flex flex-col gap-4">
-                  <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center-safe sm:justify-start">
+                  <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-start">
                     <h1 className="capitalize">{page.data.title}</h1>
-                    <div className="flex flex-row flex-wrap items-center gap-4">
-                      {page.data.badge && (
-                        <span
-                          className={cn(
-                            "inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold tracking-widest uppercase",
-                            getBadgeStyle(page.data.badge)
-                          )}
-                        >
-                          {page.data.badge}
-                        </span>
-                      )}
-                    </div>
+                    {page.data.badge && (
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold tracking-widest uppercase",
+                          getBadgeStyle(page.data.badge)
+                        )}
+                      >
+                        {page.data.badge}
+                      </span>
+                    )}
                   </div>
 
-                  <p className="text-muted-foreground">
+                  <p className="max-w-4xl text-muted-foreground">
                     {page.data.description}
                   </p>
+
                   <div className="mt-2 flex flex-wrap items-center gap-4 text-muted-foreground">
+                    {!page.data.hideCopy && (
+                      <CopyMdxButton rawMdx={copyPayload} />
+                    )}
                     {lastModifiedTime && (
                       <div className="flex items-center gap-2">
                         <span className="text-caption">Last Modified:</span>
@@ -217,12 +219,6 @@ export default async function Page(props: {
                     <EditOnGitHub path={page.path} />
                   </div>
                 </div>
-
-                {!page.data.hideCopy && (
-                  <div className="mt-2 flex flex-col-reverse items-start justify-start gap-4">
-                    <CopyMdxButton rawMdx={copyPayload} />
-                  </div>
-                )}
               </header>
 
               <MDX components={defaultMdxComponents} />

@@ -352,6 +352,13 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
   }, [isOpen])
 
   const isSearching = isLoading && query.trim().length > 0
+  const lastFiredZeroQueryRef = React.useRef<string>("")
+
+  React.useEffect(() => {
+    if (!query.trim() || !isOpen) {
+      lastFiredZeroQueryRef.current = ""
+    }
+  }, [query, isOpen])
 
   React.useEffect(() => {
     const trimmed = query.trim()
@@ -371,10 +378,6 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
         if (res.ok) {
           const data = await res.json()
           setApiResults(data)
-
-          if (data.length === 0) {
-            trackEvent("search_zero_results", { query: trimmed.toLowerCase() })
-          }
         }
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
@@ -542,6 +545,43 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
 
     return [...items, ...systemItems]
   }, [docsTree, setTheme])
+
+  // Debounced search_zero_results telemetry (600ms, trimmed query >= 2 chars, deduplicated)
+  React.useEffect(() => {
+    const trimmed = query.trim()
+    if (trimmed.length < 2) return
+
+    const timer = setTimeout(() => {
+      const q = trimmed.toLowerCase()
+      const matchingStaticCount = staticItems.filter(
+        (item) =>
+          item.searchString.toLowerCase().includes(q) ||
+          item.aliases?.some((a) => a.toLowerCase().includes(q))
+      ).length
+
+      const matchingEaseCount = easeStore
+        ? searchEaseCommandCatalog({
+            query: trimmed,
+            presets: ALL_CANONICAL_PRESETS,
+            customCurves: easeStore.getState().customCurves,
+            tracks: listComponentTracks(),
+            limit: 10,
+          }).length
+        : 0
+
+      const totalMatches =
+        matchingStaticCount + matchingEaseCount + apiResults.length
+
+      if (totalMatches === 0 && !isLoading) {
+        if (lastFiredZeroQueryRef.current !== q) {
+          lastFiredZeroQueryRef.current = q
+          trackEvent("search_zero_results", { query: q })
+        }
+      }
+    }, 600)
+
+    return () => clearTimeout(timer)
+  }, [query, staticItems, easeStore, apiResults, isLoading])
 
   const handleSelect = React.useCallback(
     (id: string, url?: string, action?: () => void) => {

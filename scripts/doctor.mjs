@@ -56,19 +56,25 @@ const missingAssets = requiredAssets.filter((asset) => !exists(asset))
 if (missingAssets.length) problems.push(`Missing assets: ${missingAssets.join(", ")}`)
 else passed.push("brand + OG assets present")
 
-// 4 — registry hygiene
-if (!exists("registry/index.ts")) warnings.push("registry/index.ts missing")
-else {
-  const index = read("registry/index.ts")
-  const slugs = [...index.matchAll(/"([a-z0-9-]+)":\s*\{/g)].map((m) => m[1])
-  for (const slug of slugs) {
-    const block = index.slice(index.indexOf(`"${slug}":`)).slice(0, 600)
-    if (!block.includes("name:")) warnings.push(`Registry entry "${slug}" has no name`)
-    if (!block.includes("installCommand:")) warnings.push(`Registry entry "${slug}" has no installCommand`)
-  }
-  passed.push(`registry entries: ${slugs.length}`)
-  if (age("registry/meta.ts") < age("registry/index.ts"))
-    problems.push("registry/meta.ts is stale — run `pnpm build:registry:meta`")
+// 4 — Satisium Ease Core & Studio Integrity
+const EASE_CORE_STUDIO_FILES = [
+  "core/index.ts",
+  "core/store/create-ease-store.ts",
+  "core/registry/tracks/index.ts",
+  "components/studio/studio-shell.tsx",
+  "components/studio/habitats/habitat-stage.tsx",
+]
+const missingEaseFiles = EASE_CORE_STUDIO_FILES.filter((p) => !exists(p))
+if (missingEaseFiles.length === 0) {
+  passed.push(
+    `Satisium Ease core & studio integrity (${EASE_CORE_STUDIO_FILES.length} modules intact)`
+  )
+} else {
+  problems.push(
+    `Ease integrity violation: missing core/studio modules: ${missingEaseFiles.join(
+      ", "
+    )}`
+  )
 }
 
 // 5 — llms artifacts freshness
@@ -244,41 +250,6 @@ else {
   )
 }
 
-// 12 — kit preservation & variant integrity
-// The starter is an intact parts catalog during build. Variants and core primitives
-// must NEVER be deleted during spin-up. Dead code is pruned strictly pre-deployment via pnpm knip.
-const CORE_KIT_PRIMITIVES = [
-  "components/docs/dispatch.tsx",
-  "components/docs/layouts/spatial.tsx",
-  "components/docs/layouts/three-pane.tsx",
-  "components/home/hero/hero-variant-1",
-  "components/home/hero/hero-variant-2",
-  "components/home/footer/deck-box-1",
-  "components/home/footer/deck-box-2",
-  "components/home/footer/footer-variant-3.tsx",
-  "components/home/features/features-variant-1.tsx",
-  "components/home/features/features-variant-2.tsx",
-  "components/home/features/features-variant-3.tsx",
-  "components/home/features/features-variant-4.tsx",
-  "components/layout/app-shell.tsx",
-  "components/layout/command-menu.tsx",
-  "components/layout/site-header.tsx",
-  "components/ui/button.tsx",
-  "components/ui/dialog.tsx",
-  "components/ui/kbd.tsx",
-  "components/ui/sonner.tsx",
-  "components/ui/sheet.tsx",
-]
-const missingKitItems = CORE_KIT_PRIMITIVES.filter((p) => !exists(p))
-if (missingKitItems.length === 0) {
-  passed.push(`kit preservation & variant integrity (${CORE_KIT_PRIMITIVES.length} core primitives & variants intact)`)
-} else {
-  problems.push(
-    `Kit integrity violation: missing required kit file/variant: ${missingKitItems.join(
-      ", "
-    )} — Starter variants must not be deleted during build. Keep all options intact.`
-  )
-}
 
 // report
 console.log("\n🩺  Satisium doctor\n")

@@ -3,10 +3,10 @@
 import * as React from "react"
 import { SidebarLeft01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { AnimatePresence, motion } from "motion/react"
+import { motion } from "motion/react"
 import { usePathname } from "next/navigation"
 
-import { DocsPane, DocsScreen, hideBelowClass } from "@/components/docs/shell"
+import { DocsPane, DocsScreen } from "@/components/docs/shell"
 import { SidebarContent } from "@/components/layout/sidebar-content"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { useHotkey } from "@/hooks/use-hotkey"
@@ -40,13 +40,7 @@ import type { DocsShellProps } from "../types"
  * `M` is the shortcut — registered in lib/hotkeys.ts and bound through
  * useHotkey, so typing in an input never triggers it.
  */
-export function ThreePaneLayout({
-  tree,
-  page,
-  children,
-  aside,
-  asideHideBelow,
-}: DocsShellProps) {
+export function ThreePaneLayout({ tree, children }: DocsShellProps) {
   const toggleSidebarStore = useSidebarStore((s) => s.toggleSidebar)
 
   // Desktop sidebar starts open and can be collapsed by the viewer.
@@ -80,9 +74,6 @@ export function ThreePaneLayout({
   }, [toggleSidebarStore])
 
   useHotkey("m", onToggle)
-
-  const isAsideHidden = Boolean(page?.hideAside)
-  const showAside = aside != null && !isAsideHidden
 
   return (
     <div className="font-sans">
@@ -144,53 +135,6 @@ export function ThreePaneLayout({
           <DocsPane size="main" scrollRoot>
             {children}
           </DocsPane>
-
-          {/* Extreme Right Wing — optional aside pane */}
-          <AnimatePresence initial={false}>
-            {showAside && (
-              <motion.div
-                key="aside-pane"
-                initial={{
-                  width: 0,
-                  marginLeft: "calc(-2 * var(--docs-pane-gap))",
-                  opacity: 0,
-                }}
-                animate={{
-                  width: "var(--docs-aside-w)",
-                  marginLeft: 0,
-                  opacity: 1,
-                }}
-                exit={{
-                  width: 0,
-                  marginLeft: "calc(-2 * var(--docs-pane-gap))",
-                  opacity: 0,
-                }}
-                transition={SPRING.card}
-                style={{ willChange: "width, margin, opacity" }}
-                className={cn(
-                  "h-full shrink-0 overflow-hidden",
-                  hideBelowClass(asideHideBelow)
-                )}
-              >
-                <motion.div
-                  initial={{ x: "100%" }}
-                  animate={{ x: 0 }}
-                  exit={{ x: "100%" }}
-                  transition={SPRING.card}
-                  style={{ willChange: "transform" }}
-                  className="h-full w-(--docs-aside-w)"
-                >
-                  <DocsPane
-                    size="aside"
-                    aria-label="Sponsors"
-                    className="h-full w-full"
-                  >
-                    {aside}
-                  </DocsPane>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </DocsScreen>
 

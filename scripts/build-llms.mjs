@@ -35,22 +35,22 @@ function getSiteConfig() {
         content.match(/https:\/\/[a-zA-Z0-9.-]+\.satisium\.com/)
 
       return {
-        name: nameMatch ? nameMatch[1] : "Satisium Starter",
+        name: nameMatch ? nameMatch[1] : "Satisium Ease",
         description: descMatch ? descMatch[1] : "",
         domain: domainMatch
           ? typeof domainMatch[1] === "string"
             ? domainMatch[1]
             : domainMatch[0]
-          : "https://starter.satisium.com",
+          : "https://ease.satisium.com",
       }
     }
   } catch {
     // Fall back to defaults
   }
   return {
-    name: "Satisium Starter",
+    name: "Satisium Ease",
     description: "",
-    domain: "https://starter.satisium.com",
+    domain: "https://ease.satisium.com",
   }
 }
 

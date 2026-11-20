@@ -14,18 +14,18 @@ import { usePathname } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
-import { FavouriteIcon } from "@hugeicons/core-free-icons"
+import { Search01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { SidebarFooter } from "./sidebar-footer"
-import { CommandMenuTrigger } from "./command-menu"
 import { source } from "@/lib/source"
 
 import { SatisiumLogo } from "@/components/satisium-logo"
 import { Badge } from "@/components/ui/badge"
+import { Kbd } from "@/components/ui/kbd"
 import { PRODUCT } from "@/lib/config"
 import { useMounted } from "@/hooks/use-mounted"
+import { SATISIUM_PRESS_CLASS } from "@/lib/motion"
 import { ROUTES } from "@/lib/routes"
-import { AUTHOR } from "@/lib/social-links"
+import { useCommandStore } from "@/store/use-command-store"
 import { cn } from "@/lib/utils"
 
 type CustomPageNode = PageTree.Item & {
@@ -125,6 +125,7 @@ export function SidebarContent({
   tree: PageTree.Root
   headerAction?: React.ReactNode
 }) {
+  const setIsOpen = useCommandStore((s) => s.setIsOpen)
   const scrollRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
 
@@ -280,7 +281,7 @@ export function SidebarContent({
               variant="secondary"
               className="-mt-1 ml-1.5 h-[18px] shrink-0 rounded-[5px] border-none px-1.5 text-[10px] font-semibold"
             >
-              Beta
+              v1.0
             </Badge>
           </div>
         </Link>
@@ -333,26 +334,22 @@ export function SidebarContent({
         />
       </div>
 
-      <div className="flex flex-col gap-2 rounded-3xl border border-border bg-background p-2 drop-shadow-2xl dark:drop-shadow-none">
-        <div className="flex w-full flex-col items-center gap-2 rounded-2xl border border-border bg-muted p-2">
-          <CommandMenuTrigger />
-          <SidebarFooter />
-        </div>
-        <div className="flex items-center justify-center gap-1.5 py-0.5 text-[11px] font-medium tracking-wide text-muted-foreground">
-          <span>Built with</span>
-          <HugeiconsIcon
-            icon={FavouriteIcon}
-            className="size-3 text-destructive"
-          />
-          <span>by</span>
-          <Link
-            href={AUTHOR.website || AUTHOR.x}
-            target="_blank"
-            className="font-medium text-foreground hover:underline focus-visible:outline-none"
-          >
-            {AUTHOR.name}
-          </Link>
-        </div>
+      <div className="shrink-0 p-3">
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          aria-label="Search documentation"
+          className={cn(
+            "flex h-9 w-full cursor-pointer items-center justify-between rounded-[10px] bg-muted px-3 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+            SATISIUM_PRESS_CLASS
+          )}
+        >
+          <span className="flex items-center gap-2 font-sans text-xs">
+            <HugeiconsIcon icon={Search01Icon} className="size-3.5" />
+            <span>Search Anything...</span>
+          </span>
+          <Kbd>⌘ K</Kbd>
+        </button>
       </div>
     </div>
   )

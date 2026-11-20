@@ -2,11 +2,12 @@ import AxeBuilder from "@axe-core/playwright"
 import { expect, test } from "@playwright/test"
 
 const ROUTES = [
-  "/",
   "/app",
   "/docs",
-  "/docs/getting-started/installation",
-  "/docs/components/pulse-card",
+  "/docs/presets",
+  "/docs/springs",
+  "/docs/exports",
+  "/docs/changelog",
 ]
 
 for (const route of ROUTES) {
@@ -34,11 +35,53 @@ for (const route of ROUTES) {
     if (route === "/app") {
       await expect(page.locator("main").first()).toBeVisible()
     } else {
-      await expect(page.locator("h1").first()).toBeVisible()
+      await expect(page.locator("h1, h2").first()).toBeVisible()
     }
     expect(errors).toEqual([])
   })
 }
+
+test("/ redirects cleanly to /app", async ({ page }) => {
+  await page.goto("/")
+  await expect(page).toHaveURL(/\/app/)
+  await expect(page.locator("main").first()).toBeVisible()
+})
+
+test("/app renders studio primitives default, preset catalog, and opens export dialog", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "studio desktop workstation is tested on >= 1024px")
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto("/app")
+  await expect(page.locator("main").first()).toBeVisible()
+  await expect(page.getByText("Primitives", { exact: false })).toBeVisible()
+  await expect(page.getByText("Library")).toBeVisible()
+  await expect(page.getByLabel("Play animation")).toBeVisible()
+
+  // Open Export dialog via ⌘E or Ctrl+E
+  await page.keyboard.press(
+    process.platform === "darwin" ? "Meta+e" : "Control+e"
+  )
+  await expect(page.getByRole("dialog")).toBeVisible()
+  await expect(page.getByText("Export Motion Kinetics")).toBeVisible()
+})
+
+test("mobile viewport (375px) renders graceful desktop handoff card", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 667 })
+  await page.goto("/app")
+  await expect(
+    page.getByRole("heading", { name: "Satisium Ease" })
+  ).toBeVisible()
+  await expect(
+    page.getByText("Crafted for desktop screens (1024px+)", { exact: false })
+  ).toBeVisible()
+  await expect(
+    page.getByRole("link", { name: "Read Documentation" })
+  ).toBeVisible()
+})
 
 test("theme toggle persists across navigation", async ({ page, isMobile }) => {
   test.skip(isMobile, "keyboard shortcut is desktop-first")
@@ -83,13 +126,8 @@ test("command palette opens and finds a docs page", async ({
   await expect(page.getByRole("dialog")).toBeVisible()
 })
 
-test("preview route is isolated and indexable-blocked", async ({ page }) => {
-  const response = await page.goto("/preview/pulse-card")
-  expect(response?.headers()["x-robots-tag"]).toContain("noindex")
-})
-
 test("docs have no critical accessibility violations", async ({ page }) => {
-  await page.goto("/docs/getting-started/installation")
+  await page.goto("/docs/springs")
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa"])
     .analyze()
@@ -102,7 +140,7 @@ test("docs have no critical accessibility violations", async ({ page }) => {
  * page's headings — and every route-level build would still pass, because each
  * route renders correctly in isolation.
  *
- * The two pages differ deliberately: installation has a TOC, changelog sets
+ * The two pages differ deliberately: springs has a TOC, changelog sets
  * `hideToc`.
  */
 test("TOC follows the page on client-side navigation", async ({
@@ -110,7 +148,7 @@ test("TOC follows the page on client-side navigation", async ({
   isMobile,
 }) => {
   test.skip(isMobile, "TOC rail is desktop-only")
-  await page.goto("/docs/getting-started/installation")
+  await page.goto("/docs/springs")
 
   await expect(page.getByText("On this page")).toBeVisible()
 
@@ -135,7 +173,7 @@ test("the optional rail follows the page", async ({ page }) => {
     "the third rail only exists on the three-pane shell"
   )
 
-  await page.goto("/docs/getting-started/installation")
+  await page.goto("/docs/springs")
   const sponsors = page.getByRole("complementary", { name: "Sponsors" })
   await expect(sponsors).toBeVisible()
 
@@ -153,7 +191,7 @@ test("M toggles the docs sidebar", async ({ page, isMobile }) => {
     "spatial slides the card instead of unmounting the pane"
   )
 
-  await page.goto("/docs/getting-started/installation")
+  await page.goto("/docs/springs")
 
   const sidebar = page.getByRole("navigation", {
     name: "Documentation navigation",
@@ -171,11 +209,6 @@ test("M toggles the docs sidebar", async ({ page, isMobile }) => {
  * The reading measure is the anchor every pane width is derived from, so it is
  * asserted rather than eyeballed.
  *
- * The failure this catches: fixed-width rails make the article `viewport -
- * constant`, so the prose column stretches as the window grows and collapses as
- * it shrinks. Neither shows up in a route-level build — each page renders fine —
- * and both are invisible until someone reports "the panes feel cramped".
- *
  * The band is 45-75 characters at 16px body text, which is ~640-780px. Outside it
  * the eye either loses its place on the return sweep or scans too far.
  */
@@ -185,7 +218,7 @@ const PROSE_MAX = 780
 for (const width of [1024, 1280, 1440, 1920]) {
   test(`article measure stays readable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
-    await page.goto("/docs/getting-started/installation")
+    await page.goto("/docs/springs")
 
     const prose = await page.locator("article p").first().boundingBox()
     expect(prose, "no article paragraph rendered").not.toBeNull()
@@ -200,7 +233,7 @@ for (const width of [1024, 1280, 1440, 1920]) {
 /** The rails must appear in cost order: TOC, then sidebar at 1280, then aside. */
 test("docs chrome appears in cost order", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 900 })
-  await page.goto("/docs/getting-started/installation")
+  await page.goto("/docs/springs")
   // 1024: no sidebar rail yet — it would drop the prose below the floor.
   await expect(
     page.getByRole("navigation", { name: "Documentation navigation" })

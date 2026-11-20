@@ -3,10 +3,9 @@ export const ROUTES = {
   app: "/app",
   stage: "/app",
   docs: "/docs",
-  docsInstall: "/docs/getting-started/installation",
-  docsStructure: "/docs/getting-started/project-structure",
-  docsComponents: "/docs/components",
-  docsSample: "/docs/components/pulse-card",
+  docsPresets: "/docs/presets",
+  docsSprings: "/docs/springs",
+  docsExports: "/docs/exports",
   changelog: "/docs/changelog",
   privacy: "/privacy",
   terms: "/terms",
@@ -15,8 +14,3 @@ export const ROUTES = {
 
 export type RouteKey = keyof typeof ROUTES
 export type Route = (typeof ROUTES)[RouteKey]
-
-/** Preview/embed helpers — keep the URL shape in exactly one place. */
-export const previewFor = (registryKey: string) => `/preview/${registryKey}`
-export const embedFor = (registryKey: string) => `/embed/${registryKey}`
-export const registryJsonFor = (name: string) => `/r/${name}.json`

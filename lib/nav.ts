@@ -1,11 +1,11 @@
 import {
   Book02Icon,
-  BlocksIcon,
   CommandIcon,
   Home01Icon,
   Legal02Icon,
   Moon02Icon,
   SparklesIcon,
+  Layers01Icon,
 } from "@hugeicons/core-free-icons"
 
 import { HOTKEYS } from "@/lib/hotkeys"
@@ -27,11 +27,11 @@ export interface NavItem {
 export const APP_NAV: NavItem[] = [
   { label: "Home", href: ROUTES.home, icon: Home01Icon, keywords: ["landing"] },
   {
-    label: "App",
+    label: "Studio",
     href: ROUTES.app,
     icon: SparklesIcon,
-    description: "The workspace",
-    keywords: ["tool", "canvas"],
+    description: "The workstation",
+    keywords: ["tool", "canvas", "studio"],
   },
   {
     label: "Docs",
@@ -41,11 +41,11 @@ export const APP_NAV: NavItem[] = [
     keywords: ["documentation", "guide"],
   },
   {
-    label: "Components",
-    href: ROUTES.docsComponents,
-    icon: BlocksIcon,
-    description: "Live previews + CLI installs",
-    keywords: ["registry", "preview"],
+    label: "Presets",
+    href: ROUTES.docsPresets,
+    icon: Layers01Icon,
+    description: "Standardized motion curves",
+    keywords: ["presets", "curves"],
   },
 ]
 
@@ -54,19 +54,19 @@ export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
   {
     title: "Product",
     items: [
-      { label: "App Workspace", href: ROUTES.app },
-      { label: "Component Kit", href: ROUTES.docsComponents },
-      { label: "Interactive Stage", href: ROUTES.stage },
+      { label: "Studio Workstation", href: ROUTES.app },
+      { label: "Motion Presets", href: ROUTES.docsPresets },
+      { label: "Spring Dynamics", href: ROUTES.docsSprings },
       { label: "Changelog", href: ROUTES.changelog },
     ],
   },
   {
     title: "Documentation",
     items: [
-      { label: "Quickstart Installation", href: ROUTES.docsInstall },
-      { label: "Project Anatomy", href: ROUTES.docsStructure },
-      { label: "Component Registry", href: ROUTES.docsComponents },
-      { label: "Architecture Docs", href: ROUTES.docs },
+      { label: "Overview & Quickstart", href: ROUTES.docs },
+      { label: "Curve Presets", href: ROUTES.docsPresets },
+      { label: "Spring Physics", href: ROUTES.docsSprings },
+      { label: "Production Exports", href: ROUTES.docsExports },
     ],
   },
   {

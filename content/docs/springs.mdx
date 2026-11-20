@@ -3,22 +3,27 @@ title: Spring Physics
 description: Mathematical mechanics of mass, stiffness, damping, and linear() CSS approximations.
 ---
 
-Unlike static duration-based cubic-beziers, springs simulate actual physical forces. A spring does not have an arbitrary duration; its motion duration is an emergent property derived from physical dynamics.
+## How does Ease compute spring dynamics?
+
+Unlike static duration-based cubic-beziers, springs simulate physical forces using mass, stiffness, and damping. Satisium Ease solves closed-form second-order differential equations for harmonic oscillators (m · x''(t) + c · x'(t) + k · x(t) = 0), deriving settling durations analytically based on resting thresholds rather than arbitrary millisecond timers.
 
 ## Physical Parameters
 
-| Parameter     | Symbol | Range       | Description                                                                                |
-| :------------ | :----- | :---------- | :----------------------------------------------------------------------------------------- |
-| **Mass**      | $m$    | `0.1 – 5.0` | The inertia of the moving object. Higher mass creates heavier, more sluggish motion.       |
-| **Stiffness** | $k$    | `1 – 500`   | The tension of the spring. Higher stiffness causes faster, snappier oscillations.          |
-| **Damping**   | $c$    | `1 – 100`   | The friction resisting the motion. High damping suppresses oscillation (critical damping). |
+| Parameter       | Symbol | Range       | Description                                                                                |
+| :-------------- | :----- | :---------- | :----------------------------------------------------------------------------------------- |
+| **`Mass`**      | `m`    | `0.1 – 5.0` | The inertia of the moving object. Higher mass creates heavier, more sluggish motion.       |
+| **`Stiffness`** | `k`    | `1 – 500`   | The tension of the spring. Higher stiffness causes faster, snappier oscillations.          |
+| **`Damping`**   | `c`    | `1 – 100`   | The friction resisting the motion. High damping suppresses oscillation (critical damping). |
 
-## CSS `linear()` Approximations
+## CSS linear() Approximations
 
 Traditional CSS transitions cannot compute spring physics natively. Ease bridges this gap by solving the harmonic differential equation and sampling the motion into a modern CSS `linear()` function:
 
-```css
-.ease-spring {
+<div className="mt-6">
+  <CodeBlock
+    height="420px"
+    files={{
+      "spring.css": `.ease-spring {
   transition: transform 1.2s
     linear(
       0,
@@ -123,5 +128,7 @@ Traditional CSS transitions cannot compute spring physics natively. Ease bridges
       1.001,
       1
     );
-}
-```
+}`,
+    }}
+  />
+</div>

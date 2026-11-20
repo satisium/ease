@@ -1,11 +1,4 @@
 {
   "title": "Documentation",
-  "pages": [
-    "index",
-    "springs",
-    "presets",
-    "getting-started",
-    "components",
-    "changelog"
-  ]
+  "pages": ["index", "presets", "springs", "exports", "changelog"]
 }

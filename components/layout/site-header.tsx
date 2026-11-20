@@ -6,7 +6,7 @@ import { useState } from "react"
 import { Menu01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 
-import { MinimalThemeSwitcher } from "@/components/home/minimal-theme-switcher"
+import { MinimalThemeSwitcher } from "@/components/layout/minimal-theme-switcher"
 import { AppNav } from "@/components/layout/app-nav"
 import { CommandMenuTrigger } from "@/components/layout/command-menu"
 import { SatisiumLogo } from "@/components/satisium-logo"
