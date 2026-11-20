@@ -14,6 +14,7 @@
 import * as React from "react"
 import { LayoutGroup, motion } from "motion/react"
 import { useEaseStore } from "@/hooks/use-ease-store"
+import { trackEvent } from "@/lib/analytics"
 import { SATISIUM_SPRING_PILL } from "@/lib/motion"
 import {
   Tooltip,
@@ -45,13 +46,16 @@ export function ModeSwitcherSlab({ className }: ModeSwitcherSlabProps) {
     if (targetMode === "preview") {
       if (mode === "customize") exitCustomize()
       if (mode === "compare") exitCompare()
+      trackEvent("ease_mode_switched", { to: targetMode })
     } else if (targetMode === "customize") {
       if (mode === "compare") exitCompare()
       enterCustomize()
+      trackEvent("ease_mode_switched", { to: targetMode })
     } else if (targetMode === "compare") {
       if (canCompare) {
         if (mode === "customize") exitCustomize()
         enterCompare()
+        trackEvent("ease_mode_switched", { to: targetMode })
       }
     }
   }

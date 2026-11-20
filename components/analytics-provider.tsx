@@ -5,22 +5,19 @@ import posthog from "posthog-js"
 import { PostHogProvider } from "posthog-js/react"
 import { useEffect } from "react"
 import { useConsent } from "@/lib/consent"
+import { hasConsent } from "@/lib/consent-utils"
 import { PRODUCT } from "@/lib/config"
 
 export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
   const { status } = useConsent()
 
   useEffect(() => {
-    if (status === "accepted") {
+    if (status === "accepted" || hasConsent()) {
       if (process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN) {
         posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN, {
-          api_host:
-            process.env.NODE_ENV === "development"
-              ? process.env.NEXT_PUBLIC_POSTHOG_HOST ||
-                "https://app.posthog.com"
-              : "/ingest",
+          api_host: "/ingest",
           ui_host:
-            process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://app.posthog.com",
+            process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.posthog.com",
           capture_pageview: false,
           capture_pageleave: true,
           person_profiles: "identified_only",
