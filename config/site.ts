@@ -152,6 +152,7 @@ export const AUTHOR = {
   name: "Satishkumar",
   x: "https://x.com/iamsatish4564",
   github: "https://github.com/satishkumarsajjan",
+  discord: "https://discord.gg/xQ5cPHmT7",
   website: "https://satishkumar.xyz/",
 } as const
 
@@ -216,7 +217,7 @@ export const ORGANIZATION_SAME_AS = [
 export const LEGAL = {
   company: "SATISIUM",
   product: "Ease",
-  contactEmail: "legal@satisium.com",
+  contactEmail: "satisiumhq@gmail.com",
   jurisdiction: "India",
   updated: "2026-10-28",
 } as const

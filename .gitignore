@@ -20,11 +20,12 @@
 # production
 /build
 
-# misc
+# local tooling & ide
 .DS_Store
 *.pem
 .source
-/.kilo
+/.kilo/
+/.qodo/
 
 # debug
 npm-debug.log*

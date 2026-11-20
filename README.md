@@ -1,16 +1,16 @@
-# Satisium Starter
+# Satisium Ease
 
 <div align="center">
 
-**A brand-aligned App + Docs foundation built with Next.js 16, React 19, Tailwind CSS v4, and Fumadocs.**
+**Interactive Cubic-Bézier curve editor and analytical ODE spring physics studio for design engineers.**
 
-[![CI](https://github.com/satisium/starter/actions/workflows/ci.yml/badge.svg)](https://github.com/satisium/starter/actions/workflows/ci.yml)
+[![CI](https://github.com/satisium/ease/actions/workflows/ci.yml/badge.svg)](https://github.com/satisium/ease/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Live App](https://img.shields.io/badge/Live_App-ease.satisium.com-000000)](https://ease.satisium.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16.3-black)](https://nextjs.org/)
 [![Tailwind](https://img.shields.io/badge/Tailwind-v4-38bdf8)](https://tailwindcss.com/)
-[![Fumadocs](https://img.shields.io/badge/Fumadocs-16.7-purple)](https://fumadocs.vercel.app/)
 
-[Live Demo](https://starter.satisium.com) · [Documentation](https://starter.satisium.com/docs) · [Component Kit](https://starter.satisium.com/docs/components) · [Registry](https://starter.satisium.com/r/registry.json)
+[ease.satisium.com](https://ease.satisium.com) · [Documentation](https://ease.satisium.com/docs) · [Presets](https://ease.satisium.com/docs/presets) · [Springs](https://ease.satisium.com/docs/springs) · [Exports](https://ease.satisium.com/docs/exports)
 
 </div>
 
@@ -18,129 +18,126 @@
 
 ## Overview
 
-Satisium Starter eliminates the disconnect between your application and its documentation. Build your product canvas at `/app` and publish interactive, beautiful documentation at `/docs` from a single codebase sharing the same design tokens, command menu, and navigation.
+> _"Everything is Code. Context is Premium."_
 
-### Highlights
+**Satisium Ease** bridges the gap between mathematical motion curves and real-world UI engineering. Design, fine-tune, and benchmark both parametric Cubic-Bézier vectors and closed-form analytical ODE spring physics ($m, k, c, v_0$), auditioning kinetics live at 120fps across 21 production UI habitats (`Overlays`, `Controls`, `Disclosure`, `Landing`, and the default 4-track `Primitives X-Ray`).
 
-- **Dual Docs Architecture:** Choose between **Spatial** (signature card-shift layout) and **Three-Pane** (borderless sidebar, reading measure article, contextual third rail) shells.
-- **Achromatic Surface Ramp:** Zero-shadow design. Depth is established purely through OKLCH luminance tokens (`bg-muted` vs `bg-background`).
-- **Shadcn Open Registry Pipeline:** Distribute your components to external projects via `public/r/*.json` and `npx shadcn add`.
-- **Zero-Key Rule:** The entire app boots, builds, and passes tests with an empty `.env.local`.
-- **Automated Health Engine (`pnpm doctor`):** 13 automated rules verify architectural contracts, zero borders in docs, and accessibility compliance.
-- **AI / LLM Ready:** Automated generation of `llms.txt`, `llms-full.txt`, and copyable MDX payloads.
+### Key Features
+
+- **Dual Physics Engines:**
+  - **Cubic-Bézier Solver:** Precision numerical root-finding using Newton-Raphson with De Casteljau subdivision fallback ($[0, 1] \to [0, 1]$ parameter space).
+  - **Closed-Form Analytical ODE Springs:** Exact analytical solutions for second-order harmonic oscillator kinematics ($m \ddot{x} + c \dot{x} + k x = 0$) across underdamped, critically damped, and overdamped regimes with initial velocity $v_0$.
+- **Duration Integrity Law:** Bézier curves strictly preserve user-specified durations, whereas spring physics analytically determine their true settling time based on a resting threshold ($\epsilon = 0.001$). Switching engines cleanly transitions between fixed durations and physics-derived settling kinetics.
+- **Scoped 120fps `TrackConductor`:** Decoupled RAF loop driving DOM elements directly via GPU-accelerated CSS transforms, with live mid-flight velocity interruption (`I` shortcut).
+- **2-Tier Git Curve Branching:** Branch curves non-destructively (`Root -> Variants[]`), preview uncommitted `Draft *` edits, and roll back or promote variants effortlessly.
+- **Side-by-Side Compare Duels:** Benchmark two curves in real time across any habitat to validate perceived latency, overshoot, and settling feel.
+- **4 Production Exporters:**
+  - CSS `cubic-bezier()` & CSS `linear()` sampled keyframes
+  - Tailwind CSS v4 `@utility` declarations
+  - Motion (Framer Motion) transition syntax
+  - GSAP `CustomEase` curves
+  - Lossless compressed `#hash` Share URLs for zero-database collaboration.
 
 ---
 
-## Quick Start
+## Architecture Blueprint
+
+```
+ease/
+├── core/                  # 100% pure headless TypeScript (zero React/DOM imports)
+│   ├── bezier/            # De Casteljau solver & Newton-Raphson root finder
+│   ├── spring/            # Analytical ODE solver & settling time calculation
+│   ├── compilers/         # Multi-target code generators (CSS, Tailwind, Motion, GSAP)
+│   ├── evaluators/        # Interpolation engines & trajectory samplers
+│   ├── registry/          # 21 habitat track conductor definitions & curve presets
+│   └── store/             # Zustand state stores & curve tree mutation engines
+├── hooks/                 # 120fps DOM binders (useTrackConductor, useHotkeys)
+├── components/studio/     # Satisium UI Studio workstation
+│   ├── habitats/          # 21 interactive UI audition habitats
+│   ├── modes/             # Audition (Preview), Customize (Canvas), Compare (Duel)
+│   └── export-dialog.tsx  # Production code generator modal
+├── content/docs/          # Fumadocs MDX documentation (AEO/GEO machine discovery)
+└── public/                # Static assets, llms.txt, and llms-full.txt
+```
+
+---
+
+## Quick Start (Zero-Env Setup)
+
+Satisium Ease enforces the **Zero-Key Rule**: the entire application boots, builds, and passes all tests without requiring any `.env` configuration.
 
 ```bash
-# Clone the template
-git clone https://github.com/satisium/starter.git my-product
-cd my-product
+# 1. Clone the repository
+git clone https://github.com/satisium/ease.git
+cd ease
 
-# Install dependencies
+# 2. Install dependencies (requires Node >= 20.9, pnpm 10+)
 pnpm install
 
-# Brand and configure your project (interactive preset selection)
-pnpm setup
-
-# Start the Turbopack development server
+# 3. Start the Turbopack development server
 pnpm dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to view your landing page, `/app` for your product workstation, and `/docs` for your documentation engine.
+Open [http://localhost:3000](http://localhost:3000) in your browser. The root route automatically redirects to `/app` (the Ease Studio Workstation). Documentation is accessible at `/docs`.
 
 ---
 
-## Presets & Scaffolding
+## Scripts
 
-Satisium includes an automated setup script (`pnpm setup`) that brands and prunes the template into your desired product form:
-
-| Preset    | What It Keeps                                       | What It Prunes                                       | Target Use Case                             |
-| :-------- | :-------------------------------------------------- | :--------------------------------------------------- | :------------------------------------------ |
-| `library` | App shell, Docs, Registry, Previewer, Landing       | _None_                                               | Component libraries (e.g., Satisium Pro UI) |
-| `tool`    | App shell, Workstation canvas, Docs, Landing, Legal | `registry/**`, `public/r/**`, `components/previewer` | Dev tools & design-engineer utilities       |
-| `saas`    | App shell, Marketing, Legal, Analytics, Docs        | Registry + Previewer + demo registry pages           | Production SaaS web apps                    |
-| `landing` | Landing hero, Bento grid, Legal, SEO                | Docs engine + Registry + `/app`                      | Minimal waitlist or launch website          |
-
-Non-interactive setup for CI or scripts:
-
-```bash
-pnpm setup --name "My App" --slug my-app --domain https://myapp.com --preset tool
-```
+| Command          | Description                                                              |
+| :--------------- | :----------------------------------------------------------------------- |
+| `pnpm dev`       | Start Next.js development server with Turbopack                          |
+| `pnpm lint`      | Run ESLint validation                                                    |
+| `pnpm typecheck` | Run Fumadocs MDX checks and TypeScript compiler (`tsc --noEmit`)         |
+| `pnpm test`      | Run complete unit and integration test suite via Vitest                  |
+| `pnpm doctor`    | Audit 14 architectural contracts and domain rules (`scripts/doctor.mjs`) |
+| `pnpm build`     | Generate LLM discovery surfaces and compile production build             |
+| `pnpm e2e`       | Run Playwright smoke and accessibility test suite                        |
 
 ---
 
-## Using with Shadcn CLI
+## Keyboard Shortcuts
 
-Components in the `registry/` directory are compiled into the Shadcn Open Registry standard. You can add them to any Next.js project:
-
-```bash
-# Add a single component via URL
-npx shadcn@latest add https://starter.satisium.com/r/action-button.json
-```
-
-Or configure Satisium in your project's `components.json`:
-
-```json
-{
-  "registries": {
-    "satisium": "https://starter.satisium.com/r"
-  }
-}
-```
-
-Then install by name:
-
-```bash
-npx shadcn@latest add @satisium/action-button
-npx shadcn@latest add @satisium/stat-card
-```
+| Shortcut        | Action                                              |
+| :-------------- | :-------------------------------------------------- |
+| `Space`         | Play / Pause active animation loop                  |
+| `R`             | Reset playback to start ($t = 0$)                   |
+| `I`             | Trigger mid-flight velocity interruption            |
+| `1`             | Switch to **Preview Mode** (Habitat Audition)       |
+| `2`             | Switch to **Customize Mode** (Curve Editing Canvas) |
+| `3`             | Switch to **Compare Mode** (Side-by-Side Duel)      |
+| `⌘E` / `Ctrl+E` | Open **Export Motion Kinetics** dialog              |
+| `⌘K` / `Ctrl+K` | Open Satisium Command Palette                       |
+| `Esc`           | Close active dialog or clear selection              |
 
 ---
 
-## Commands & Scripts
+## Community & Support
 
-| Task                  | Command                                            | Description                                           |
-| :-------------------- | :------------------------------------------------- | :---------------------------------------------------- |
-| **Dev Server**        | `pnpm dev`                                         | Next.js 16 dev server with Turbopack                  |
-| **Verification Gate** | `pnpm verify`                                      | Runs lint, typecheck, test, and production build      |
-| **Health Check**      | `pnpm doctor`                                      | 13-point architectural and contract auditor           |
-| **Unit Tests**        | `pnpm test`                                        | Runs Vitest unit and regression tests                 |
-| **E2E & A11y**        | `pnpm e2e`                                         | Playwright smoke tests + Axe accessibility audit      |
-| **Compile Registry**  | `pnpm build:registry:meta && pnpm registry:public` | Builds `public/r/*.json` distribution schemas         |
-| **Scaffold Doc**      | `pnpm make:doc <slug> [section]`                   | Creates frontmatter and MDX doc boilerplate           |
-| **AI Documentation**  | `pnpm llm`                                         | Compiles `public/llms.txt` and `public/llms-full.txt` |
-| **Release Notes**     | `pnpm changeset`                                   | Bumps versions and updates changelogs                 |
+Join the [Satisium Discord](https://discord.gg/xQ5cPHmT7) community to connect with other builders and contributors:
+
+- **`#ease-chat`**: General discussions, motion design, and showcase.
+- **`#ease-support`**: Community support and troubleshooting forum.
+- **`#ease-requests`**: Feature ideas, habitat requests, and kinetic explorations.
+
+For bugs and technical issues, please open a [GitHub Issue](https://github.com/satisium/ease/issues).
 
 ---
 
-## Directory Blueprint
+## Contributing
 
-```
-starter-template/
-├─ app/
-│  ├─ page.tsx                     # Landing page with SiteHeader, HeroShowcase, Launchpad
-│  ├─ app/page.tsx                 # Product workstation canvas
-│  ├─ docs/[[...slug]]/page.tsx    # Fumadocs dynamic MDX documentation
-│  ├─ embed/[registryKey]/page.tsx # Isolated iframe renderer
-│  └─ preview/[registryKey]/       # Fullscreen component previewer
-├─ components/
-│  ├─ app/                         # Workspace workstation canvas & tool components
-│  ├─ docs/                        # Docs layouts (Spatial & Three-Pane), chrome, TOC
-│  ├─ home/                        # Landing hero, HeroShowcase, Bento Launchpad, Footer
-│  ├─ layout/                      # AppShell, SiteHeader, AppNav, CommandMenu
-│  ├─ previewer/                   # Resizable playground, toolbox, canvas
-│  └─ ui/                          # Satisium tokenized component primitives
-├─ config/site.ts                  # Centralized brand, project, and author configuration
-├─ content/docs/                   # MDX documentation source files
-├─ lib/                            # Motion springs, hotkeys, routes, nav, telemetry
-├─ registry/                       # Distributable Shadcn registry components
-└─ scripts/                        # doctor.mjs, init-project.mjs, build-llms.mjs
-```
+We welcome contributions from design engineers and developers! Please read our [Contributing Guide](CONTRIBUTING.md) for architectural invariants, coding guidelines, and commit standards before opening a pull request.
+
+Please review our [Code of Conduct](CODE_OF_CONDUCT.md) to maintain a respectful and welcoming community.
+
+---
+
+## Security
+
+For vulnerability disclosures and security policies, please consult [SECURITY.md](SECURITY.md).
 
 ---
 
 ## License
 
-Released under the [MIT License](LICENSE). Built by [Satisium](https://github.com/satisium).
+Released under the [MIT License](LICENSE). Built by [Satishkumar](https://github.com/satishkumarsajjan) for [Satisium](https://satisium.com).

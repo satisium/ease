@@ -76,13 +76,16 @@ export const metadata: Metadata = {
     },
   },
   keywords: [
-    "app starter",
-    "docs starter",
-    "next.js",
+    "cubic-bezier",
+    "spring physics",
+    "motion curves",
+    "easing generator",
+    "css linear()",
     "tailwind v4",
-    "fumadocs",
-    "shadcn",
-    "satisium",
+    "framer motion",
+    "gsap customease",
+    "ui animation",
+    "satisium ease",
   ],
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
@@ -165,11 +168,6 @@ export default function RootLayout({
               url: SITE_URL,
               publisher: {
                 "@id": "https://satisium.com/#organization",
-              },
-              potentialAction: {
-                "@type": "SearchAction",
-                target: `${SITE_URL}/docs/search?q={search_term_string}`,
-                "query-input": "required name=search_term_string",
               },
             }),
           }}
