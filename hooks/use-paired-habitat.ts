@@ -36,6 +36,7 @@ export function usePairedHabitat({
   const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
   const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
   const isSolo = useEaseStore((s) => s.isSolo)
+  const isScrubAllChannels = useEaseStore((s) => s.isScrubAllChannels ?? true)
   const playbackState = useEaseStore((s) => s.playbackState)
   const compareQueue = useEaseStore((s) => s.compareQueue)
   const globalCompareTarget = useEaseStore((s) => s.globalCompareTarget)
@@ -78,8 +79,9 @@ export function usePairedHabitat({
   )
 
   // Solo & single-channel scrub retention: keep mounted whenever solo is active or
-  // inspecting/scrubbing a single channel on this component family
-  const isSoloOrSingleScrub = isSolo || focusedChannelId !== "all"
+  // inspecting/scrubbing an isolated channel on this component family
+  const isSoloOrSingleScrub =
+    isSolo || (!isScrubAllChannels && focusedChannelId !== "all")
   const shouldForceMount = compareItemId
     ? playbackState !== "idle"
     : baseForceMount || (isFocused && isSoloOrSingleScrub)
@@ -144,7 +146,9 @@ export function usePairedHabitat({
 
       const isSoloOrSingleCurr =
         curr.isSolo ||
-        (curr.playbackState === "scrubbing" && curr.focusedChannelId !== "all")
+        (curr.playbackState === "scrubbing" &&
+          !(curr.isScrubAllChannels ?? true) &&
+          curr.focusedChannelId !== "all")
 
       if (
         curr.focusedTrackId === enterTrackId &&
@@ -191,10 +195,11 @@ export function usePairedHabitat({
       const isSoloOrSingleState =
         state.isSolo ||
         (state.playbackState === "scrubbing" &&
+          !(state.isScrubAllChannels ?? true) &&
           state.focusedChannelId !== "all")
 
       // CRITICAL RETENTION RULE:
-      // When isSolo === true OR (playbackState === "scrubbing" && focusedChannelId !== "all"),
+      // When isSolo === true OR (playbackState === "scrubbing" && !isScrubAllChannels && focusedChannelId !== "all"),
       // NEVER drop isVisible to false when scrubbing hits 0% or 100% or stops!
       if (isSoloOrSingleState) {
         return

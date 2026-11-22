@@ -153,8 +153,10 @@ export function useTransitionTrack(
 
       const conductorSnap = store.conductor.getSnapshot()
       const isScrubbing = conductorSnap.playbackState === "scrubbing"
+      const isScrubAllChannels = store.getState().isScrubAllChannels ?? true
       const soloChannel =
-        (isSolo || isScrubbing) && focusedChannelId !== "all"
+        (isSolo || (isScrubbing && !isScrubAllChannels)) &&
+        focusedChannelId !== "all"
           ? focusedChannelId
           : null
 

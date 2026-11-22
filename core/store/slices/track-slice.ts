@@ -42,6 +42,7 @@ export function createTrackSlice(
   | "focusedChannelId"
   | "isPinned"
   | "isSolo"
+  | "isScrubAllChannels"
   | "trackBindings"
   | "getFocusedTrack"
   | "getFocusedChannel"
@@ -50,6 +51,8 @@ export function createTrackSlice(
   | "focusChannel"
   | "setPinned"
   | "toggleSolo"
+  | "toggleScrubAllChannels"
+  | "setScrubAllChannels"
   | "selectCurveForFocused"
   | "setFocusedDurationMs"
   | "setFocusedDelayMs"
@@ -59,11 +62,29 @@ export function createTrackSlice(
   | "triggerLive"
   | "interruptActive"
 > {
+  const initialChannel = (() => {
+    if (
+      initial.focusedTrackId !== "primitives:all" &&
+      initial.focusedChannelId === "all"
+    ) {
+      const base = trackRegistry.get(initial.focusedTrackId)
+      const channels =
+        initial.trackBindings[initial.focusedTrackId] ?? base?.channels ?? []
+      return (
+        channels.find((c) => c.property !== "opacity")?.id ??
+        channels[0]?.id ??
+        "all"
+      )
+    }
+    return initial.focusedChannelId
+  })()
+
   return {
     focusedTrackId: initial.focusedTrackId,
-    focusedChannelId: initial.focusedChannelId,
+    focusedChannelId: initialChannel,
     isPinned: false,
     isSolo: false,
+    isScrubAllChannels: true,
     trackBindings: initial.trackBindings,
 
     getFocusedTrack: () => {
@@ -81,7 +102,9 @@ export function createTrackSlice(
       if (focusedChannelId !== "all") {
         return channels.find((c) => c.id === focusedChannelId) ?? null
       }
-      return channels[0] ?? null
+      return (
+        channels.find((c) => c.property !== "opacity") ?? channels[0] ?? null
+      )
     },
 
     getActiveCurve: () => {
@@ -89,9 +112,18 @@ export function createTrackSlice(
     },
 
     focusTrack: (trackId) => {
+      const base = trackRegistry.get(trackId)
+      const channels = ctx.get().trackBindings[trackId] ?? base?.channels ?? []
+      const defaultChannel =
+        trackId === "primitives:all"
+          ? "all"
+          : (channels.find((c) => c.property !== "opacity")?.id ??
+            channels[0]?.id ??
+            "all")
+
       ctx.set({
         focusedTrackId: trackId,
-        focusedChannelId: "all",
+        focusedChannelId: defaultChannel,
         isSolo: false,
       })
       ctx.conductor.setSoloActive(false)
@@ -121,6 +153,14 @@ export function createTrackSlice(
       ctx.syncDuration()
     },
 
+    toggleScrubAllChannels: () => {
+      ctx.set({ isScrubAllChannels: !ctx.get().isScrubAllChannels })
+    },
+
+    setScrubAllChannels: (active) => {
+      ctx.set({ isScrubAllChannels: active })
+    },
+
     selectCurveForFocused: (curveId) => {
       const {
         focusedTrackId,
@@ -133,6 +173,12 @@ export function createTrackSlice(
         getCanonicalPresetById(curveId) ??
         findCurveInCustomTree(customCurves, curveId)?.node
       if (!curve) return
+
+      // Clicking an ease should not apply to all channels ever in components.
+      // Only apply to selected channel or don't apply. But it's not true for primitives.
+      if (focusedTrackId !== "primitives:all" && focusedChannelId === "all") {
+        return
+      }
 
       let nextBindings = applyCurveToChannel(
         trackBindings,

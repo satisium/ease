@@ -60,15 +60,25 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
 
     expect(storeApi!.getState().focusedChannelId).toBe("translateY")
     expect(storeApi!.getState().isSolo).toBe(false)
+    expect(storeApi!.getState().isScrubAllChannels).toBe(true)
 
-    // Scrub halfway (seekScoped)
+    // By default, isScrubAllChannels === true animates all channels during scrubbing
     act(() => {
       storeApi!.getState().seekScoped(150)
     })
-
     expect(storeApi!.conductor.getSnapshot().playbackState).toBe("scrubbing")
+    expect(lastFrameValues.translateY).toBeDefined()
+    expect(lastFrameValues.backdrop).not.toBeCloseTo(0.28, 2)
 
-    // During scrubbing on translateY:
+    // Toggle scrub channel isolation: isolate translateY
+    act(() => {
+      storeApi!.getState().toggleScrubAllChannels()
+      storeApi!.getState().seekScoped(150)
+    })
+
+    expect(storeApi!.getState().isScrubAllChannels).toBe(false)
+
+    // During isolated scrubbing on translateY:
     // translateY is animating/scrubbed
     // backdrop is locked to rest destination (0.28)
     // scale is locked to rest destination (1.0)
@@ -109,10 +119,11 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
       </EaseStoreProvider>
     )
 
-    // Focus backdrop channel on dialog:open
+    // Focus backdrop channel on dialog:open and isolate channel for scrubbing
     act(() => {
       storeApi!.getState().focusTrack("dialog:open")
       storeApi!.getState().focusChannel("backdrop")
+      storeApi!.getState().setScrubAllChannels(false)
     })
 
     // Scrub to 100% of backdrop duration (320ms)
@@ -257,5 +268,46 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
     expect(storeApi!.getState().focusedChannelId).toBe("all")
     expect(storeApi!.getState().isSolo).toBe(false)
     expect(storeApi!.conductor.getSnapshot().isSoloActive).toBe(false)
+  })
+
+  it("6. toggles scrubber channel scope via the timeline console button", () => {
+    let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
+
+    function TestHarness() {
+      storeApi = useEaseStoreApi()
+      return (
+        <StudioUiProvider>
+          <TimelineConsole />
+        </StudioUiProvider>
+      )
+    }
+
+    render(
+      <EaseStoreProvider>
+        <TestHarness />
+      </EaseStoreProvider>
+    )
+
+    act(() => {
+      storeApi!.getState().focusTrack("dialog:open")
+    })
+
+    // Button should be visible and indicate scrubbing all channels
+    const toggleBtn = screen.getByRole("button", {
+      name: /Scrubbing all channels\. Click to isolate active channel/i,
+    })
+    expect(toggleBtn).toBeInTheDocument()
+
+    // Click toggle to isolate channel
+    act(() => {
+      fireEvent.click(toggleBtn)
+    })
+
+    expect(storeApi!.getState().isScrubAllChannels).toBe(false)
+    expect(
+      screen.getByRole("button", {
+        name: /Scrubbing isolated channel\. Click to scrub all channels/i,
+      })
+    ).toBeInTheDocument()
   })
 })

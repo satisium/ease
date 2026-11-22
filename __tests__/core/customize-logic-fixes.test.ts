@@ -29,8 +29,9 @@ describe("Mode 2 (Customize) Core Logic Fixes", () => {
   it("promotes focusedChannelId to primary spatial channel on enterCustomize() and modifies ONLY target channel on updateDraft()", () => {
     const store = createEaseStore()
 
-    // 1. Focus dialog:open with focusedChannelId === 'all'
+    // 1. Focus dialog:open and set focusedChannelId === 'all'
     store.getState().focusTrack("dialog:open")
+    store.getState().focusChannel("all")
     expect(store.getState().focusedChannelId).toBe("all")
 
     const initialBindings = store.getState().trackBindings["dialog:open"]
