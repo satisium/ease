@@ -1,11 +1,9 @@
 import {
-  Book02Icon,
   CommandIcon,
   Home01Icon,
   Legal02Icon,
   Moon02Icon,
   SparklesIcon,
-  Layers01Icon,
 } from "@hugeicons/core-free-icons"
 
 import { HOTKEYS } from "@/lib/hotkeys"
@@ -33,41 +31,13 @@ export const APP_NAV: NavItem[] = [
     description: "The workstation",
     keywords: ["tool", "canvas", "studio"],
   },
-  {
-    label: "Docs",
-    href: ROUTES.docs,
-    icon: Book02Icon,
-    description: "Guides and reference",
-    keywords: ["documentation", "guide"],
-  },
-  {
-    label: "Presets",
-    href: ROUTES.docsPresets,
-    icon: Layers01Icon,
-    description: "Standardized motion curves",
-    keywords: ["presets", "curves"],
-  },
 ]
 
-/** Marketing footer columns (4-column balanced categorical matrix). */
+/** Marketing footer columns (3-column balanced categorical matrix). */
 export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
   {
     title: "Product",
-    items: [
-      { label: "Studio Workstation", href: ROUTES.app },
-      { label: "Motion Presets", href: ROUTES.docsPresets },
-      { label: "Spring Dynamics", href: ROUTES.docsSprings },
-      { label: "Changelog", href: ROUTES.changelog },
-    ],
-  },
-  {
-    title: "Documentation",
-    items: [
-      { label: "Overview & Quickstart", href: ROUTES.docs },
-      { label: "Curve Presets", href: ROUTES.docsPresets },
-      { label: "Spring Physics", href: ROUTES.docsSprings },
-      { label: "Production Exports", href: ROUTES.docsExports },
-    ],
+    items: [{ label: "Studio Workstation", href: ROUTES.app }],
   },
   {
     title: "Ecosystem",
@@ -93,9 +63,7 @@ export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
 ]
 
 /**
- * Quick actions surfaced in the ⌘K palette alongside docs results.
- * Passing this to <CommandMenuDialog extraItems={…} /> is what makes ⌘K cover
- * the whole app instead of docs only.
+ * Quick actions surfaced in the ⌘K palette.
  */
 export const QUICK_ACTIONS: NavItem[] = [
   ...APP_NAV,

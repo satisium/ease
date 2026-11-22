@@ -1,4 +1,4 @@
-# Satisium Ease
+# Ease | Satisium
 
 <div align="center">
 
@@ -10,7 +10,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16.3-black)](https://nextjs.org/)
 [![Tailwind](https://img.shields.io/badge/Tailwind-v4-38bdf8)](https://tailwindcss.com/)
 
-[ease.satisium.com](https://ease.satisium.com) · [Documentation](https://ease.satisium.com/docs) · [Presets](https://ease.satisium.com/docs/presets) · [Springs](https://ease.satisium.com/docs/springs) · [Exports](https://ease.satisium.com/docs/exports)
+[ease.satisium.com](https://ease.satisium.com) · [App Workstation](https://ease.satisium.com/app) · [LLMs Context](https://ease.satisium.com/llms.txt)
 
 </div>
 
@@ -56,8 +56,8 @@ ease/
 │   ├── habitats/          # 21 interactive UI audition habitats
 │   ├── modes/             # Audition (Preview), Customize (Canvas), Compare (Duel)
 │   └── export-dialog.tsx  # Production code generator modal
-├── content/docs/          # Fumadocs MDX documentation (AEO/GEO machine discovery)
-└── public/                # Static assets, llms.txt, and llms-full.txt
+├── content/legal/         # Legal policies (privacy, terms, cookies)
+└── public/                # Static assets and llms.txt
 ```
 
 ---
@@ -78,21 +78,21 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser. The root route automatically redirects to `/app` (the Ease Studio Workstation). Documentation is accessible at `/docs`.
+Open [http://localhost:3000](http://localhost:3000) in your browser. The root route automatically redirects to `/app` (the Ease Studio Workstation).
 
 ---
 
 ## Scripts
 
-| Command          | Description                                                              |
-| :--------------- | :----------------------------------------------------------------------- |
-| `pnpm dev`       | Start Next.js development server with Turbopack                          |
-| `pnpm lint`      | Run ESLint validation                                                    |
-| `pnpm typecheck` | Run Fumadocs MDX checks and TypeScript compiler (`tsc --noEmit`)         |
-| `pnpm test`      | Run complete unit and integration test suite via Vitest                  |
-| `pnpm doctor`    | Audit 14 architectural contracts and domain rules (`scripts/doctor.mjs`) |
-| `pnpm build`     | Generate LLM discovery surfaces and compile production build             |
-| `pnpm e2e`       | Run Playwright smoke and accessibility test suite                        |
+| Command          | Description                                                           |
+| :--------------- | :-------------------------------------------------------------------- |
+| `pnpm dev`       | Start Next.js development server with Turbopack                       |
+| `pnpm lint`      | Run ESLint validation                                                 |
+| `pnpm typecheck` | Run TypeScript compiler (`tsc --noEmit`)                              |
+| `pnpm test`      | Run complete unit and integration test suite via Vitest               |
+| `pnpm doctor`    | Audit architectural contracts and domain rules (`scripts/doctor.mjs`) |
+| `pnpm build`     | Compile Next.js production build                                      |
+| `pnpm e2e`       | Run Playwright smoke and accessibility test suite                     |
 
 ---
 

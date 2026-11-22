@@ -15,7 +15,6 @@ const passed = []
 const abs = (p) => path.join(ROOT, p)
 const exists = (p) => fs.existsSync(abs(p))
 const read = (p) => fs.readFileSync(abs(p), "utf-8")
-const age = (p) => (exists(p) ? fs.statSync(abs(p)).mtimeMs : 0)
 
 // 1 — runtime
 const major = Number(process.versions.node.split(".")[0])
@@ -77,10 +76,9 @@ if (missingEaseFiles.length === 0) {
   )
 }
 
-// 5 — llms artifacts freshness
-if (!exists("public/llms.txt")) warnings.push("public/llms.txt missing — run `pnpm llm`")
-else if (age("public/llms.txt") < age("content/docs")) warnings.push("llms artifacts older than content/docs — run `pnpm llm`")
-else passed.push("llms artifacts fresh")
+// 5 — llms artifacts
+if (!exists("public/llms.txt")) problems.push("public/llms.txt missing")
+else passed.push("llms artifact present")
 
 // 6 — route discipline: literal hrefs inside components/
 const offenders = []
@@ -116,103 +114,7 @@ if (exists("components")) scanButtons("components")
 if (unlabelled.length) warnings.push(`Buttons possibly missing aria-label: ${unlabelled.join(", ")}`)
 else passed.push("button labels look good")
 
-// 8 — docs layout architecture: the three rules that keep layouts swappable.
-// These are problems, not warnings — they are what stops the architecture eroding.
-const tsxFiles = (dir) => {
-  const out = []
-  if (!exists(dir)) return out
-  for (const entry of fs.readdirSync(abs(dir), { withFileTypes: true })) {
-    const rel = `${dir}/${entry.name}`
-    if (entry.isDirectory()) out.push(...tsxFiles(rel))
-    else if (rel.endsWith(".tsx")) out.push(rel)
-  }
-  return out
-}
-
-const DOCS_DISPATCH = "components/docs/dispatch.tsx"
-
-const flagReaders = tsxFiles("components").filter((f) => read(f).includes("DOCS_LAYOUT"))
-if (flagReaders.length === 1 && flagReaders[0] === DOCS_DISPATCH)
-  passed.push(`docs layout: only ${DOCS_DISPATCH} reads DOCS_LAYOUT`)
-else
-  problems.push(
-    `docs layout: DOCS_LAYOUT must be read only by ${DOCS_DISPATCH} — found in ` +
-      (flagReaders.join(", ") || "nowhere")
-  )
-
-const pageImportsLayout = tsxFiles("app/docs").filter(
-  (f) =>
-    f.endsWith("/page.tsx") &&
-    /from\s+["']@\/components\/docs\/layouts\//.test(read(f))
-)
-if (pageImportsLayout.length === 0) passed.push("docs layout: the docs page imports no layout")
-else
-  problems.push(
-    `docs layout: the docs page must not import a layout — ${pageImportsLayout.join(", ")}`
-  )
-
-const layoutsHuntingSource = tsxFiles("components/docs/layouts").filter((f) =>
-  /from\s+["']@\/lib\/source["']/.test(read(f))
-)
-if (layoutsHuntingSource.length === 0)
-  passed.push("docs layout: layouts take data from props, not from source")
-else
-  problems.push(
-    `docs layout: layouts must not import @/lib/source — ${layoutsHuntingSource.join(", ")}`
-  )
-
-// 9 — the TOC belongs to the page, not the shell.
-//
-// The TOC has to start below the page header and level with the first MDX
-// heading. Only the page knows where its body begins, so a layout that renders a
-// TOC pins it to the top of the route and the whole grid shifts up. The shell's
-// share of the deal is publishing its scroll container via data-docs-scroll-root.
-const layoutsRenderingToc = tsxFiles("components/docs/layouts").filter((f) =>
-  /TableOfContents/.test(read(f))
-)
-if (layoutsRenderingToc.length === 0)
-  passed.push("docs layout: the page owns TOC placement, not the shell")
-else
-  problems.push(
-    "docs layout: a layout must not render <TableOfContents /> — " +
-      layoutsRenderingToc.join(", ")
-  )
-
-const scrollRootSites = tsxFiles("components/docs").filter((f) =>
-  /data-docs-scroll-root/.test(read(f))
-)
-if (scrollRootSites.length > 0)
-  passed.push("docs layout: a scroll container is published for the scroll spy")
-else
-  problems.push(
-    "docs layout: no layout publishes data-docs-scroll-root — the TOC's scroll spy would watch the viewport"
-  )
-
-// 10 — the no-borders, no-shadows rule (BUILD.md hard rule 9a).
-// Scoped to the docs shell and its previewer, which is where depth has to come
-// from the surface ramp. Widen only once the primitives are converted.
-// `border-0` / `border-none` are resets, not chrome, so they are allowed.
-const BORDERLESS_ALLOWED = /^border-(?:0|none)$/
-const chromePattern =
-  /(?<![\w-])((?:drop-shadow|shadow|border)-[\w[\]/.-]+)/g
-
-const chromeOffenders = []
-for (const dir of ["components/docs", "components/previewer"]) {
-  for (const file of tsxFiles(dir)) {
-    for (const [, cls] of read(file).matchAll(chromePattern)) {
-      if (BORDERLESS_ALLOWED.test(cls)) continue
-      chromeOffenders.push(`${file}: ${cls}`)
-      break
-    }
-  }
-}
-if (chromeOffenders.length === 0) passed.push("no borders or shadows in the docs shell")
-else
-  problems.push(
-    "no borders or shadows (rule 9a) — remove: " + chromeOffenders.join(", ")
-  )
-
-// 11 — domain discipline: strictly satisium.com (zero tolerance for .dev or other TLD assumptions)
+// 8 — domain discipline: strictly satisium.com (zero tolerance for .dev or other TLD assumptions)
 const FORBIDDEN_DOMAINS = [/satisium\.dev/g, /satisium\.io/g, /satisium\.app/g]
 const domainOffenders = []
 const scanForBadDomains = (dir, extFilter = /\.(tsx?|mjs|mdx?|json)$/) => {

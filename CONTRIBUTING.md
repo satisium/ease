@@ -21,7 +21,7 @@ pnpm install
 pnpm dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to view the Ease Studio workstation (`/app`) and docs engine (`/docs`).
+Visit [http://localhost:3000](http://localhost:3000) to view the Ease Studio workstation (`/app`).
 
 ---
 

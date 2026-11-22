@@ -21,4 +21,3 @@ export const usePackageManager = create<PackageManagerStore>()(
 )
 
 export { useCommandStore } from "./use-command-store"
-export { useSidebarStore } from "./use-sidebar-store"
