@@ -1,6 +1,6 @@
 {
   "name": "ease",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "type": "module",
   "private": true,
   "description": "Interactive Cubic-Bézier curve editor and analytical ODE spring physics studio for design engineers. Export production curves to CSS, Tailwind v4, Motion, and GSAP.",
