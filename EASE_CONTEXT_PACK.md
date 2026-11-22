@@ -33,7 +33,6 @@ Satisium Ease is an interactive, analytical motion curve workstation and spring 
 | **Syntax Highlighting** | Shiki                 | `^4.0.2`                          | Syntax highlighting for code export presets                                 |
 | **Animated Numbers**    | Number Flow           | `^0.6.2`                          | `@number-flow/react` for 120fps tabular kinetic telemetry counters          |
 | **Schema Validation**   | Zod                   | `^4.3.6`                          | Schema parsing, curve serialization, and export validation                  |
-| **Server Cache / Rate** | Upstash Redis         | `^1.37.0`                         | Serverless Redis client for anonymous telemetry counters & rate limits      |
 | **Telemetry / Web**     | PostHog               | `^1.404.1`                        | Client telemetry proxied via Next.js rewrites (`/ingest/*`)                 |
 | **Analytics**           | Vercel Analytics      | `^2.0.1`                          | Core Web Vitals and zero-config deployment telemetry                        |
 | **Unit Testing**        | Vitest                | `^5.0.3`                          | In-source & integration test runner (`jsdom` 26.1.0, `@vitest/coverage-v8`) |
@@ -87,8 +86,7 @@ Satisium Ease is an interactive, analytical motion curve workstation and spring 
 │   │   └── [...slug]/page.tsx           # Server-rendered privacy, terms, cookies MDX reader
 │   ├── api/                             # Edge & Node route handlers
 │   │   ├── health/route.ts              # JSON liveness & integration status probe
-│   │   ├── og/route.tsx                 # Dynamic OpenGraph social banner generation (Edge)
-│   │   └── telemetry/route.ts           # Rate-limited anonymous counter API (Upstash Redis)
+│   │   └── og/route.tsx                 # Dynamic OpenGraph social banner generation (Edge)
 │   ├── app/                             # Primary studio workstation route
 │   │   ├── loading.tsx                  # Studio workstation skeleton transition
 │   │   └── page.tsx                     # Studio workstation entry point (SSR + Client Shell)
@@ -202,8 +200,6 @@ Satisium Ease is an interactive, analytical motion curve workstation and spring 
 │   ├── motion.ts                        # Satisium spring motion tokens & class generators
 │   ├── nav.ts                           # Global navigation hierarchy & sitelinks
 │   ├── pricing.ts                       # Pricing tier definitions (Open source $0)
-│   ├── rate-limit.ts                    # In-memory and Redis IP rate limiters
-│   ├── redis.ts                         # Upstash Redis client singleton
 │   ├── routes.ts                        # Centralized type-safe URL routing constants
 │   ├── social-links.ts                  # Brand & author social links
 │   ├── theme-transition.ts              # CSS view-transition theme switcher helper
@@ -355,14 +351,13 @@ Satisium Ease implements an **Uncoupled 120fps Headless Core + Reactive React Sh
   - `library-slice`: Preset library, custom curves tree, working tree draft state.
   - `compare-slice`: Compare queue, duel contenders, global/per-tile overrides.
   - `persistence-slice`: LocalStorage adapter & URL hash synchronization.
-- **Server State / API:** Minimal; serverless telemetry via `/api/telemetry` backed by Upstash Redis.
+- **Server State / API:** Zero server-side state; 100% client-side execution with edge probes (`/api/health`, `/api/og`).
 - **Cache Persistence:** LocalStorage v3 under key `satisium-ease-v3` with backwards migration support for v2 formats. URL hash encoding (`#c=...`) enables deep linking.
 
 ### Auth & Permissions
 
 - **Zero Credentials:** Ease is 100% open-source (MIT). No user authentication, sessions, logins, or JWTs exist.
 - **Route Protection:** None required; all workstation features are immediately accessible client-side.
-- **API Protection:** `/api/telemetry` enforces IP rate-limiting (sliding window via Upstash Redis with in-memory fallback).
 
 ---
 
@@ -429,16 +424,15 @@ Satisium Ease implements an **Uncoupled 120fps Headless Core + Reactive React Sh
 
 ### Screen & Route Inventory
 
-| Route            | View Component                           | Description                                                                   |
-| :--------------- | :--------------------------------------- | :---------------------------------------------------------------------------- |
-| `/`              | `app/page.tsx`                           | Permanent 308 redirect to `/app`.                                             |
-| `/app`           | `StudioShell` (`app/app/page.tsx`)       | The complete Satisium Ease Studio Workstation (Audition, Customize, Compare). |
-| `/privacy`       | `LegalPage` (`app/(legal)/[...slug]`)    | Satisium Privacy Policy & local-first commitment.                             |
-| `/terms`         | `LegalPage` (`app/(legal)/[...slug]`)    | MIT open-source terms and usage agreement.                                    |
-| `/cookies`       | `LegalPage` (`app/(legal)/[...slug]`)    | Cookie usage and telemetry disclosure.                                        |
-| `/api/health`    | Route Handler (`api/health/route.ts`)    | JSON liveness probe reporting uptime, version, and active features.           |
-| `/api/telemetry` | Route Handler (`api/telemetry/route.ts`) | Rate-limited endpoint incrementing anonymous usage counters in Redis.         |
-| `/api/og`        | Route Handler (`api/og/route.tsx`)       | Generates 1200x630 dynamic OpenGraph social preview images.                   |
+| Route         | View Component                        | Description                                                                   |
+| :------------ | :------------------------------------ | :---------------------------------------------------------------------------- |
+| `/`           | `app/page.tsx`                        | Permanent 308 redirect to `/app`.                                             |
+| `/app`        | `StudioShell` (`app/app/page.tsx`)    | The complete Satisium Ease Studio Workstation (Audition, Customize, Compare). |
+| `/privacy`    | `LegalPage` (`app/(legal)/[...slug]`) | Satisium Privacy Policy & local-first commitment.                             |
+| `/terms`      | `LegalPage` (`app/(legal)/[...slug]`) | MIT open-source terms and usage agreement.                                    |
+| `/cookies`    | `LegalPage` (`app/(legal)/[...slug]`) | Cookie usage and telemetry disclosure.                                        |
+| `/api/health` | Route Handler (`api/health/route.ts`) | JSON liveness probe reporting uptime, version, and active features.           |
+| `/api/og`     | Route Handler (`api/og/route.tsx`)    | Generates 1200x630 dynamic OpenGraph social preview images.                   |
 
 ---
 
@@ -487,19 +481,16 @@ pnpm changeset        # Creates a new Changeset entry for release notes
 #### Private (Server-Side Only)
 
 - `NODE_ENV`: Runtime environment (`development`, `production`, `test`).
-- `UPSTASH_REDIS_REST_URL`: Upstash Redis REST endpoint for telemetry/rate limiting.
-- `UPSTASH_REDIS_REST_TOKEN`: Upstash Redis REST secret token.
 - `SENTRY_DSN`: Sentry backend error monitoring DSN.
 - `GIT_TOKEN`: GitHub personal access token for repository data queries.
 - `ANALYZE`: Set to `true` to build with `@next/bundle-analyzer`.
 
 > [!IMPORTANT]
-> **The Zero-Key Rule:** Satisium Ease strictly enforces the Zero-Key Rule. The entire app will boot, build, run, and pass all 39 test suites with an empty `.env.local`. All external services (Redis, PostHog, Sentry, GA) fail gracefully to local in-memory fallbacks or silent no-ops.
+> **The Zero-Key Rule:** Satisium Ease strictly enforces the Zero-Key Rule. The entire app will boot, build, run, and pass all 39 test suites with an empty `.env.local`. All external services (PostHog, Sentry, GA) fail gracefully to local in-memory fallbacks or silent no-ops.
 
 ### External Services & Integrations
 
 - **Hosting:** Vercel (Edge network, global CDN, serverless functions).
-- **Caching & Rate Limiting:** Upstash Serverless Redis.
 - **Analytics & Telemetry:** PostHog (self-hosted or cloud proxy via `/ingest/*` rewrites).
 - **Security:** Strict Content Security Policy (CSP) headers generated in `lib/csp.mjs`.
 

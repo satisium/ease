@@ -25,8 +25,6 @@ const serverSchema = z.object({
     .enum(["development", "test", "production"])
     .default("development"),
   GIT_TOKEN: z.string().optional(),
-  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
 })
 
@@ -76,8 +74,6 @@ export const env = {
         {
           NODE_ENV: process.env.NODE_ENV,
           GIT_TOKEN: process.env.GIT_TOKEN,
-          UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
-          UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
           SENTRY_DSN: process.env.SENTRY_DSN,
         },
         "server"
@@ -89,9 +85,6 @@ export const env = {
 export const features = {
   analytics: Boolean(env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN),
   ga: Boolean(env.NEXT_PUBLIC_GA_ID),
-  telemetryStore: Boolean(
-    env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
-  ),
   errorTracking: Boolean(env.SENTRY_DSN || env.NEXT_PUBLIC_SENTRY_DSN),
   lastModified: Boolean(env.GIT_TOKEN),
 } as const

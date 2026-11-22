@@ -159,15 +159,11 @@ export function CommandBlock({
   const handleCopy = () => {
     copy(commandString)
 
-    trackCopy(
-      "cli_command_copied",
-      {
-        command: commandString,
-        manager: isPMCommand ? manager : "none",
-        package: pkg || cli || "custom",
-      },
-      "web_copy"
-    )
+    trackCopy("cli_command_copied", {
+      command: commandString,
+      manager: isPMCommand ? manager : "none",
+      package: pkg || cli || "custom",
+    })
   }
 
   const SelectedIcon = PM_CONFIG[manager].icon
