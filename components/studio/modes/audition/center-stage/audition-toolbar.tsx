@@ -415,25 +415,6 @@ export function AuditionToolbar() {
               <span className="px-2 py-1 font-sans text-[10px] font-semibold text-muted-foreground uppercase">
                 Channels
               </span>
-              <button
-                type="button"
-                aria-label="Target All channels"
-                onClick={() => {
-                  focusChannel("all")
-                  setIsChannelMenuOpen(false)
-                }}
-                className={cn(
-                  "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
-                  focusedChannelId === "all"
-                    ? "bg-secondary font-medium text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <span>All Channels</span>
-                {focusedChannelId === "all" && (
-                  <span className="size-1.5 rounded-full bg-foreground" />
-                )}
-              </button>
               {currentChannels.map((ch) => {
                 const isSelected = ch.id === focusedChannelId
                 const displayLabel =

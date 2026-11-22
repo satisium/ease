@@ -9,6 +9,8 @@ import {
   AccessibilityIcon,
   PinIcon,
   RotateLeft01Icon,
+  Layers01Icon,
+  Target02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { motion, AnimatePresence, LayoutGroup } from "motion/react"
@@ -54,13 +56,16 @@ export function TimelineConsole() {
   const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
   const trackBindings = useEaseStore((s) => s.trackBindings)
   const totalDurationMs = useEaseStore((s) => s.totalDurationMs)
+  const isScrubAllChannels = useEaseStore((s) => s.isScrubAllChannels ?? true)
 
   // Focused channel resolution
   const currentChannels = trackBindings[focusedTrackId] ?? []
   const focusedChannel =
     focusedChannelId !== "all"
       ? (currentChannels.find((c) => c.id === focusedChannelId) ?? null)
-      : null
+      : (currentChannels.find((c) => c.property !== "opacity") ??
+        currentChannels[0] ??
+        null)
 
   // 120fps imperative refs for zero-re-render scrubbing & readout
   const sliderImperativeRef = React.useRef<SliderImperativeHandle>(null)
@@ -387,6 +392,55 @@ export function TimelineConsole() {
                         </button>
                       ))}
                     </motion.div>
+
+                    {/* Scrubber Channel Scope Toggle: All Channels vs Isolated Channel */}
+                    {currentChannels.length > 1 && (
+                      <>
+                        <motion.div
+                          layout
+                          transition={SATISIUM_SPRING_PILL}
+                          className="mx-0.5 h-3.5 w-px bg-secondary"
+                        />
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                store.getState().toggleScrubAllChannels()
+                              }
+                              aria-label={
+                                isScrubAllChannels
+                                  ? "Scrubbing all channels. Click to isolate active channel"
+                                  : "Scrubbing isolated channel. Click to scrub all channels"
+                              }
+                              className={cn(
+                                "flex size-7 cursor-pointer items-center justify-center rounded-[8px] transition-colors",
+                                SATISIUM_PRESS_CLASS,
+                                !isScrubAllChannels
+                                  ? "bg-foreground text-background"
+                                  : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              )}
+                            >
+                              <HugeiconsIcon
+                                icon={
+                                  isScrubAllChannels
+                                    ? Layers01Icon
+                                    : Target02Icon
+                                }
+                                className="size-3.5"
+                              />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">
+                            <span>
+                              {isScrubAllChannels
+                                ? "Scrub: All Channels (Full Choreography)"
+                                : "Scrub: Isolated Channel"}
+                            </span>
+                          </TooltipContent>
+                        </Tooltip>
+                      </>
+                    )}
                   </div>
                 </LayoutGroup>
 

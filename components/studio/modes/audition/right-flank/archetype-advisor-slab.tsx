@@ -63,7 +63,7 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
   const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
   const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
   const trackBindings = useEaseStore((s) => s.trackBindings)
-  const focusTrack = useEaseStore((s) => s.focusTrack)
+  const focusChannel = useEaseStore((s) => s.focusChannel)
   const selectCurveForFocused = useEaseStore((s) => s.selectCurveForFocused)
 
   // 1. Resolve active track and channel
@@ -107,6 +107,13 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
   }, [pairedTrack, channel, trackBindings])
 
   if (!channel) return null
+
+  const handleSelectPreset = (presetId: string) => {
+    if (focusedChannelId === "all" && channel) {
+      focusChannel(channel.id)
+    }
+    selectCurveForFocused(presetId)
+  }
 
   const activePresets = (
     channel.semanticContext?.recommendedPresetIds ?? []
@@ -177,7 +184,7 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => selectCurveForFocused(preset.id)}
+                        onClick={() => handleSelectPreset(preset.id)}
                         aria-label={`Apply ${preset.name} preset`}
                         className={cn(
                           "flex h-8 cursor-pointer items-center justify-center rounded-[8px] px-1 font-sans text-xs transition-colors active:scale-95",
@@ -219,7 +226,7 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
                 {pairedPresets.map((presetId) => {
                   const preset = getCanonicalPresetById(presetId)
                   if (!preset) return null
-                  const isSelected = pairedChannel.curve.id === preset.id
+                  const isSelected = channel.curve.id === preset.id
                   const shortLabel = getShortPresetName(preset.id, preset.name)
 
                   return (
@@ -227,11 +234,8 @@ export function ArchetypeAdvisorSlab({ className }: { className?: string }) {
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          onClick={() => {
-                            focusTrack(pairedTrack.id)
-                            selectCurveForFocused(preset.id)
-                          }}
-                          aria-label={`Switch to ${pairedTrack.phaseLabel} and apply ${preset.name}`}
+                          onClick={() => handleSelectPreset(preset.id)}
+                          aria-label={`Apply ${pairedTrack.phaseLabel ?? "Exit"} preset: ${preset.name}`}
                           className={cn(
                             "flex h-8 cursor-pointer items-center justify-center rounded-[8px] px-1 font-sans text-xs transition-colors active:scale-95",
                             isSelected

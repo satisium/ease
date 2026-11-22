@@ -1,14 +1,13 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { MotionConfig, MotionConfigContext } from "motion/react"
 import { useEaseStore } from "@/hooks/use-ease-store"
 import { StudioUiProvider, useStudioUi } from "./studio-ui-context"
 import { AuditionView } from "./modes/audition/audition-view"
 import { ExportDialog } from "./export-dialog"
 import { ErrorBoundary } from "@/components/error-boundary"
-import { ROUTES } from "@/lib/routes"
+import { PROJECT } from "@/lib/social-links"
 
 function StudioShellInner() {
   const isPlaying = useEaseStore((s) => s.isPlaying)
@@ -166,12 +165,14 @@ function StudioShellInner() {
           >
             {copiedMobileUrl ? "Link Copied" : "Copy Link for Desktop"}
           </button>
-          <Link
-            href={ROUTES.docs}
+          <a
+            href={PROJECT.github}
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex h-9 w-full items-center justify-center rounded-[10px] bg-secondary font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted"
           >
-            Read Documentation
-          </Link>
+            View on GitHub
+          </a>
         </div>
       </div>
 
