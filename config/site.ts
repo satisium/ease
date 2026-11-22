@@ -66,32 +66,26 @@ export const PRODUCT: ProductConfig = {
   cluster: "polish",
   type: "studio",
   titleTemplate: "%s | Ease",
-  defaultTitle: "Ease — Motion Curve & Spring Physics Studio",
+  defaultTitle: "Ease | Satisium",
   description:
-    "Interactive cubic-bezier editor and spring physics studio for design engineers. Export production-ready curves to CSS, Tailwind, GSAP, and Motion.",
+    "Precision Cubic-Bézier curve editor and analytical ODE spring physics instrument for design engineers. Export production curves to CSS, Tailwind v4, Motion, and GSAP.",
   applicationCategory: "DeveloperApplication",
   sitelinks: [
     {
-      name: "Workstation",
+      name: "Ease App",
       description:
-        "Interactive motion curve editor and spring physics workstation.",
+        "Interactive motion curve editor and analytical spring physics workstation.",
       path: "/app",
     },
     {
-      name: "Documentation",
-      description:
-        "Guides, spring differential formulas, and motion standards.",
-      path: "/docs",
+      name: "Privacy Policy",
+      description: "Data privacy commitment and local-first architecture.",
+      path: "/privacy",
     },
     {
-      name: "Springs",
-      description: "Physics calculations for mass, stiffness, and damping.",
-      path: "/docs/springs",
-    },
-    {
-      name: "Presets",
-      description: "Catalog of standardized cubic-bezier and spring curves.",
-      path: "/docs/presets",
+      name: "Terms of Service",
+      description: "Open-source MIT terms and usage guidelines.",
+      path: "/terms",
     },
   ],
   faqs: [
