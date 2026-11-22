@@ -97,10 +97,10 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: "/api/og?title=Ease%20by%20Satisium&label=Tool",
+        url: "/api/og",
         width: 1200,
         height: 630,
-        alt: "Ease by Satisium",
+        alt: "Ease — A tool by Satisium",
       },
     ],
   },
@@ -111,10 +111,10 @@ export const metadata: Metadata = {
     creator: TWITTER_CREATOR,
     images: [
       {
-        url: "/api/og?title=Ease%20by%20Satisium&label=Tool",
+        url: "/api/og",
         width: 1200,
         height: 630,
-        alt: "Ease by Satisium",
+        alt: "Ease — A tool by Satisium",
       },
     ],
   },

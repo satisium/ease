@@ -20,7 +20,6 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
 
     // Dynamic Context
-    const label = searchParams.get("label") || "Tool"
     const rawTitle = searchParams.get("title") || "Ease by Satisium"
     const fontData = await loadFont()
 
@@ -53,101 +52,111 @@ export async function GET(req: NextRequest) {
           style={{
             display: "flex",
             flexDirection: "column",
-            justifyContent: "flex-end", // Preserves exact bottom-left text placement
+            justifyContent: "space-between",
             width: "100%",
             height: "100%",
             borderRadius: "32px",
             backgroundColor: COLOR_CARD,
             border: `4px solid ${COLOR_BORDER}`,
             boxShadow: "0 20px 40px rgba(0,0,0,0.8)",
-            padding: "72px",
+            padding: "64px",
           }}
         >
-          {/* Bottom Left: Context Eyebrow & Brand Headline */}
+          {/* Top Left: Logo + Ease */}
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              gap: "16px",
+              alignItems: "center",
+              gap: "20px",
             }}
           >
+            {/* Satisium Squircle Logo with #f8f8f8 Center Orb */}
+            <svg width="58" height="58" viewBox="0 0 108 108" fill="none">
+              {/* Outer Housing */}
+              <rect width="108" height="108" rx="32" fill="#181818" />
+              {/* Inner Screen */}
+              <rect
+                x="4"
+                y="4"
+                width="100"
+                height="100"
+                rx="28"
+                fill="#090909"
+              />
+              {/* Center Orb */}
+              <rect
+                x="29"
+                y="29"
+                width="50"
+                height="50"
+                rx="25"
+                fill="#f8f8f8"
+              />
+              {/* Frosted Glass Horizon Overlay on bottom half */}
+              <path
+                d="M4 54H104V76C104 91.464 91.464 104 76 104H32C16.536 104 4 91.464 4 76V54Z"
+                fill="rgba(0, 0, 0, 0.45)"
+              />
+            </svg>
+
             <span
               style={{
-                color: COLOR_MUTED,
-                fontSize: 20,
-                fontWeight: 600,
-                letterSpacing: "0.06em",
-                fontFamily: "monospace",
+                color: COLOR_FOREGROUND,
+                fontSize: 42,
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
+                lineHeight: 1,
               }}
             >
-              {label}
+              Ease
             </span>
+          </div>
 
-            {isEaseBySatisium ? (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: "24px",
-                }}
-              >
-                <span
-                  style={{
-                    color: COLOR_FOREGROUND,
-                    fontSize: 64,
-                    fontWeight: 700,
-                    lineHeight: 1.05,
-                    letterSpacing: "-0.035em",
-                  }}
-                >
-                  Ease
-                </span>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: "10px",
-                  }}
-                >
-                  <span
-                    style={{
-                      color: COLOR_MUTED,
-                      fontSize: 64,
-                      fontWeight: 400,
-                      lineHeight: 1.05,
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    by
-                  </span>
-                  <span
-                    style={{
-                      color: COLOR_PRIMARY,
-                      fontSize: 64,
-                      fontWeight: 700,
-                      lineHeight: 1.05,
-                      letterSpacing: "-0.035em",
-                    }}
-                  >
-                    Satisium
-                  </span>
-                </div>
-              </div>
-            ) : (
+          {/* Bottom Left: Maker Lineage Attribution */}
+          {isEaseBySatisium ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: "12px",
+              }}
+            >
               <span
                 style={{
-                  color: COLOR_FOREGROUND,
-                  fontSize: 64,
-                  fontWeight: 700,
-                  lineHeight: 1.05,
-                  letterSpacing: "-0.035em",
+                  color: COLOR_MUTED,
+                  fontSize: 42,
+                  fontWeight: 500,
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1,
                 }}
               >
-                {rawTitle}
+                A tool by
               </span>
-            )}
-          </div>
+              <span
+                style={{
+                  color: COLOR_PRIMARY,
+                  fontSize: 42,
+                  fontWeight: 700,
+                  letterSpacing: "-0.03em",
+                  lineHeight: 1,
+                }}
+              >
+                Satisium
+              </span>
+            </div>
+          ) : (
+            <span
+              style={{
+                color: COLOR_FOREGROUND,
+                fontSize: 48,
+                fontWeight: 700,
+                lineHeight: 1.1,
+                letterSpacing: "-0.03em",
+              }}
+            >
+              {rawTitle}
+            </span>
+          )}
         </div>
       </div>,
       {

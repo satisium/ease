@@ -21,7 +21,7 @@ export function SatisiumLogo({
   size = 100,
   housingColor = "#0F0F0F",
   screenColor = "#090909",
-  primaryColor = "var(--primary, #F2470C)",
+  primaryColor = "#f8f8f8",
   glassOverlayColor = "black",
   glassOpacity = 0.15,
   noiseColor = "rgba(0, 0, 0, 0.25)",

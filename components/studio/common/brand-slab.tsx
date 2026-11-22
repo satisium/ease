@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { SatisiumLogo } from "@/components/satisium-logo"
 
 export function BrandSlab() {
   return (
@@ -14,9 +15,16 @@ export function BrandSlab() {
         <div className="flex w-full flex-col rounded-[14px] bg-brand p-0.5 transition-colors">
           {/* The Inner Box Slab: Elevated height with prominent brand lockup */}
           <div className="flex h-12 w-full items-center justify-between rounded-[12px] bg-background px-3.5 transition-colors">
-            <span className="font-heading text-base font-semibold tracking-tight text-foreground">
-              Ease
-            </span>
+            <div className="flex items-center gap-2.5">
+              <SatisiumLogo
+                size={28}
+                primaryColor="#f8f8f8"
+                className="shrink-0"
+              />
+              <span className="font-heading text-base font-semibold tracking-tight text-foreground">
+                Ease
+              </span>
+            </div>
             <span className="font-sans text-[11px] font-normal text-muted-foreground">
               v1.0
             </span>
