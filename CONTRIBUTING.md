@@ -101,7 +101,7 @@ We follow **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0
 
 Have questions about contributing or need feedback on a pull request?
 
-- Join the **[Satisium Discord](https://discord.gg/xQ5cPHmT7)**.
+- Join the **[Satisium Discord](https://discord.gg/68UQV3qaG)**.
 - Use **`#ease-support`** for developer support and setup questions.
 - Use **`#ease-chat`** and **`#ease-requests`** for architectural discussions.
 - Report issues or propose RFCs via [GitHub Issues](https://github.com/satisium/ease/issues).

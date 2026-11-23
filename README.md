@@ -114,7 +114,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. The root ro
 
 ## Community & Support
 
-Join the [Satisium Discord](https://discord.gg/xQ5cPHmT7) community to connect with other builders and contributors:
+Join the [Satisium Discord](https://discord.gg/68UQV3qaG) community to connect with other builders and contributors:
 
 - **`#ease-chat`**: General discussions, motion design, and showcase.
 - **`#ease-support`**: Community support and troubleshooting forum.
