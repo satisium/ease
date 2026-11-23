@@ -138,7 +138,7 @@ export const PROJECT = {
   name: "Ease",
   x: "https://x.com/satisium",
   github: "https://github.com/satisium/ease",
-  discord: "https://discord.gg/xQ5cPHmT7",
+  discord: "https://discord.gg/68UQV3qaG",
   instagram: "https://www.instagram.com/satisium/",
 } as const
 
@@ -146,7 +146,7 @@ export const AUTHOR = {
   name: "Satishkumar",
   x: "https://x.com/iamsatish4564",
   github: "https://github.com/satishkumarsajjan",
-  discord: "https://discord.gg/xQ5cPHmT7",
+  discord: "https://discord.gg/68UQV3qaG",
   website: "https://satishkumar.xyz/",
 } as const
 
