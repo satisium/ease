@@ -1,5 +1,16 @@
 # ease
 
+## 1.0.0
+
+### Major Changes
+
+- Production launch readiness (v1.0.0):
+  - Decouple multi-channel scrubber scope and resolve timeline clamping
+  - Clean Left & Right studio flanks and relocate theme toggle
+  - Redesign dynamic monochromatic OpenGraph card with studio lineage lockup
+  - Prune unused template artifacts and establish technical onboarding dossier
+  - Remove Redis in favor of 100% serverless, zero-maintenance architecture
+
 ## 0.12.1
 
 ### Patch Changes
