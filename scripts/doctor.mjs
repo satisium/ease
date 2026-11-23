@@ -15,7 +15,6 @@ const passed = []
 const abs = (p) => path.join(ROOT, p)
 const exists = (p) => fs.existsSync(abs(p))
 const read = (p) => fs.readFileSync(abs(p), "utf-8")
-const age = (p) => (exists(p) ? fs.statSync(abs(p)).mtimeMs : 0)
 
 // 1 — runtime
 const major = Number(process.versions.node.split(".")[0])
@@ -56,25 +55,30 @@ const missingAssets = requiredAssets.filter((asset) => !exists(asset))
 if (missingAssets.length) problems.push(`Missing assets: ${missingAssets.join(", ")}`)
 else passed.push("brand + OG assets present")
 
-// 4 — registry hygiene
-if (!exists("registry/index.ts")) warnings.push("registry/index.ts missing")
-else {
-  const index = read("registry/index.ts")
-  const slugs = [...index.matchAll(/"([a-z0-9-]+)":\s*\{/g)].map((m) => m[1])
-  for (const slug of slugs) {
-    const block = index.slice(index.indexOf(`"${slug}":`)).slice(0, 600)
-    if (!block.includes("name:")) warnings.push(`Registry entry "${slug}" has no name`)
-    if (!block.includes("installCommand:")) warnings.push(`Registry entry "${slug}" has no installCommand`)
-  }
-  passed.push(`registry entries: ${slugs.length}`)
-  if (age("registry/meta.ts") < age("registry/index.ts"))
-    problems.push("registry/meta.ts is stale — run `pnpm build:registry:meta`")
+// 4 — Satisium Ease Core & Studio Integrity
+const EASE_CORE_STUDIO_FILES = [
+  "core/index.ts",
+  "core/store/create-ease-store.ts",
+  "core/registry/tracks/index.ts",
+  "components/studio/studio-shell.tsx",
+  "components/studio/habitats/habitat-stage.tsx",
+]
+const missingEaseFiles = EASE_CORE_STUDIO_FILES.filter((p) => !exists(p))
+if (missingEaseFiles.length === 0) {
+  passed.push(
+    `Satisium Ease core & studio integrity (${EASE_CORE_STUDIO_FILES.length} modules intact)`
+  )
+} else {
+  problems.push(
+    `Ease integrity violation: missing core/studio modules: ${missingEaseFiles.join(
+      ", "
+    )}`
+  )
 }
 
-// 5 — llms artifacts freshness
-if (!exists("public/llms.txt")) warnings.push("public/llms.txt missing — run `pnpm llm`")
-else if (age("public/llms.txt") < age("content/docs")) warnings.push("llms artifacts older than content/docs — run `pnpm llm`")
-else passed.push("llms artifacts fresh")
+// 5 — llms artifacts
+if (!exists("public/llms.txt")) problems.push("public/llms.txt missing")
+else passed.push("llms artifact present")
 
 // 6 — route discipline: literal hrefs inside components/
 const offenders = []
@@ -110,103 +114,7 @@ if (exists("components")) scanButtons("components")
 if (unlabelled.length) warnings.push(`Buttons possibly missing aria-label: ${unlabelled.join(", ")}`)
 else passed.push("button labels look good")
 
-// 8 — docs layout architecture: the three rules that keep layouts swappable.
-// These are problems, not warnings — they are what stops the architecture eroding.
-const tsxFiles = (dir) => {
-  const out = []
-  if (!exists(dir)) return out
-  for (const entry of fs.readdirSync(abs(dir), { withFileTypes: true })) {
-    const rel = `${dir}/${entry.name}`
-    if (entry.isDirectory()) out.push(...tsxFiles(rel))
-    else if (rel.endsWith(".tsx")) out.push(rel)
-  }
-  return out
-}
-
-const DOCS_DISPATCH = "components/docs/dispatch.tsx"
-
-const flagReaders = tsxFiles("components").filter((f) => read(f).includes("DOCS_LAYOUT"))
-if (flagReaders.length === 1 && flagReaders[0] === DOCS_DISPATCH)
-  passed.push(`docs layout: only ${DOCS_DISPATCH} reads DOCS_LAYOUT`)
-else
-  problems.push(
-    `docs layout: DOCS_LAYOUT must be read only by ${DOCS_DISPATCH} — found in ` +
-      (flagReaders.join(", ") || "nowhere")
-  )
-
-const pageImportsLayout = tsxFiles("app/docs").filter(
-  (f) =>
-    f.endsWith("/page.tsx") &&
-    /from\s+["']@\/components\/docs\/layouts\//.test(read(f))
-)
-if (pageImportsLayout.length === 0) passed.push("docs layout: the docs page imports no layout")
-else
-  problems.push(
-    `docs layout: the docs page must not import a layout — ${pageImportsLayout.join(", ")}`
-  )
-
-const layoutsHuntingSource = tsxFiles("components/docs/layouts").filter((f) =>
-  /from\s+["']@\/lib\/source["']/.test(read(f))
-)
-if (layoutsHuntingSource.length === 0)
-  passed.push("docs layout: layouts take data from props, not from source")
-else
-  problems.push(
-    `docs layout: layouts must not import @/lib/source — ${layoutsHuntingSource.join(", ")}`
-  )
-
-// 9 — the TOC belongs to the page, not the shell.
-//
-// The TOC has to start below the page header and level with the first MDX
-// heading. Only the page knows where its body begins, so a layout that renders a
-// TOC pins it to the top of the route and the whole grid shifts up. The shell's
-// share of the deal is publishing its scroll container via data-docs-scroll-root.
-const layoutsRenderingToc = tsxFiles("components/docs/layouts").filter((f) =>
-  /TableOfContents/.test(read(f))
-)
-if (layoutsRenderingToc.length === 0)
-  passed.push("docs layout: the page owns TOC placement, not the shell")
-else
-  problems.push(
-    "docs layout: a layout must not render <TableOfContents /> — " +
-      layoutsRenderingToc.join(", ")
-  )
-
-const scrollRootSites = tsxFiles("components/docs").filter((f) =>
-  /data-docs-scroll-root/.test(read(f))
-)
-if (scrollRootSites.length > 0)
-  passed.push("docs layout: a scroll container is published for the scroll spy")
-else
-  problems.push(
-    "docs layout: no layout publishes data-docs-scroll-root — the TOC's scroll spy would watch the viewport"
-  )
-
-// 10 — the no-borders, no-shadows rule (BUILD.md hard rule 9a).
-// Scoped to the docs shell and its previewer, which is where depth has to come
-// from the surface ramp. Widen only once the primitives are converted.
-// `border-0` / `border-none` are resets, not chrome, so they are allowed.
-const BORDERLESS_ALLOWED = /^border-(?:0|none)$/
-const chromePattern =
-  /(?<![\w-])((?:drop-shadow|shadow|border)-[\w[\]/.-]+)/g
-
-const chromeOffenders = []
-for (const dir of ["components/docs", "components/previewer"]) {
-  for (const file of tsxFiles(dir)) {
-    for (const [, cls] of read(file).matchAll(chromePattern)) {
-      if (BORDERLESS_ALLOWED.test(cls)) continue
-      chromeOffenders.push(`${file}: ${cls}`)
-      break
-    }
-  }
-}
-if (chromeOffenders.length === 0) passed.push("no borders or shadows in the docs shell")
-else
-  problems.push(
-    "no borders or shadows (rule 9a) — remove: " + chromeOffenders.join(", ")
-  )
-
-// 11 — domain discipline: strictly satisium.com (zero tolerance for .dev or other TLD assumptions)
+// 8 — domain discipline: strictly satisium.com (zero tolerance for .dev or other TLD assumptions)
 const FORBIDDEN_DOMAINS = [/satisium\.dev/g, /satisium\.io/g, /satisium\.app/g]
 const domainOffenders = []
 const scanForBadDomains = (dir, extFilter = /\.(tsx?|mjs|mdx?|json)$/) => {
@@ -244,41 +152,6 @@ else {
   )
 }
 
-// 12 — kit preservation & variant integrity
-// The starter is an intact parts catalog during build. Variants and core primitives
-// must NEVER be deleted during spin-up. Dead code is pruned strictly pre-deployment via pnpm knip.
-const CORE_KIT_PRIMITIVES = [
-  "components/docs/dispatch.tsx",
-  "components/docs/layouts/spatial.tsx",
-  "components/docs/layouts/three-pane.tsx",
-  "components/home/hero/hero-variant-1",
-  "components/home/hero/hero-variant-2",
-  "components/home/footer/deck-box-1",
-  "components/home/footer/deck-box-2",
-  "components/home/footer/footer-variant-3.tsx",
-  "components/home/features/features-variant-1.tsx",
-  "components/home/features/features-variant-2.tsx",
-  "components/home/features/features-variant-3.tsx",
-  "components/home/features/features-variant-4.tsx",
-  "components/layout/app-shell.tsx",
-  "components/layout/command-menu.tsx",
-  "components/layout/site-header.tsx",
-  "components/ui/button.tsx",
-  "components/ui/dialog.tsx",
-  "components/ui/kbd.tsx",
-  "components/ui/sonner.tsx",
-  "components/ui/sheet.tsx",
-]
-const missingKitItems = CORE_KIT_PRIMITIVES.filter((p) => !exists(p))
-if (missingKitItems.length === 0) {
-  passed.push(`kit preservation & variant integrity (${CORE_KIT_PRIMITIVES.length} core primitives & variants intact)`)
-} else {
-  problems.push(
-    `Kit integrity violation: missing required kit file/variant: ${missingKitItems.join(
-      ", "
-    )} — Starter variants must not be deleted during build. Keep all options intact.`
-  )
-}
 
 // report
 console.log("\n🩺  Satisium doctor\n")

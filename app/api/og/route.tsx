@@ -2,7 +2,6 @@ import { ImageResponse } from "next/og"
 import { NextRequest } from "next/server"
 import { readFile } from "fs/promises"
 import path from "path"
-import { PRODUCT } from "@/lib/config"
 import { logger } from "@/lib/logger"
 
 export const runtime = "nodejs"
@@ -21,24 +20,21 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
 
     // Dynamic Context
-    const title = searchParams.get("title") || PRODUCT.name
-    const label = searchParams.get("label") || "Docs"
+    const rawTitle = searchParams.get("title") || "Ease by Satisium"
     const fontData = await loadFont()
 
-    const bgBuffer = await readFile(
-      path.join(process.cwd(), "public", "og-bg-optimized.jpg")
-    )
-    const bgSrc = `data:image/jpeg;base64,${bgBuffer.toString("base64")}`
-
-    const logoBuffer = await readFile(
-      path.join(process.cwd(), "public", "satisium.png")
-    )
-    const logoSrc = `data:image/png;base64,${logoBuffer.toString("base64")}`
-
-    // PERFECTED THEME TOKENS
-    const COLOR_BACKGROUND = "#090909"
+    // Satisium Custom Palette & Tokens
+    const COLOR_BACKGROUND = "#f8f8f8"
+    const COLOR_CARD = "#090809"
     const COLOR_FOREGROUND = "#f8f8f8"
     const COLOR_PRIMARY = "#f2470c"
+    const COLOR_MUTED = "#8f8f8f"
+    const COLOR_BORDER = "rgba(255, 255, 255, 0.25)" // Slim-thick defined border
+
+    const isEaseBySatisium =
+      rawTitle.includes("Ease by Satisium") ||
+      rawTitle === "Ease | Satisium" ||
+      rawTitle === "Ease"
 
     return new ImageResponse(
       <div
@@ -51,100 +47,116 @@ export async function GET(req: NextRequest) {
           fontFamily: '"Plus Jakarta Sans"',
         }}
       >
-        {/* INNER CARD (ROUNDED WITH BACKGROUND IMAGE) */}
+        {/* INNER MONOCHROMATIC CARD WITH SLIM-THICK ROUNDED BORDER */}
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
             width: "100%",
             height: "100%",
-            borderRadius: "36px",
-            overflow: "hidden",
-            position: "relative",
+            borderRadius: "32px",
+            backgroundColor: COLOR_CARD,
+            border: `4px solid ${COLOR_BORDER}`,
             boxShadow: "0 20px 40px rgba(0,0,0,0.8)",
+            padding: "64px",
           }}
         >
-          {/* 1. THE OPTIMIZED FLAME BACKGROUND */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={bgSrc}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-            alt="Gradient Background"
-          />
-
-          {/* 2. THE TEXT CONTENT OVERLAY */}
+          {/* Top Left: Logo + Ease */}
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              width: "100%",
-              height: "100%",
-              padding: "64px",
+              alignItems: "center",
+              gap: "20px",
             }}
           >
-            {/* Top Left: The Anchor Brand Lockup */}
-            <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={logoSrc}
-                width={64}
-                height={64}
-                alt={`${PRODUCT.name} Logo`}
-                style={{ borderRadius: "16px" }}
+            {/* Satisium Squircle Logo with #f8f8f8 Center Orb */}
+            <svg width="58" height="58" viewBox="0 0 108 108" fill="none">
+              {/* Outer Housing */}
+              <rect width="108" height="108" rx="32" fill="#181818" />
+              {/* Inner Screen */}
+              <rect
+                x="4"
+                y="4"
+                width="100"
+                height="100"
+                rx="28"
+                fill="#090909"
               />
-              <span
-                style={{
-                  color: COLOR_FOREGROUND,
-                  fontSize: 36,
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {PRODUCT.name}
-              </span>
-            </div>
+              {/* Center Orb */}
+              <rect
+                x="29"
+                y="29"
+                width="50"
+                height="50"
+                rx="25"
+                fill="#f8f8f8"
+              />
+              {/* Frosted Glass Horizon Overlay on bottom half */}
+              <path
+                d="M4 54H104V76C104 91.464 91.464 104 76 104H32C16.536 104 4 91.464 4 76V54Z"
+                fill="rgba(0, 0, 0, 0.45)"
+              />
+            </svg>
 
-            {/* Bottom Left: Context & Value */}
+            <span
+              style={{
+                color: COLOR_FOREGROUND,
+                fontSize: 42,
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
+                lineHeight: 1,
+              }}
+            >
+              Ease
+            </span>
+          </div>
+
+          {/* Bottom Left: Maker Lineage Attribution */}
+          {isEaseBySatisium ? (
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
+                alignItems: "baseline",
                 gap: "12px",
-                width: "100%",
               }}
             >
               <span
                 style={{
-                  color: COLOR_PRIMARY,
-                  fontSize: 16,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
+                  color: COLOR_MUTED,
+                  fontSize: 42,
+                  fontWeight: 500,
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1,
                 }}
               >
-                {label}
+                A tool by
               </span>
               <span
                 style={{
-                  color: COLOR_FOREGROUND,
-                  fontSize: 72,
+                  color: COLOR_PRIMARY,
+                  fontSize: 42,
                   fontWeight: 700,
-                  lineHeight: 1.05,
                   letterSpacing: "-0.03em",
-                  wordWrap: "break-word",
+                  lineHeight: 1,
                 }}
               >
-                {title}
+                Satisium
               </span>
             </div>
-          </div>
+          ) : (
+            <span
+              style={{
+                color: COLOR_FOREGROUND,
+                fontSize: 48,
+                fontWeight: 700,
+                lineHeight: 1.1,
+                letterSpacing: "-0.03em",
+              }}
+            >
+              {rawTitle}
+            </span>
+          )}
         </div>
       </div>,
       {

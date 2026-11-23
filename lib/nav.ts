@@ -1,6 +1,4 @@
 import {
-  Book02Icon,
-  BlocksIcon,
   CommandIcon,
   Home01Icon,
   Legal02Icon,
@@ -27,47 +25,19 @@ export interface NavItem {
 export const APP_NAV: NavItem[] = [
   { label: "Home", href: ROUTES.home, icon: Home01Icon, keywords: ["landing"] },
   {
-    label: "App",
+    label: "Studio",
     href: ROUTES.app,
     icon: SparklesIcon,
-    description: "The workspace",
-    keywords: ["tool", "canvas"],
-  },
-  {
-    label: "Docs",
-    href: ROUTES.docs,
-    icon: Book02Icon,
-    description: "Guides and reference",
-    keywords: ["documentation", "guide"],
-  },
-  {
-    label: "Components",
-    href: ROUTES.docsComponents,
-    icon: BlocksIcon,
-    description: "Live previews + CLI installs",
-    keywords: ["registry", "preview"],
+    description: "The workstation",
+    keywords: ["tool", "canvas", "studio"],
   },
 ]
 
-/** Marketing footer columns (4-column balanced categorical matrix). */
+/** Marketing footer columns (3-column balanced categorical matrix). */
 export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
   {
     title: "Product",
-    items: [
-      { label: "App Workspace", href: ROUTES.app },
-      { label: "Component Kit", href: ROUTES.docsComponents },
-      { label: "Interactive Stage", href: ROUTES.stage },
-      { label: "Changelog", href: ROUTES.changelog },
-    ],
-  },
-  {
-    title: "Documentation",
-    items: [
-      { label: "Quickstart Installation", href: ROUTES.docsInstall },
-      { label: "Project Anatomy", href: ROUTES.docsStructure },
-      { label: "Component Registry", href: ROUTES.docsComponents },
-      { label: "Architecture Docs", href: ROUTES.docs },
-    ],
+    items: [{ label: "Studio Workstation", href: ROUTES.app }],
   },
   {
     title: "Ecosystem",
@@ -93,9 +63,7 @@ export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
 ]
 
 /**
- * Quick actions surfaced in the ⌘K palette alongside docs results.
- * Passing this to <CommandMenuDialog extraItems={…} /> is what makes ⌘K cover
- * the whole app instead of docs only.
+ * Quick actions surfaced in the ⌘K palette.
  */
 export const QUICK_ACTIONS: NavItem[] = [
   ...APP_NAV,

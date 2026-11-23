@@ -6,6 +6,8 @@ import { useEaseStore } from "@/hooks/use-ease-store"
 import { StudioUiProvider, useStudioUi } from "./studio-ui-context"
 import { AuditionView } from "./modes/audition/audition-view"
 import { ExportDialog } from "./export-dialog"
+import { ErrorBoundary } from "@/components/error-boundary"
+import { PROJECT } from "@/lib/social-links"
 
 function StudioShellInner() {
   const isPlaying = useEaseStore((s) => s.isPlaying)
@@ -33,6 +35,19 @@ function StudioShellInner() {
   const backToPresets = useEaseStore((s) => s.backToPresets)
 
   const { toggleTimeline } = useStudioUi()
+
+  const [copiedMobileUrl, setCopiedMobileUrl] = React.useState(false)
+  const handleCopyMobileUrl = React.useCallback(async () => {
+    try {
+      if (typeof window !== "undefined") {
+        await navigator.clipboard.writeText(window.location.href)
+        setCopiedMobileUrl(true)
+        setTimeout(() => setCopiedMobileUrl(false), 2000)
+      }
+    } catch {
+      // Fallback
+    }
+  }, [])
 
   // Global Ergonomic Hotkeys (EASE_USER_FLOW.md §9)
   React.useEffect(() => {
@@ -131,10 +146,42 @@ function StudioShellInner() {
   ])
 
   return (
-    <div className="h-dvh w-full overflow-hidden bg-muted p-2 font-sans select-none">
-      <AuditionView />
-      <ExportDialog />
-    </div>
+    <>
+      {/* 📱 Mobile Guard (< 1024px) */}
+      <div className="flex h-dvh w-full items-center justify-center bg-muted p-4 font-sans select-none lg:hidden">
+        <div className="flex w-full max-w-[340px] flex-col items-center gap-3 rounded-[20px] bg-background p-6 text-center">
+          <h2 className="font-heading text-base font-semibold text-foreground">
+            Satisium Ease
+          </h2>
+          <p className="font-sans text-xs leading-relaxed text-muted-foreground">
+            Crafted for desktop screens (1024px+) to sculpt 120fps motion
+            curves, inspect physics dynamics, and run side-by-side curve duels.
+          </p>
+          <button
+            type="button"
+            onClick={handleCopyMobileUrl}
+            aria-label="Copy studio link for desktop"
+            className="inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-[10px] bg-foreground font-heading text-xs font-medium text-background transition-opacity hover:opacity-90"
+          >
+            {copiedMobileUrl ? "Link Copied" : "Copy Link for Desktop"}
+          </button>
+          <a
+            href={PROJECT.github}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-9 w-full items-center justify-center rounded-[10px] bg-secondary font-heading text-xs font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            View on GitHub
+          </a>
+        </div>
+      </div>
+
+      {/* 🖥️ Desktop Workstation (1024px+) */}
+      <div className="hidden h-dvh w-full overflow-hidden bg-muted p-2 font-sans select-none lg:block">
+        <AuditionView />
+        <ExportDialog />
+      </div>
+    </>
   )
 }
 
@@ -144,10 +191,12 @@ export function StudioShell() {
     parentConfig.reducedMotion === "always" ? "always" : "user"
 
   return (
-    <MotionConfig reducedMotion={reducedMotion}>
-      <StudioUiProvider>
-        <StudioShellInner />
-      </StudioUiProvider>
-    </MotionConfig>
+    <ErrorBoundary label="studio">
+      <MotionConfig reducedMotion={reducedMotion}>
+        <StudioUiProvider>
+          <StudioShellInner />
+        </StudioUiProvider>
+      </MotionConfig>
+    </ErrorBoundary>
   )
 }

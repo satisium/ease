@@ -128,10 +128,11 @@ describe("Overlay Habitats Lifecycle & Scrub Retention (Step C-8A)", () => {
       </EaseStoreProvider>
     )
 
-    // Focus dialog:close and single-channel translateY (280ms)
+    // Focus dialog:close and single-channel translateY with scrub isolation enabled (280ms)
     act(() => {
       storeApi!.getState().focusTrack("dialog:close")
       storeApi!.getState().focusChannel("translateY")
+      storeApi!.getState().setScrubAllChannels(false)
       storeApi!.getState().seekScoped(280)
     })
 

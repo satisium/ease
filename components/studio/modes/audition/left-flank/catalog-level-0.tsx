@@ -17,6 +17,7 @@ import {
 } from "@/core/presets/index"
 import { EaseCurve } from "@/core/schema"
 import { useEaseStore } from "@/hooks/use-ease-store"
+import { trackEvent } from "@/lib/analytics"
 import {
   SATISIUM_CARD_POP_VARIANTS,
   SATISIUM_IOS_SHEET_EASE,
@@ -212,7 +213,13 @@ export function CatalogLevel0() {
                   >
                     <button
                       type="button"
-                      onClick={() => selectCurveForFocused(item.id)}
+                      onClick={() => {
+                        selectCurveForFocused(item.id)
+                        trackEvent("ease_preset_applied", {
+                          preset_id: item.id,
+                          engine: item.engine,
+                        })
+                      }}
                       onDoubleClick={() => drillIntoCurve(item.id)}
                       title={`${item.name} · Click to select · Double-click to open slide`}
                       className={cn(

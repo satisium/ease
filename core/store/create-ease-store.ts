@@ -163,8 +163,10 @@ export function createEaseStore(options?: CreateEaseStoreOptions): EaseStore {
 
       const channels = state.trackBindings[state.focusedTrackId] ?? []
       const isScrubbing = conductor.getSnapshot().playbackState === "scrubbing"
+      const isScrubAllChannels = state.isScrubAllChannels ?? true
       const soloId =
-        (state.isSolo || isScrubbing) && state.focusedChannelId !== "all"
+        (state.isSolo || (isScrubbing && !isScrubAllChannels)) &&
+        state.focusedChannelId !== "all"
           ? state.focusedChannelId
           : null
       return getTrackTotalDurationMs(

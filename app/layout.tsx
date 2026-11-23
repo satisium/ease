@@ -19,7 +19,6 @@ import PostHogPageView from "@/components/posthog-pageview"
 import WebVitals from "@/components/web-vitals"
 import { GoogleAnalytics } from "@/components/google-analytics"
 import { CommandMenuDialog } from "@/components/layout/command-menu"
-import { source } from "@/lib/source"
 import { SkipLink } from "@/components/layout/skip-link"
 
 const fontBrand = localFont({
@@ -72,17 +71,19 @@ export const metadata: Metadata = {
     languages: { "en-US": "/" },
     types: {
       "application/llms+txt": "/llms.txt",
-      "text/markdown": "/llms-full.txt",
     },
   },
   keywords: [
-    "app starter",
-    "docs starter",
-    "next.js",
+    "cubic-bezier",
+    "spring physics",
+    "motion curves",
+    "easing generator",
+    "css linear()",
     "tailwind v4",
-    "fumadocs",
-    "shadcn",
-    "satisium",
+    "framer motion",
+    "gsap customease",
+    "ui animation",
+    "satisium ease",
   ],
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
@@ -96,10 +97,10 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: `/api/og?title=${encodeURIComponent(PRODUCT.defaultTitle)}`,
+        url: "/api/og",
         width: 1200,
         height: 630,
-        alt: PRODUCT.name,
+        alt: "Ease — A tool by Satisium",
       },
     ],
   },
@@ -110,10 +111,10 @@ export const metadata: Metadata = {
     creator: TWITTER_CREATOR,
     images: [
       {
-        url: `/api/og?title=${encodeURIComponent(PRODUCT.defaultTitle)}`,
+        url: "/api/og",
         width: 1200,
         height: 630,
-        alt: PRODUCT.name,
+        alt: "Ease — A tool by Satisium",
       },
     ],
   },
@@ -166,11 +167,6 @@ export default function RootLayout({
               publisher: {
                 "@id": "https://satisium.com/#organization",
               },
-              potentialAction: {
-                "@type": "SearchAction",
-                target: `${SITE_URL}/docs/search?q={search_term_string}`,
-                "query-input": "required name=search_term_string",
-              },
             }),
           }}
         />
@@ -200,11 +196,27 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "WebApplication",
               "@id": `${SITE_URL}/#app`,
-              name: PRODUCT.name,
+              name: PRODUCT.defaultTitle,
               url: SITE_URL,
               applicationCategory: PRODUCT.applicationCategory,
               operatingSystem: "WebBrowser",
               browserRequirements: "Requires JavaScript. Requires HTML5.",
+              softwareVersion: "1.0.0",
+              isAccessibleForFree: true,
+              license: "https://opensource.org/licenses/MIT",
+              publisher: {
+                "@id": "https://satisium.com/#organization",
+              },
+              featureList: [
+                "Cubic-Bézier curve editor with live velocity derivative visualization",
+                "Closed-form analytical ODE spring physics solver (mass, stiffness, damping, v0)",
+                "21 interactive UI component habitats plus 4-track Primitives X-Ray",
+                "120fps zero-re-render TrackConductor with mid-flight velocity interruption",
+                "2-tier Git-style curve branching with working drafts",
+                "Side-by-side curve duels with t95 arrival and settle-time telemetry",
+                "Production code export for CSS linear(), Tailwind v4, Motion, and GSAP CustomEase",
+                "Lossless shareable URL hash state encoding",
+              ],
               offers: {
                 "@type": "Offer",
                 price: "0",
@@ -267,9 +279,7 @@ export default function RootLayout({
 
       <body>
         <SkipLink />
-        <RootProviders
-          commandMenu={<CommandMenuDialog docsTree={source.pageTree} />}
-        >
+        <RootProviders commandMenu={<CommandMenuDialog />}>
           <Suspense fallback={null}>
             <PostHogPageView />
             <WebVitals />

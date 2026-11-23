@@ -1,11 +1,17 @@
 "use client"
 
+import { useEffect } from "react"
+import { logger } from "@/lib/logger"
+
 interface RootErrorProps {
   error: Error & { digest?: string }
   reset: () => void
 }
 
 export default function GlobalError({ error, reset }: RootErrorProps) {
+  useEffect(() => {
+    logger.error("Global crash caught by GlobalErrorBoundary:", error)
+  }, [error])
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="bg-background font-sans text-foreground antialiased">

@@ -1,11 +1,17 @@
 "use client"
 
+import { useEffect } from "react"
+import { logger } from "@/lib/logger"
+
 interface AppErrorProps {
   error: Error & { digest?: string }
   reset: () => void
 }
 
 export default function Error({ error, reset }: AppErrorProps) {
+  useEffect(() => {
+    logger.error("App error caught by ErrorBoundary:", error)
+  }, [error])
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center">
       <div className="max-w-md space-y-2">

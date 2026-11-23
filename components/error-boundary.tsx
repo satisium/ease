@@ -7,7 +7,7 @@ import { logger } from "@/lib/logger"
 
 interface ErrorBoundaryProps {
   children: React.ReactNode
-  /** Label appears in the log line, e.g. "preview:pulse-card". */
+  /** Label appears in the log line, e.g. "studio" or "preview". */
   label?: string
   fallback?: (error: Error, reset: () => void) => React.ReactNode
   onError?: (error: Error, info: React.ErrorInfo) => void

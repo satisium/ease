@@ -27,9 +27,11 @@ function StoreProbe() {
   const exportScope = useEaseStore((s) => s.exportScope)
   const activeCurve = useEaseStore((s) => s.getActiveCurve())
   const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
+  const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
 
   return (
     <div data-testid="probe">
+      <span data-testid="probe-track-id">{focusedTrackId}</span>
       <span data-testid="probe-channel-curve">{focusedChannel?.curve.id}</span>
       <span data-testid="probe-active-curve">{activeCurve.id}</span>
       <span data-testid="probe-focused-channel-id">{focusedChannelId}</span>
@@ -84,6 +86,13 @@ function StoreActions() {
         onClick={() => focusChannel("all")}
       >
         Focus All Channels
+      </button>
+      <button
+        type="button"
+        data-testid="btn-focus-channel-translate-y"
+        onClick={() => focusChannel("translateY")}
+      >
+        Focus Translate Y
       </button>
       <button
         type="button"
@@ -188,6 +197,30 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
       // Duration preserved
       expect(screen.getByTestId("probe-channel-duration").textContent).toBe(
         initialDuration
+      )
+    })
+
+    it("applies paired phase (Exit) recommended preset to the current track without switching tracks", () => {
+      render(<TestRig />)
+
+      expect(screen.getByTestId("probe-track-id").textContent).toBe(
+        "dialog:open"
+      )
+
+      // Find and click exit recommended preset button
+      const exitPresetBtn = screen.getByRole("button", {
+        name: /Apply Exit preset: iOS Sheet/i,
+      })
+      expect(exitPresetBtn).toBeInTheDocument()
+      fireEvent.click(exitPresetBtn)
+
+      // Curve updated on current track
+      expect(screen.getByTestId("probe-channel-curve").textContent).toBe(
+        "ios-sheet"
+      )
+      // Track remains unchanged (did NOT jump to dialog:close)
+      expect(screen.getByTestId("probe-track-id").textContent).toBe(
+        "dialog:open"
       )
     })
   })
@@ -314,20 +347,33 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
       expect(navigator.clipboard.writeText).toHaveBeenCalled()
     })
 
-    it("selecting Material Decelerate with focusedChannelId === 'all' exports Material Decelerate's exact cubic-bezier, not Backdrop's Expo In; switching between Ease Only and Snippet updates CSS, Tailwind, Motion, GSAP", async () => {
+    it("selecting Material Decelerate exports Material Decelerate's exact cubic-bezier, not Backdrop; switching to all channels rejects new curve selection; switching between Ease Only and Snippet updates CSS, Tailwind, Motion, GSAP", async () => {
       render(<TestRig />)
 
-      // Ensure focusedTrack is dialog:open, focusedChannelId is "all" and select Material Decelerate
+      // Focus dialog, explicitly focus translateY channel, and select Material Decelerate
       act(() => {
         fireEvent.click(screen.getByTestId("btn-focus-dialog"))
-        fireEvent.click(screen.getByTestId("btn-focus-all-channels"))
+        fireEvent.click(screen.getByTestId("btn-focus-channel-translate-y"))
         fireEvent.click(screen.getByTestId("btn-select-material-decelerate"))
       })
 
       expect(screen.getByTestId("probe-focused-channel-id").textContent).toBe(
-        "all"
+        "translateY"
       )
       expect(screen.getByTestId("probe-active-curve").textContent).toBe(
+        "material-decelerate"
+      )
+
+      // Verify that when focusedChannelId === 'all', selecting a curve is safely rejected
+      act(() => {
+        fireEvent.click(screen.getByTestId("btn-focus-all-channels"))
+        fireEvent.click(screen.getByTestId("btn-select-expo-out"))
+      })
+      expect(screen.getByTestId("probe-focused-channel-id").textContent).toBe(
+        "all"
+      )
+      // Curve remains material-decelerate on translateY, never overwritten when 'all' is active
+      expect(screen.getByTestId("probe-channel-curve").textContent).toBe(
         "material-decelerate"
       )
 
@@ -417,7 +463,7 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
       // Title
       expect(screen.getByText("Export Motion Kinetics")).toBeInTheDocument()
       // Prominent curve name
-      expect(dialogContent.textContent).toContain("Ease Out")
+      expect(dialogContent.textContent).toContain("Expo Out")
       // Pill
       expect(dialogContent.textContent).toMatch(/Cubic Bézier · \d+ms/)
       // Not dirty, so no "Unsaved Draft *"
@@ -453,7 +499,8 @@ describe("Right Flank & Export Dialog (Step B-4A)", () => {
     it("allows selecting contender to export in Compare Mode and updates exported code immediately", () => {
       render(<TestRig />)
 
-      // 1. Stage first curve (Material Decelerate)
+      // 1. Stage first curve (Material Decelerate on translateY)
+      fireEvent.click(screen.getByTestId("btn-focus-channel-translate-y"))
       fireEvent.click(screen.getByTestId("btn-select-material-decelerate"))
       fireEvent.click(screen.getByTestId("btn-stage-curve"))
 

@@ -111,7 +111,7 @@ export const DEFAULT_CURRENT_TOOL_TIER: PricingTier = {
   },
   cta: {
     text: "Start free trial",
-    href: ROUTES.docs,
+    href: ROUTES.app,
   },
   isHero: false,
 }
@@ -187,7 +187,7 @@ export const DEFAULT_SUITE_ACCESS_TIER: PricingTier = {
   },
   cta: {
     text: "Start free trial",
-    href: ROUTES.docs,
+    href: ROUTES.app,
   },
   isHero: true,
 }
@@ -263,7 +263,7 @@ export const DEFAULT_TOOL_TEAM_TIER: PricingTier = {
   },
   cta: {
     text: "Start free trial",
-    href: ROUTES.docs,
+    href: ROUTES.app,
   },
   isHero: false,
 }
@@ -277,7 +277,7 @@ export const DEFAULT_ENTERPRISE_INFO: EnterpriseInfo = {
     "Customised to suit your organization's compliance, infra, and scale.",
   cta: {
     text: "Contact sales",
-    href: ROUTES.docs,
+    href: ROUTES.app,
   },
   features: [
     { text: "**Unlimited** organization developer seats", icon: "users" },

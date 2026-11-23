@@ -90,6 +90,7 @@ export interface EaseStoreState {
   focusedChannelId: string | "all"
   isPinned: boolean
   isSolo: boolean
+  isScrubAllChannels: boolean
   trackBindings: TrackChannelMap
 
   getFocusedTrack: () => TransitionTrackPlugin
@@ -100,6 +101,8 @@ export interface EaseStoreState {
   focusChannel: (channelIdOrAll: string | "all") => void
   setPinned: (pinned: boolean) => void
   toggleSolo: () => void
+  toggleScrubAllChannels: () => void
+  setScrubAllChannels: (active: boolean) => void
   selectCurveForFocused: (curveId: string) => void
   setFocusedDurationMs: (ms: number) => void
   setFocusedDelayMs: (ms: number) => void

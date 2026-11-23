@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 import { motion, LayoutGroup, AnimatePresence } from "motion/react"
 import { type ExporterId, computeSpringSettleTimeMs } from "@/core"
 import { useEaseStore } from "@/hooks/use-ease-store"
+import { trackEvent } from "@/lib/analytics"
 import {
   SATISIUM_SPRING_PILL,
   SATISIUM_PRESS_CLASS,
@@ -236,11 +237,16 @@ export function ExportDialog() {
     try {
       await navigator.clipboard.writeText(code)
       setHasCopiedCode(true)
+      trackEvent("ease_curve_copied", {
+        format: preferredExporter,
+        scope: exportScope,
+        engine: activeCurve.engine,
+      })
       setTimeout(() => setHasCopiedCode(false), 2000)
     } catch {
       // Fallback
     }
-  }, [code])
+  }, [code, preferredExporter, exportScope, activeCurve.engine])
 
   const handleCopyUrl = React.useCallback(async () => {
     try {
@@ -251,11 +257,12 @@ export function ExportDialog() {
           : hash
       await navigator.clipboard.writeText(shareUrl)
       setHasCopiedUrl(true)
+      trackEvent("ease_share_url_copied", { engine: activeCurve.engine })
       setTimeout(() => setHasCopiedUrl(false), 2000)
     } catch {
       // Fallback
     }
-  }, [getShareUrlHash])
+  }, [getShareUrlHash, activeCurve.engine])
 
   return (
     <Dialog open={isExportOpen} onOpenChange={setExportOpen}>

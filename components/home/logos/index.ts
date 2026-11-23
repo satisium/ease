@@ -1,5 +1,0 @@
-export * from "./logo-cloud-data"
-export * from "./logo-cloud"
-export * from "./logo-cloud-variant-1"
-export * from "./logo-cloud-variant-2"
-export * from "./logo-cloud-variant-3"

@@ -1,5 +1,4 @@
 // next.config.mjs
-import { createMDX } from "fumadocs-mdx/next"
 import withBundleAnalyzer from "@next/bundle-analyzer"
 import { buildCsp } from "./lib/csp.mjs"
 
@@ -40,11 +39,6 @@ const config = {
   },
   async redirects() {
     return [
-      {
-        source: "/changelog",
-        destination: "/docs/changelog",
-        permanent: true,
-      },
       {
         source: "/stage",
         destination: "/app",
@@ -116,7 +110,6 @@ const config = {
   },
 }
 
-const withMDX = createMDX({})
 export default withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
-})(withMDX(config))
+})(config)

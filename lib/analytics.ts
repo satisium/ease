@@ -1,4 +1,3 @@
-import { logger } from "@/lib/logger"
 import posthog from "posthog-js"
 import { hasConsent } from "@/lib/consent-utils"
 
@@ -14,25 +13,8 @@ declare global {
 
 export async function trackEvent(
   eventName: string,
-  properties?: Record<string, unknown>,
-  incrementPublicCounter?: "web_copy" | "page_view"
+  properties?: Record<string, unknown>
 ) {
-  if (incrementPublicCounter) {
-    try {
-      await fetch("/api/telemetry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: incrementPublicCounter,
-          component: properties?.component || properties?.file || "unknown",
-        }),
-        keepalive: true,
-      })
-    } catch (e) {
-      logger.error("Satisium Telemetry Error:", e)
-    }
-  }
-
   if (!hasConsent()) return
 
   if (

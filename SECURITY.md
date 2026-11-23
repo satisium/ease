@@ -3,41 +3,44 @@
 ## Supported Versions
 
 | Version | Supported |
-| ------- | --------- |
-| 3.x     | ✅ Yes    |
-| 2.x     | ❌ No     |
-| 1.x     | ❌ No     |
+| :------ | :-------- |
+| 1.x     | ✅ Yes    |
+| < 1.0   | ❌ No     |
 
-_Note: Satisium UI v3 is currently in Beta. Security patches will be actively applied to the beta track._
+Security patches and critical bug fixes will be actively applied to the `v1.x` release line.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Satisium UI or any part of the Satisium Ecosystem, please **do not** open a public GitHub issue or post in the public Discord channels.
+If you discover a security vulnerability in Satisium Ease or any part of the project infrastructure, please **do not** open a public GitHub issue or discuss it in public channels.
 
-Instead, please report it to us privately using one of the following methods:
+Instead, please report it privately through one of the following methods:
 
-1. **Email:** Send a detailed report to **satisiumhq@gmail.com**.
-2. **Discord DM:** Join our official Discord (https://discord.gg/xQ5cPHmT7) and send a direct message to the Server Owner / Founder.
+1. **GitHub Security Advisory:** Submit a private disclosure through the [GitHub Security Advisories](https://github.com/satisium/ease/security/advisories/new) interface.
+2. **Email:** Send a detailed report to **satisiumhq@gmail.com**.
 
-Please include:
+### Information to Include
 
-- **Component/Tool name** and version affected
-- **Steps to reproduce** the vulnerability
-- **Expected vs actual behavior**
-- **Screenshots or proof-of-concept** if applicable
-- **Potential impact** assessment (e.g., XSS, prototype pollution)
+Please provide as much relevant information as possible to help us reproduce and resolve the issue quickly:
 
-We will acknowledge receipt within 48 hours and work with you to patch and disclose the issue responsibly.
+- **Component or Route:** The affected file, API route, or UI workstation component.
+- **Vulnerability Details:** Description of the vulnerability and its potential impact.
+- **Proof of Concept:** Clear, step-by-step instructions or scripts to reproduce the issue.
+- **Suggested Fix:** If known, recommendations for remediation.
 
-_Please note: Satisium is currently an independent design engineering studio. We do not operate a paid bug bounty program at this time._
+### Response SLA
 
-## Security Best Practices for Consumers
+- **Acknowledgment:** We will acknowledge receipt of your report within 48 hours.
+- **Triage & Assessment:** We will provide an initial assessment and timeline within 5 business days.
+- **Remediation:** We aim to release a patch or mitigation within 7 business days of confirmation.
 
-- Always install components directly from the official registry: `https://ui.satisium.com/r/<name>.json`
-- Keep your `shadcn` and component dependencies up to date
-- Audit your `package-lock.json` / `pnpm-lock.yaml` regularly
-- Review component source code before deploying to production environments
+## Scope
 
-## Third-Party Dependencies
+This security policy applies to:
 
-Satisium UI depends on several third-party libraries (e.g., GSAP, Three.js, React). We regularly update our dependencies and utilize Dependabot for automated security patches. See our [dependabot configuration](.github/dependabot.yml) for details.
+- The Satisium Ease web application and studio workstation hosted at `ease.satisium.com`.
+- The public codebase, API routes, and build pipelines in `https://github.com/satisium/ease`.
+
+Out of scope:
+
+- Social engineering or phishing attempts targeting contributors.
+- Third-party packages or upstream dependencies (please report directly to the respective maintainers).

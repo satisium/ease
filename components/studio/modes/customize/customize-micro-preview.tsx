@@ -379,26 +379,6 @@ export function CustomizeMicroPreview({
                     <span className="px-2 py-1 font-sans text-[10px] text-muted-foreground uppercase">
                       Channels
                     </span>
-                    <button
-                      type="button"
-                      aria-label="Target All channels"
-                      onClick={() => {
-                        focusChannel("all")
-                        enterCustomize()
-                        setIsChannelMenuOpen(false)
-                      }}
-                      className={cn(
-                        "flex w-full cursor-pointer items-center justify-between rounded-[8px] px-2.5 py-1.5 text-left font-sans text-xs transition-colors",
-                        focusedChannelId === "all"
-                          ? "bg-secondary font-medium text-foreground"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                      )}
-                    >
-                      <span>All Channels</span>
-                      {focusedChannelId === "all" && (
-                        <span className="size-1.5 rounded-full bg-foreground" />
-                      )}
-                    </button>
                     {track?.channels.map((channel) => {
                       const isSelected = channel.id === focusedChannelId
                       return (

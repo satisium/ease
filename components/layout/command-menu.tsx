@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils"
 import { trackEvent } from "@/lib/analytics"
 import { useCommandStore } from "@/store/use-command-store"
-import type * as PageTree from "fumadocs-core/page-tree"
 import { useTheme } from "next-themes"
 import { switchThemeWithTransition } from "@/lib/theme-transition"
 import { useRouter } from "next/navigation"
@@ -26,22 +25,14 @@ import {
   Clock02Icon,
   CommandIcon,
   ComponentIcon,
-  File02Icon,
-  FolderCodeIcon,
   Github01Icon,
-  GridViewIcon,
-  HashtagIcon,
   LaptopIcon,
-  LaptopVideoIcon,
   Layers01Icon,
-  Layout01Icon,
   Link01Icon,
-  Loading03Icon,
   MoonSlowWindIcon,
   Search01Icon,
   Sun02Icon,
   SparklesIcon,
-  TextAlignLeftIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { PROJECT } from "@/lib/social-links"
@@ -57,15 +48,6 @@ import {
   type SearchResultKind,
 } from "@/core"
 
-type ApiSearchResult = {
-  id: string
-  title?: string
-  description?: string
-  url: string
-  type: "page" | "heading" | "text"
-  content: string
-}
-
 type StaticItem = {
   id: string
   title: React.ReactNode
@@ -77,38 +59,6 @@ type StaticItem = {
   action?: () => void
   aliases?: string[]
   shortcut?: string
-}
-
-const searchPurify = (html: string) =>
-  html.replace(/<(?!\/?mark\b)[^>]+>/gi, "")
-
-function getContextualIcon(name: string) {
-  const lower = name.toLowerCase()
-  if (lower.includes("component"))
-    return (
-      <HugeiconsIcon
-        icon={ComponentIcon}
-        className="mr-3 size-4 text-primary"
-      />
-    )
-  if (lower.includes("block"))
-    return (
-      <HugeiconsIcon icon={GridViewIcon} className="mr-3 size-4 text-primary" />
-    )
-  if (lower.includes("template"))
-    return (
-      <HugeiconsIcon icon={Layout01Icon} className="mr-3 size-4 text-primary" />
-    )
-  if (lower.includes("category"))
-    return (
-      <HugeiconsIcon icon={Layers01Icon} className="mr-3 size-4 text-primary" />
-    )
-  return (
-    <HugeiconsIcon
-      icon={FolderCodeIcon}
-      className="mr-3 size-4 text-muted-foreground"
-    />
-  )
 }
 
 export interface CommandMenuTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -278,15 +228,13 @@ function EaseCommandGroup({
 /**
  * 🌟 THE GLOBAL DIALOG
  */
-export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
+export function CommandMenuDialog() {
   const router = useRouter()
   const { setTheme } = useTheme()
   const { isOpen, setIsOpen } = useCommandStore()
   const easeStore = useOptionalEaseStoreApi()
 
   const [query, setQuery] = React.useState("")
-  const [apiResults, setApiResults] = React.useState<ApiSearchResult[]>([])
-  const [isLoading, setIsLoading] = React.useState(false)
   const [, setActiveValue] = React.useState("")
   const [modifier, setModifier] = React.useState<"none" | "meta" | "shift">(
     "none"
@@ -351,119 +299,16 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
     }
   }, [isOpen])
 
-  const isSearching = isLoading && query.trim().length > 0
+  const lastFiredZeroQueryRef = React.useRef<string>("")
 
   React.useEffect(() => {
-    const trimmed = query.trim()
-    if (!trimmed) {
-      return
+    if (!query.trim() || !isOpen) {
+      lastFiredZeroQueryRef.current = ""
     }
-
-    const controller = new AbortController()
-
-    const timer = setTimeout(async () => {
-      setIsLoading(true)
-      try {
-        const res = await fetch(
-          `/api/search?query=${encodeURIComponent(trimmed)}`,
-          { signal: controller.signal }
-        )
-        if (res.ok) {
-          const data = await res.json()
-          setApiResults(data)
-
-          if (data.length === 0) {
-            trackEvent("search_zero_results", { query: trimmed.toLowerCase() })
-          }
-        }
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return
-        }
-        logger.error("Search failed", error)
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false)
-        }
-      }
-    }, 200)
-
-    return () => {
-      clearTimeout(timer)
-      controller.abort()
-    }
-  }, [query])
+  }, [query, isOpen])
 
   const staticItems = React.useMemo<StaticItem[]>(() => {
-    const items: StaticItem[] = []
-
-    if (docsTree) {
-      function traverseTree(
-        node: PageTree.Node,
-        currentGroup: string,
-        path: string[]
-      ) {
-        if (node.type === "page") {
-          const pageNode = node as PageTree.Item
-          const safeNameStr =
-            typeof pageNode.name === "string"
-              ? pageNode.name
-              : pageNode.url
-                  .split("/")
-                  .filter(Boolean)
-                  .pop()
-                  ?.replace(/-/g, " ") || "Page"
-
-          items.push({
-            id: pageNode.url,
-            title: pageNode.name,
-            searchString: safeNameStr,
-            subtitle:
-              path.length > 0 ? `Docs ➔ ${path.join(" ➔ ")}` : "Documentation",
-            group: currentGroup,
-            url: pageNode.url,
-            icon: getContextualIcon(currentGroup),
-            aliases: [currentGroup.toLowerCase()],
-          })
-        } else if (node.type === "folder") {
-          const folderNode = node as PageTree.Folder
-          const safeNameStr =
-            typeof folderNode.name === "string" ? folderNode.name : "Folder"
-          const groupNameStr = safeNameStr
-          const newPath = [...path, groupNameStr]
-
-          if (folderNode.index) {
-            const indexNode = folderNode.index as PageTree.Item
-            items.push({
-              id: indexNode.url,
-              title: folderNode.name ? `${safeNameStr} Overview` : "Overview",
-              searchString: `${safeNameStr} Overview`,
-              subtitle:
-                path.length > 0
-                  ? `Docs ➔ ${path.join(" ➔ ")}`
-                  : "Documentation",
-              group: groupNameStr,
-              url: indexNode.url,
-              icon: (
-                <HugeiconsIcon
-                  icon={LaptopVideoIcon}
-                  className="mr-3 size-4 text-muted-foreground"
-                />
-              ),
-              aliases: ["index", "overview"],
-            })
-          }
-          folderNode.children.forEach((child) =>
-            traverseTree(child, groupNameStr, newPath)
-          )
-        }
-      }
-      docsTree.children.forEach((child) =>
-        traverseTree(child, "General Docs", [])
-      )
-    }
-
-    const systemItems: StaticItem[] = [
+    return [
       {
         id: "action-copy-url",
         title: "Copy Current URL",
@@ -539,9 +384,43 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
         aliases: ["mode"],
       },
     ]
+  }, [setTheme])
 
-    return [...items, ...systemItems]
-  }, [docsTree, setTheme])
+  // Debounced search_zero_results telemetry (600ms, trimmed query >= 2 chars, deduplicated)
+  React.useEffect(() => {
+    const trimmed = query.trim()
+    if (trimmed.length < 2) return
+
+    const timer = setTimeout(() => {
+      const q = trimmed.toLowerCase()
+      const matchingStaticCount = staticItems.filter(
+        (item) =>
+          item.searchString.toLowerCase().includes(q) ||
+          item.aliases?.some((a) => a.toLowerCase().includes(q))
+      ).length
+
+      const matchingEaseCount = easeStore
+        ? searchEaseCommandCatalog({
+            query: trimmed,
+            presets: ALL_CANONICAL_PRESETS,
+            customCurves: easeStore.getState().customCurves,
+            tracks: listComponentTracks(),
+            limit: 10,
+          }).length
+        : 0
+
+      const totalMatches = matchingStaticCount + matchingEaseCount
+
+      if (totalMatches === 0) {
+        if (lastFiredZeroQueryRef.current !== q) {
+          lastFiredZeroQueryRef.current = q
+          trackEvent("search_zero_results", { query: q })
+        }
+      }
+    }, 600)
+
+    return () => clearTimeout(timer)
+  }, [query, staticItems, easeStore])
 
   const handleSelect = React.useCallback(
     (id: string, url?: string, action?: () => void) => {
@@ -564,26 +443,6 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
     },
     [modifier, router, saveRecent, setIsOpen]
   )
-
-  const getApiIcon = (type: ApiSearchResult["type"]) => {
-    if (type === "heading")
-      return (
-        <HugeiconsIcon
-          icon={HashtagIcon}
-          className="mr-3 size-4 text-muted-foreground"
-        />
-      )
-    if (type === "text")
-      return (
-        <HugeiconsIcon
-          icon={TextAlignLeftIcon}
-          className="mr-3 size-4 text-muted-foreground"
-        />
-      )
-    return (
-      <HugeiconsIcon icon={File02Icon} className="mr-3 size-4 text-primary" />
-    )
-  }
 
   const groupedStaticItems = React.useMemo(() => {
     return staticItems.reduce(
@@ -616,13 +475,12 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
           className="flex h-full w-full flex-col gap-2 bg-muted"
           onValueChange={setActiveValue}
           filter={(value, search) => {
-            if (value.startsWith("ease-") || value.startsWith("api-")) return 1
+            if (value.startsWith("ease-")) return 1
 
             // Strip any internal prefix before finding the item in static items
-            const cleanId = value.replace(/^(recent-|api-)/, "")
+            const cleanId = value.replace(/^recent-/, "")
             const item = staticItems.find((i) => i.id === cleanId)
 
-            // If not found in static items (e.g. backend API search result), don't filter out
             if (!item) return 1
 
             const searchLower = search.toLowerCase()
@@ -643,26 +501,16 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
           <div className="rounded-2xl bg-background p-2">
             <CommandList className="max-h-[55vh] scroll-py-2">
               <CommandEmpty className="py-12 text-center text-sm text-muted-foreground">
-                {isSearching ? (
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <HugeiconsIcon
-                      icon={Loading03Icon}
-                      className="size-5 animate-spin text-primary"
-                    />
-                    <span>Searching knowledge base...</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <HugeiconsIcon
-                      icon={Search01Icon}
-                      className="size-6 text-muted-foreground"
-                    />
-                    <span>No results found.</span>
-                  </div>
-                )}
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <HugeiconsIcon
+                    icon={Search01Icon}
+                    className="size-6 text-muted-foreground"
+                  />
+                  <span>No curves, components, or actions found.</span>
+                </div>
               </CommandEmpty>
 
-              {/* 🕒 RECENTLY VISITED: Prefixed value avoids key navigation collision */}
+              {/* 🕒 RECENTLY VISITED */}
               {!query && recentStaticItems.length > 0 && (
                 <CommandGroup heading="Recently Visited">
                   {recentStaticItems.map((item) => (
@@ -699,68 +547,6 @@ export function CommandMenuDialog({ docsTree }: { docsTree?: PageTree.Root }) {
                     setQuery("")
                   }}
                 />
-              )}
-
-              {/* 🔍 API RESULTS: Prefixed value ensures unique cmdk identification */}
-              {query.trim().length > 0 && apiResults.length > 0 && (
-                <CommandGroup heading="Deep Search Results (Content)">
-                  {apiResults.map((result) => {
-                    const baseUrl = result.url.split("#")[0]
-                    const parentPage = staticItems.find(
-                      (item) => item.url === baseUrl
-                    )
-
-                    let displayTitle = result.title || ""
-                    let displayContent = result.description || ""
-
-                    if (!displayTitle) {
-                      if (result.type === "page") {
-                        displayTitle = result.content
-                      } else if (result.type === "heading") {
-                        displayTitle = result.content
-                        displayContent = parentPage
-                          ? `In ${parentPage.searchString}`
-                          : ""
-                      } else {
-                        displayTitle = parentPage
-                          ? parentPage.searchString
-                          : "Snippet"
-                        displayContent = result.content
-                      }
-                    } else if (
-                      result.type === "text" ||
-                      result.type === "heading"
-                    ) {
-                      displayContent = result.content
-                    }
-
-                    const safeTitle = searchPurify(displayTitle)
-                    const safeContent = searchPurify(displayContent)
-
-                    return (
-                      <CommandItem
-                        key={`api-${result.id}`}
-                        value={`api-${result.id}`}
-                        onSelect={() => handleSelect(result.id, result.url)}
-                        className="flex flex-col items-start gap-1 px-4 py-3 aria-selected:bg-secondary aria-selected:text-primary"
-                      >
-                        <div className="flex w-full items-center">
-                          {getApiIcon(result.type)}
-                          <span
-                            className="font-heading text-sm font-medium [&_mark]:rounded-[12px] [&_mark]:bg-secondary [&_mark]:px-1 [&_mark]:text-primary"
-                            dangerouslySetInnerHTML={{ __html: safeTitle }}
-                          />
-                        </div>
-                        {safeContent && (
-                          <span
-                            className="ml-7 line-clamp-1 font-body text-xs text-muted-foreground [&_mark]:rounded-[12px] [&_mark]:bg-secondary [&_mark]:px-1 [&_mark]:font-semibold [&_mark]:text-primary"
-                            dangerouslySetInnerHTML={{ __html: safeContent }}
-                          />
-                        )}
-                      </CommandItem>
-                    )
-                  })}
-                </CommandGroup>
               )}
 
               {/* 📚 STATIC CATALOG & ACTIONS */}

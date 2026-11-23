@@ -197,14 +197,10 @@ export function CodeBlock({
         ? activeExt
         : activeFileObj.language || activeExt
 
-    trackCopy(
-      "code_copied",
-      {
-        file: activeFile,
-        language: activeLang,
-      },
-      "web_copy"
-    )
+    trackCopy("code_copied", {
+      file: activeFile,
+      language: activeLang,
+    })
   }
 
   if (!mounted) {

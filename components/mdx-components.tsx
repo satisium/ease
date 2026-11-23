@@ -108,23 +108,38 @@ export const defaultMdxComponents = {
   strong: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
     <strong className={cn("font-bold text-foreground", className)} {...props} />
   ),
-  code: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
-    <code
-      className={cn(
-        "relative rounded-md bg-muted px-[0.6rem] py-[0.2rem] font-mono text-sm font-medium text-foreground",
-        className
-      )}
-      {...props}
-    />
-  ),
-  pre: ({ className, ...props }: React.HTMLAttributes<HTMLPreElement>) => (
-    <pre
-      className={cn(
-        "mt-6 mb-4 overflow-x-auto rounded-xl border border-border bg-sidebar p-4 shadow-sm",
-        className
-      )}
-      {...props}
-    />
+  code: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => {
+    if (className?.includes("language-")) {
+      return <code className={className} {...props} />
+    }
+    return (
+      <code
+        className={cn(
+          "relative rounded-md bg-muted px-[0.6rem] py-[0.2rem] font-mono text-sm font-medium text-primary",
+          className
+        )}
+        {...props}
+      />
+    )
+  },
+  pre: ({
+    className,
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLPreElement>) => (
+    <div className="my-6 w-full rounded-3xl bg-muted p-2">
+      <div className="relative overflow-x-auto rounded-2xl bg-background p-4">
+        <pre
+          className={cn(
+            "m-0 overflow-x-auto bg-transparent p-0 font-mono text-[13px] leading-6 text-foreground",
+            className
+          )}
+          {...props}
+        >
+          {children}
+        </pre>
+      </div>
+    </div>
   ),
   table: ({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) => (
     <div className="my-6 w-full overflow-x-auto rounded-3xl bg-muted p-2">

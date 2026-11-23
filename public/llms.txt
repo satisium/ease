@@ -1,28 +1,35 @@
-# Ease
+# Ease | Satisium
 
-> https://ease.satisium.com
-> Interactive cubic-bezier editor and spring physics studio for design engineers. Export production-ready curves to CSS, Tailwind, GSAP, and Motion.
+> Canonical: https://ease.satisium.com/app
+> Repository: https://github.com/satisium/ease (MIT License)
+> Ecosystem: https://satisium.com (The Satisium Umbrella)
+> Precision Cubic-Bézier curve editor and analytical ODE spring physics instrument for design engineers. Export production curves to CSS, Tailwind v4, Motion, and GSAP.
 
-## Docs
+## Quick Answers
 
-- [Changelog](https://ease.satisium.com/docs/changelog) — Release notes for ease.
-- [Overview](https://ease.satisium.com/docs) — Interactive motion curve and spring physics studio for design engineers.
-- [Curve Presets](https://ease.satisium.com/docs/presets) — Catalog of standardized cubic-bezier curves and spring dynamics.
-- [Spring Physics](https://ease.satisium.com/docs/springs) — Mathematical mechanics of mass, stiffness, damping, and linear() CSS approximations.
+### What is Ease?
+Ease is an interactive kinetic sandbox and motion curve studio created by Satisium for frontend engineers and design technologists. It enables developers to author, calibrate, and duel cubic-bezier transitions and analytical spring physics on authentic UI habitats before exporting production-ready code.
 
-## components
+### How does Ease calculate analytical spring physics?
+Ease models mass, stiffness, and damping using exact closed-form analytical solutions to second-order ordinary differential equations ($m \cdot x''(t) + c \cdot x'(t) + k \cdot x(t) = 0$). Settle times, resting thresholds, and peak velocities are evaluated mathematically rather than through frame-by-frame numerical approximations.
 
-- [Pulse Card](https://ease.satisium.com/docs/components/pulse-card) — A minimal registry component rendered by the previewer.
+### How does Ease export CSS linear() and Tailwind v4 curves?
+Ease samples continuous spring waveforms into quantized CSS `linear(...)` keyframe sequences using Ramer-Douglas-Peucker simplification. The resulting curve executes on the browser compositor thread with zero runtime JavaScript overhead, ready for direct integration into CSS stylesheets or Tailwind CSS v4 `@theme` blocks.
 
-## getting-started
+## Interactive Component Habitats (21 Components + Primitives Lab)
 
-- [Analytics & Telemetry](https://ease.satisium.com/docs/getting-started/analytics) — How to track custom product events, enforce cookie consent, and configure analytics providers.
-- [Project Configuration](https://ease.satisium.com/docs/getting-started/configuration) — Learn how brand tokens, site configs, assets, and environment variables are organized.
-- [Installation & Quickstart](https://ease.satisium.com/docs/getting-started/installation) — Clone the template, choose your product preset, and boot the development server.
-- [Product Presets (UI vs Tool)](https://ease.satisium.com/docs/getting-started/presets) — Understand the two architectural presets and how to build in each.
-- [Project Structure](https://ease.satisium.com/docs/getting-started/project-structure) — An overview of the directories and files in this template.
-- [SEO, OpenGraph & AI Discovery (AEO)](https://ease.satisium.com/docs/getting-started/seo-and-aeo) — Master dynamic social sharing cards, search crawler indexation, and LLM readiness.
+- Overlays: Modal Dialog, Action Sheet, Drawer, Toast Notification, Tooltip Popover, Floating Context Menu.
+- Controls: Toggle Switch, Segmented Control, Slider Thumb, Stepper Counter, Interactive Button, Radio Group.
+- Disclosure: Accordion Pane, Dropdown Select, Collapsible Tree, Expandable Search Bar, Tab Switcher.
+- Landing: Hero Title Sweep, Feature Card Hover, Staggered Grid, Notification Banner.
+- Lab: 4-Track Primitives X-Ray (Position, Scale, Rotation, Opacity) with 120fps TrackConductor telemetry.
 
-## Optional
+## Export Formats & Links
 
-- [Complete knowledge base](https://ease.satisium.com/llms-full.txt)
+- Native CSS: Standard `cubic-bezier(x1, y1, x2, y2)` and compositor-accelerated `linear(...)` spring approximations.
+- Tailwind CSS v4: Pre-configured `--ease-*` timing tokens ready for utility class styling in `@theme` blocks.
+- Motion (Framer Motion): Type-safe transition configs with exact `type: "spring"`, `stiffness`, `damping`, and `mass`.
+- GSAP CustomEase: High-precision SVG spline definitions paired with calibrated settling durations.
+- Lossless Sharing: State preservation via compact `#hash` URL encoding for friction-free developer handoff.
+- GitHub: https://github.com/satisium/ease
+- Satisium Ecosystem: https://satisium.com
