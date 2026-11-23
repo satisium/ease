@@ -23,14 +23,12 @@ jobs:
           node-version: 22
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - name: Sync registry metadata
-        run: pnpm build:registry:meta
       - name: Version packages with Changesets
         run: pnpm changeset version
-      - name: Sync changelog to docs
-        run: node scripts/sync-changelog.mjs
       - name: Build (verify)
         run: pnpm build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://ease.satisium.com
       - name: Commit version bump
         run: |
           git config user.name "changeset-bot"

@@ -208,8 +208,7 @@ Satisium Ease is an interactive, analytical motion curve workstation and spring 
 │
 ├── public/                              # Static public assets (fonts, images, icons, llms.txt)
 ├── scripts/                             # Utility & CI scripts
-│   ├── doctor.mjs                       # 15-point repository health & convention checker
-│   └── sync-changelog.mjs               # Changeset changelog sync utility
+│   └── doctor.mjs                       # 15-point repository health & convention checker
 │
 ├── store/                               # Secondary client stores
 │   ├── index.ts                         # Barrel export for global UI stores
@@ -221,7 +220,7 @@ Satisium Ease is an interactive, analytical motion curve workstation and spring 
 ### Directory Responsibilities
 
 - **`app/`**: Next.js App Router root containing application routes, metadata generators, route handlers (`api/`), and global layout wrapping.
-- **`app/api/`**: Serverless endpoints for uptime health probes, dynamic social card generation, and telemetry rate-limiting.
+- **`app/api/`**: Serverless endpoints for uptime health probes and dynamic social card generation.
 - **`app/app/`**: Main workstation destination rendering the interactive studio interface.
 - **`components/`**: All presentational and interactive React components, organized into domain modules.
 - **`components/studio/`**: The complete Satisium Ease studio interface, sub-divided into habitats, preview modes, and consoles.
