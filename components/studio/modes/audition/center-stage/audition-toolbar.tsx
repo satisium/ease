@@ -71,8 +71,6 @@ export function AuditionToolbar() {
   const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
   const focusChannel = useEaseStore((s) => s.focusChannel)
   const trackBindings = useEaseStore((s) => s.trackBindings)
-  const isSolo = useEaseStore((s) => s.isSolo)
-  const toggleSolo = useEaseStore((s) => s.toggleSolo)
   const enterCustomize = useEaseStore((s) => s.enterCustomize)
   const resetTrack = useEaseStore((s) => s.resetTrack)
 
@@ -452,45 +450,7 @@ export function AuditionToolbar() {
         </AnimatePresence>
       </div>
 
-      {/* 4. Solo Toggle (S) — Disabled when focusedChannelId === 'all' */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={toggleSolo}
-            disabled={focusedChannelId === "all"}
-            aria-label="Toggle channel solo"
-            className={cn(
-              "flex h-8 cursor-pointer items-center justify-center rounded-[10px] px-2.5 font-sans text-[11px] font-medium transition-colors outline-none",
-              SATISIUM_PRESS_CLASS,
-              isSolo
-                ? "bg-foreground text-background"
-                : "bg-muted text-muted-foreground hover:bg-secondary hover:text-foreground",
-              focusedChannelId === "all" &&
-                "cursor-not-allowed opacity-40 hover:bg-muted hover:text-muted-foreground"
-            )}
-          >
-            Solo
-          </button>
-        </TooltipTrigger>
-        <TooltipContent
-          side="top"
-          className="flex items-center gap-1.5 text-xs"
-        >
-          <span>
-            {focusedChannelId === "all"
-              ? "Select a specific channel to solo"
-              : isSolo
-                ? "Solo Active: Isolating channel"
-                : "Solo Channel"}
-          </span>
-          <kbd className="rounded bg-muted px-1 py-0.5 font-sans text-[10px] text-muted-foreground">
-            S
-          </kbd>
-        </TooltipContent>
-      </Tooltip>
-
-      {/* 4B. Reset Component to Defaults */}
+      {/* 4. Reset Component to Defaults */}
       <Tooltip>
         <TooltipTrigger asChild>
           <button

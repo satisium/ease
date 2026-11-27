@@ -52,42 +52,47 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
       </EaseStoreProvider>
     )
 
-    // Focus dialog:open and select translateY channel
+    // Focus dialog:open and select translateY channel -> auto-activates Solo
     act(() => {
       storeApi!.getState().focusTrack("dialog:open")
       storeApi!.getState().focusChannel("translateY")
     })
 
     expect(storeApi!.getState().focusedChannelId).toBe("translateY")
-    expect(storeApi!.getState().isSolo).toBe(false)
-    expect(storeApi!.getState().isScrubAllChannels).toBe(true)
+    expect(storeApi!.getState().isSolo).toBe(true)
 
-    // By default, isScrubAllChannels === true animates all channels during scrubbing
+    // With isSolo === true, scrubbing isolates translateY:
+    // backdrop is locked to rest destination (0.28), scale to 1.0
     act(() => {
       storeApi!.getState().seekScoped(150)
     })
     expect(storeApi!.conductor.getSnapshot().playbackState).toBe("scrubbing")
     expect(lastFrameValues.translateY).toBeDefined()
-    expect(lastFrameValues.backdrop).not.toBeCloseTo(0.28, 2)
-
-    // Toggle scrub channel isolation: isolate translateY
-    act(() => {
-      storeApi!.getState().toggleScrubAllChannels()
-      storeApi!.getState().seekScoped(150)
-    })
-
-    expect(storeApi!.getState().isScrubAllChannels).toBe(false)
-
-    // During isolated scrubbing on translateY:
-    // translateY is animating/scrubbed
-    // backdrop is locked to rest destination (0.28)
-    // scale is locked to rest destination (1.0)
-    expect(lastFrameValues.translateY).toBeDefined()
     expect(lastFrameValues.backdrop).toBeCloseTo(0.28, 2)
     expect(lastFrameValues.scale).toBeCloseTo(1.0, 2)
 
+    // Switch to All (isSolo = false): animates all channels while preserving focusedChannelId === "translateY"
+    act(() => {
+      storeApi!.getState().setSolo(false)
+      storeApi!.getState().seekScoped(150)
+    })
+
+    expect(storeApi!.getState().isSolo).toBe(false)
+    expect(storeApi!.getState().focusedChannelId).toBe("translateY")
+    expect(lastFrameValues.translateY).toBeDefined()
+    expect(lastFrameValues.backdrop).not.toBeCloseTo(0.28, 2)
+
+    // Switch back to Solo (isSolo = true): re-isolates translateY
+    act(() => {
+      storeApi!.getState().setSolo(true)
+      storeApi!.getState().seekScoped(150)
+    })
+    expect(storeApi!.getState().isSolo).toBe(true)
+    expect(lastFrameValues.backdrop).toBeCloseTo(0.28, 2)
+
     // Now start Play with isSolo = false
     act(() => {
+      storeApi!.getState().setSolo(false)
       storeApi!.getState().seekScoped(0)
       storeApi!.getState().playScoped()
     })
@@ -119,11 +124,10 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
       </EaseStoreProvider>
     )
 
-    // Focus backdrop channel on dialog:open and isolate channel for scrubbing
+    // Focus backdrop channel on dialog:open (auto-activates Solo)
     act(() => {
       storeApi!.getState().focusTrack("dialog:open")
       storeApi!.getState().focusChannel("backdrop")
-      storeApi!.getState().setScrubAllChannels(false)
     })
 
     // Scrub to 100% of backdrop duration (320ms)
@@ -251,10 +255,9 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
       </EaseStoreProvider>
     )
 
-    // Focus a channel and enable solo
+    // Focus a channel (auto-activates solo)
     act(() => {
       storeApi!.getState().focusChannel("translateY")
-      storeApi!.getState().toggleSolo()
     })
 
     expect(storeApi!.getState().isSolo).toBe(true)
@@ -270,7 +273,7 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
     expect(storeApi!.conductor.getSnapshot().isSoloActive).toBe(false)
   })
 
-  it("6. toggles scrubber channel scope via the timeline console button", () => {
+  it("6. toggles All | Solo channel scope via the timeline console segmented pill and preserves selected channel", () => {
     let storeApi: ReturnType<typeof useEaseStoreApi> | undefined
 
     function TestHarness() {
@@ -290,24 +293,31 @@ describe("Scrubber Block & Channel-Targeting Integration", () => {
 
     act(() => {
       storeApi!.getState().focusTrack("dialog:open")
+      storeApi!.getState().focusChannel("backdrop")
+      storeApi!.getState().setSolo(false)
     })
 
-    // Button should be visible and indicate scrubbing all channels
-    const toggleBtn = screen.getByRole("button", {
-      name: /Scrubbing all channels\. Click to isolate active channel/i,
+    const allBtn = screen.getByRole("button", {
+      name: /Audition all channels/i,
     })
-    expect(toggleBtn).toBeInTheDocument()
+    const soloBtn = screen.getByRole("button", { name: /Solo active channel/i })
+    expect(allBtn).toHaveAttribute("aria-pressed", "true")
+    expect(soloBtn).toHaveAttribute("aria-pressed", "false")
 
-    // Click toggle to isolate channel
+    // Click Solo -> isolates original selected channel ("backdrop")
     act(() => {
-      fireEvent.click(toggleBtn)
+      fireEvent.click(soloBtn)
     })
+    expect(storeApi!.getState().isSolo).toBe(true)
+    expect(storeApi!.getState().focusedChannelId).toBe("backdrop")
+    expect(soloBtn).toHaveAttribute("aria-pressed", "true")
 
-    expect(storeApi!.getState().isScrubAllChannels).toBe(false)
-    expect(
-      screen.getByRole("button", {
-        name: /Scrubbing isolated channel\. Click to scrub all channels/i,
-      })
-    ).toBeInTheDocument()
+    // Click All -> returns to full choreography while preserving "backdrop"
+    act(() => {
+      fireEvent.click(allBtn)
+    })
+    expect(storeApi!.getState().isSolo).toBe(false)
+    expect(storeApi!.getState().focusedChannelId).toBe("backdrop")
+    expect(allBtn).toHaveAttribute("aria-pressed", "true")
   })
 })

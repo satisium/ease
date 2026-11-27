@@ -79,12 +79,13 @@ describe("StudioShell Global Shortcuts & StudioStoreProvider Retirement (Step B-
     fireEvent.keyDown(window, { key: "L" })
     expect(screen.getByTestId("probe-looping").textContent).toBe("false")
 
-    // 4. S toggles solo (focus a channel first)
+    // 4. S toggles solo (focusing a channel auto-activates solo)
     fireEvent.click(screen.getByTestId("focus-channel-btn"))
-    fireEvent.keyDown(window, { key: "s" })
     expect(screen.getByTestId("probe-solo").textContent).toBe("true")
-    fireEvent.keyDown(window, { key: "S" })
+    fireEvent.keyDown(window, { key: "s" })
     expect(screen.getByTestId("probe-solo").textContent).toBe("false")
+    fireEvent.keyDown(window, { key: "S" })
+    expect(screen.getByTestId("probe-solo").textContent).toBe("true")
   })
 
   it("stages curve to compare with C and triggers replay with R", () => {

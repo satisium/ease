@@ -244,10 +244,9 @@ describe("React Adapter Hooks (Phase A)", () => {
       })
       expect(screen.getByTestId("force-mount").textContent).toBe("false")
 
-      // Focus channel and toggle solo -> shouldForceMount becomes true
+      // Focus channel (auto-activates solo) -> shouldForceMount becomes true
       act(() => {
         storeInstance?.getState().focusChannel("translateY")
-        storeInstance?.getState().toggleSolo()
       })
       expect(screen.getByTestId("force-mount").textContent).toBe("true")
     })

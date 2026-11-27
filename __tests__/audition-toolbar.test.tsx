@@ -136,14 +136,11 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
 
     // Scoped controls
     expect(
-      screen.getByRole("button", { name: /Toggle channel solo/i })
-    ).toBeInTheDocument()
-    expect(
       screen.getByRole("button", { name: /Customize curve/i })
     ).toBeInTheDocument()
   })
 
-  it("toggles Solo and triggers Customize curve", () => {
+  it("auto-activates Solo when picking a channel and triggers Customize curve", () => {
     render(
       <TestWrapper>
         <AuditionToolbar />
@@ -151,13 +148,7 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
       </TestWrapper>
     )
 
-    // Solo is enabled initially since default channel is concrete ("position")
-    const soloBtn = screen.getByRole("button", {
-      name: /Toggle channel solo/i,
-    })
-    expect(soloBtn).not.toBeDisabled()
-
-    // Switch channel via Channel Dropdown and verify Solo stays available
+    // Switch channel via Channel Dropdown -> auto-activates Solo on multi-channel tracks
     const channelTrigger = screen.getByRole("button", {
       name: /Select kinetic channel/i,
     })
@@ -166,10 +157,7 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
       name: /Scale channel/i,
     })
     fireEvent.click(scaleOption)
-    expect(soloBtn).not.toBeDisabled()
-
-    // Solo
-    fireEvent.click(soloBtn)
+    expect(screen.getByTestId("probe-channel").textContent).toBe("scale")
     expect(screen.getByTestId("probe-solo").textContent).toBe("true")
 
     // Customize
