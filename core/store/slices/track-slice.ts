@@ -27,6 +27,31 @@ import {
 } from "../../math/evaluator"
 import type { DraftScope, EaseStoreState, SliceContext } from "../types"
 
+/**
+ * Resolves a concrete channel ID for a track, preserving `preferredChannelId`
+ * when it exists on the target track and never defaulting to `"all"`.
+ */
+export function resolveTrackChannelId(
+  trackId: string,
+  trackBindings: TrackChannelMap,
+  preferredChannelId?: string | null
+): string {
+  const base = trackRegistry.get(trackId)
+  const channels = trackBindings[trackId] ?? base?.channels ?? []
+  if (
+    preferredChannelId &&
+    preferredChannelId !== "all" &&
+    channels.some((c) => c.id === preferredChannelId)
+  ) {
+    return preferredChannelId
+  }
+  return (
+    channels.find((c) => c.property !== "opacity")?.id ??
+    channels[0]?.id ??
+    "position"
+  )
+}
+
 export interface InitialTrackState {
   focusedTrackId: string
   focusedChannelId: string | "all"
@@ -42,7 +67,6 @@ export function createTrackSlice(
   | "focusedChannelId"
   | "isPinned"
   | "isSolo"
-  | "isScrubAllChannels"
   | "trackBindings"
   | "getFocusedTrack"
   | "getFocusedChannel"
@@ -51,8 +75,7 @@ export function createTrackSlice(
   | "focusChannel"
   | "setPinned"
   | "toggleSolo"
-  | "toggleScrubAllChannels"
-  | "setScrubAllChannels"
+  | "setSolo"
   | "selectCurveForFocused"
   | "setFocusedDurationMs"
   | "setFocusedDelayMs"
@@ -62,29 +85,16 @@ export function createTrackSlice(
   | "triggerLive"
   | "interruptActive"
 > {
-  const initialChannel = (() => {
-    if (
-      initial.focusedTrackId !== "primitives:all" &&
-      initial.focusedChannelId === "all"
-    ) {
-      const base = trackRegistry.get(initial.focusedTrackId)
-      const channels =
-        initial.trackBindings[initial.focusedTrackId] ?? base?.channels ?? []
-      return (
-        channels.find((c) => c.property !== "opacity")?.id ??
-        channels[0]?.id ??
-        "all"
-      )
-    }
-    return initial.focusedChannelId
-  })()
+  const initialChannel =
+    initial.focusedChannelId === "all"
+      ? resolveTrackChannelId(initial.focusedTrackId, initial.trackBindings)
+      : initial.focusedChannelId
 
   return {
     focusedTrackId: initial.focusedTrackId,
     focusedChannelId: initialChannel,
     isPinned: false,
     isSolo: false,
-    isScrubAllChannels: true,
     trackBindings: initial.trackBindings,
 
     getFocusedTrack: () => {
@@ -112,14 +122,10 @@ export function createTrackSlice(
     },
 
     focusTrack: (trackId) => {
-      const base = trackRegistry.get(trackId)
-      const channels = ctx.get().trackBindings[trackId] ?? base?.channels ?? []
-      const defaultChannel =
-        trackId === "primitives:all"
-          ? "all"
-          : (channels.find((c) => c.property !== "opacity")?.id ??
-            channels[0]?.id ??
-            "all")
+      const defaultChannel = resolveTrackChannelId(
+        trackId,
+        ctx.get().trackBindings
+      )
 
       ctx.set({
         focusedTrackId: trackId,
@@ -131,12 +137,26 @@ export function createTrackSlice(
     },
 
     focusChannel: (channelIdOrAll) => {
-      const resetSolo = channelIdOrAll === "all"
+      const state = ctx.get()
+      if (channelIdOrAll === "all") {
+        ctx.set({
+          focusedChannelId: channelIdOrAll,
+          isSolo: false,
+        })
+        ctx.conductor.setSoloActive(false)
+        ctx.syncDuration()
+        return
+      }
+      const channels =
+        state.trackBindings[state.focusedTrackId] ??
+        trackRegistry.get(state.focusedTrackId)?.channels ??
+        []
+      const nextSolo = channels.length > 1
       ctx.set({
         focusedChannelId: channelIdOrAll,
-        isSolo: resetSolo ? false : ctx.get().isSolo,
+        isSolo: nextSolo,
       })
-      if (resetSolo) ctx.conductor.setSoloActive(false)
+      ctx.conductor.setSoloActive(nextSolo)
       ctx.syncDuration()
     },
 
@@ -153,12 +173,11 @@ export function createTrackSlice(
       ctx.syncDuration()
     },
 
-    toggleScrubAllChannels: () => {
-      ctx.set({ isScrubAllChannels: !ctx.get().isScrubAllChannels })
-    },
-
-    setScrubAllChannels: (active) => {
-      ctx.set({ isScrubAllChannels: active })
+    setSolo: (solo) => {
+      if (solo && ctx.get().focusedChannelId === "all") return
+      ctx.set({ isSolo: solo })
+      ctx.conductor.setSoloActive(solo)
+      ctx.syncDuration()
     },
 
     selectCurveForFocused: (curveId) => {
@@ -309,13 +328,18 @@ export function createTrackSlice(
     },
 
     triggerLive: (trackId) => {
-      if (!ctx.get().isPinned) {
+      const state = ctx.get()
+      if (!state.isPinned) {
+        const nextChannelId = resolveTrackChannelId(
+          trackId,
+          state.trackBindings,
+          state.focusedChannelId
+        )
         ctx.set({
           focusedTrackId: trackId,
-          focusedChannelId: "all",
-          isSolo: false,
+          focusedChannelId: nextChannelId,
         })
-        ctx.conductor.setSoloActive(false)
+        ctx.conductor.setSoloActive(state.isSolo)
         ctx.syncDuration()
       }
       ctx.conductor.triggerLive(trackId, ctx.computeDuration())
@@ -419,12 +443,17 @@ export function createTrackSlice(
         }
       }
 
+      const nextChannelId = resolveTrackChannelId(
+        nextTrackId,
+        state.trackBindings,
+        state.focusedChannelId
+      )
+
       ctx.set({
         focusedTrackId: nextTrackId,
-        focusedChannelId: "all",
-        isSolo: false,
+        focusedChannelId: nextChannelId,
       })
-      ctx.conductor.setSoloActive(false)
+      ctx.conductor.setSoloActive(state.isSolo)
       const nextDuration = ctx.computeDuration()
       ctx.conductor.interrupt({
         nextTrackId,

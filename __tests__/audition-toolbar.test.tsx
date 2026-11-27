@@ -119,30 +119,28 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
       name: /Select kinetic channel/i,
     })
     expect(channelTrigger).toBeInTheDocument()
-    expect(screen.getByText("All Channels")).toBeInTheDocument()
+    expect(screen.getByText("Position")).toBeInTheDocument()
+    expect(screen.queryByText("All Channels")).not.toBeInTheDocument()
 
     // Open channel dropdown on default primitives:all
     fireEvent.click(channelTrigger)
-    const positionOption = screen.getByRole("button", {
-      name: /Position channel/i,
+    const scaleOption = screen.getByRole("button", {
+      name: /Scale channel/i,
     })
-    expect(positionOption).toBeInTheDocument()
+    expect(scaleOption).toBeInTheDocument()
 
-    // Click Position
-    fireEvent.click(positionOption)
-    expect(screen.getByTestId("probe-channel").textContent).toBe("position")
-    expect(screen.getByText("Position")).toBeInTheDocument()
+    // Click Scale
+    fireEvent.click(scaleOption)
+    expect(screen.getByTestId("probe-channel").textContent).toBe("scale")
+    expect(screen.getByText("Scale")).toBeInTheDocument()
 
     // Scoped controls
-    expect(
-      screen.getByRole("button", { name: /Toggle channel solo/i })
-    ).toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: /Customize curve/i })
     ).toBeInTheDocument()
   })
 
-  it("toggles Solo and triggers Customize curve", () => {
+  it("auto-activates Solo when picking a channel and triggers Customize curve", () => {
     render(
       <TestWrapper>
         <AuditionToolbar />
@@ -150,25 +148,16 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
       </TestWrapper>
     )
 
-    // Solo is disabled initially when channel is "all"
-    const soloBtn = screen.getByRole("button", {
-      name: /Toggle channel solo/i,
-    })
-    expect(soloBtn).toBeDisabled()
-
-    // Focus a channel first via Channel Dropdown so Solo is available
+    // Switch channel via Channel Dropdown -> auto-activates Solo on multi-channel tracks
     const channelTrigger = screen.getByRole("button", {
       name: /Select kinetic channel/i,
     })
     fireEvent.click(channelTrigger)
-    const positionOption = screen.getByRole("button", {
-      name: /Position channel/i,
+    const scaleOption = screen.getByRole("button", {
+      name: /Scale channel/i,
     })
-    fireEvent.click(positionOption)
-    expect(soloBtn).not.toBeDisabled()
-
-    // Solo
-    fireEvent.click(soloBtn)
+    fireEvent.click(scaleOption)
+    expect(screen.getByTestId("probe-channel").textContent).toBe("scale")
     expect(screen.getByTestId("probe-solo").textContent).toBe("true")
 
     // Customize
@@ -270,7 +259,7 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
     // Select Primitives
     fireEvent.click(primitivesOption)
     expect(screen.getByTestId("probe-track").textContent).toBe("primitives:all")
-    expect(screen.getByTestId("probe-channel").textContent).toBe("all")
+    expect(screen.getByTestId("probe-channel").textContent).toBe("position")
 
     // Open Channel Dropdown
     const channelTrigger = screen.getByRole("button", {
@@ -329,5 +318,58 @@ describe("AuditionToolbar (In-Process Headless Core Integration)", () => {
 
     // Track is restored back to default -> button disabled again
     expect(resetBtn).toBeDisabled()
+  })
+
+  it("preserves concrete selected channel across phase switches, live triggers, and rapid ease switching (Issue #41)", () => {
+    const storeHolder: { current?: ReturnType<typeof useEaseStoreApi> } = {}
+
+    function StoreCapture() {
+      const api = useEaseStoreApi()
+      React.useEffect(() => {
+        storeHolder.current = api
+      }, [api])
+      return null
+    }
+
+    render(
+      <TestWrapper>
+        <AuditionToolbar />
+        <StoreProbe />
+        <StoreCapture />
+      </TestWrapper>
+    )
+
+    // Focus Modal Dialog and pick a specific channel ("backdrop")
+    act(() => {
+      storeHolder.current!.getState().focusTrack("dialog:open")
+      storeHolder.current!.getState().focusChannel("backdrop")
+    })
+    expect(screen.getByTestId("probe-channel").textContent).toBe("backdrop")
+
+    // 1. Phase switch (interruptActive: dialog:open -> dialog:close) preserves "backdrop"
+    act(() => {
+      storeHolder.current!.getState().interruptActive()
+    })
+    expect(screen.getByTestId("probe-track").textContent).toBe("dialog:close")
+    expect(screen.getByTestId("probe-channel").textContent).toBe("backdrop")
+
+    // 2. Live trigger preserves "backdrop" when it exists on target track
+    act(() => {
+      storeHolder.current!.getState().triggerLive("dialog:open")
+    })
+    expect(screen.getByTestId("probe-track").textContent).toBe("dialog:open")
+    expect(screen.getByTestId("probe-channel").textContent).toBe("backdrop")
+
+    // 3. Rapidly switching eases applies each ease to "backdrop" without resetting channel
+    act(() => {
+      storeHolder.current!.getState().selectCurveForFocused("expo-out")
+      storeHolder
+        .current!.getState()
+        .selectCurveForFocused("material-decelerate")
+    })
+    expect(screen.getByTestId("probe-channel").textContent).toBe("backdrop")
+    expect(storeHolder.current!.getState().getFocusedChannel()?.curve.id).toBe(
+      "material-decelerate"
+    )
   })
 })

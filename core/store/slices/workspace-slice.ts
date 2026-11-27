@@ -17,6 +17,7 @@ import {
   startDraft as startDraftReducer,
 } from "../../state/curve-tree-reducers"
 import { getTrackTotalDurationMs } from "../../math/evaluator"
+import { resolveTrackChannelId } from "./track-slice"
 import type { DraftScope, EaseStoreState, SliceContext } from "../types"
 
 export interface InitialWorkspaceState {
@@ -189,12 +190,18 @@ export function createWorkspaceSlice(
           "primitives:all": updatedPrimitivesChannels,
         }
 
+        const nextChannelId = resolveTrackChannelId(
+          "primitives:all",
+          nextBindings,
+          state.focusedChannelId
+        )
+
         ctx.set({
           customizePreviewMode: "primitives",
           stashedComponentTrackId: stashedTrack,
           stashedComponentChannelId: stashedChannel,
           focusedTrackId: "primitives:all",
-          focusedChannelId: "all",
+          focusedChannelId: nextChannelId,
           isSolo: false,
           trackBindings: nextBindings,
         })
@@ -204,14 +211,11 @@ export function createWorkspaceSlice(
         ctx.get().persist()
       } else {
         const targetTrackId = state.stashedComponentTrackId ?? "dialog:open"
-        let targetChannelId = state.stashedComponentChannelId ?? "all"
-        if (targetChannelId === "all" || !targetChannelId) {
-          const tr = trackRegistry.get(targetTrackId)
-          if (tr) {
-            const nonOpacity = tr.channels.find((c) => c.property !== "opacity")
-            targetChannelId = nonOpacity?.id ?? tr.channels[0]?.id ?? "all"
-          }
-        }
+        const targetChannelId = resolveTrackChannelId(
+          targetTrackId,
+          state.trackBindings,
+          state.stashedComponentChannelId
+        )
         ctx.set({
           customizePreviewMode: "component",
           stashedComponentTrackId: null,
@@ -272,37 +276,21 @@ export function createWorkspaceSlice(
 
     seekScoped: (elapsedMs) => {
       const state = ctx.get()
-      if (
-        state.mode !== "compare" &&
-        !(state.isScrubAllChannels ?? true) &&
-        state.focusedChannelId !== "all"
-      ) {
+      if (state.mode !== "compare") {
         const channels = state.trackBindings[state.focusedTrackId] ?? []
-        const channelDuration = getTrackTotalDurationMs(
+        const soloId =
+          state.isSolo && state.focusedChannelId !== "all"
+            ? state.focusedChannelId
+            : null
+        const targetDuration = getTrackTotalDurationMs(
           { channels },
           state.isReducedMotion,
-          state.focusedChannelId
+          soloId
         )
-        if (ctx.conductor.getSnapshot().totalDurationMs !== channelDuration) {
-          ctx.conductor.setTotalDurationMs(channelDuration)
-          if (ctx.get().totalDurationMs !== channelDuration) {
-            ctx.set({ totalDurationMs: channelDuration })
-          }
-        }
-      } else if (
-        state.mode !== "compare" &&
-        (state.isScrubAllChannels ?? true)
-      ) {
-        const channels = state.trackBindings[state.focusedTrackId] ?? []
-        const trackDuration = getTrackTotalDurationMs(
-          { channels },
-          state.isReducedMotion,
-          null
-        )
-        if (ctx.conductor.getSnapshot().totalDurationMs !== trackDuration) {
-          ctx.conductor.setTotalDurationMs(trackDuration)
-          if (ctx.get().totalDurationMs !== trackDuration) {
-            ctx.set({ totalDurationMs: trackDuration })
+        if (ctx.conductor.getSnapshot().totalDurationMs !== targetDuration) {
+          ctx.conductor.setTotalDurationMs(targetDuration)
+          if (ctx.get().totalDurationMs !== targetDuration) {
+            ctx.set({ totalDurationMs: targetDuration })
           }
         }
       }

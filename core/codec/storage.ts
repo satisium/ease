@@ -608,7 +608,7 @@ export function deserializeEaseStorage(
     mode: "preview",
     customizePreviewMode: "primitives",
     focusedTrackId: "primitives:all",
-    focusedChannelId: "all",
+    focusedChannelId: "position",
     stashedComponentTrackId: null,
     stashedComponentChannelId: null,
     navStack: { level: 0 },
@@ -618,7 +618,7 @@ export function deserializeEaseStorage(
     exportScope: "ease",
     loopDelayMs: 400,
     activeTrackId: "primitives:all",
-    activeChannelId: "all",
+    activeChannelId: "position",
   }
 
   if (!rawJson || typeof rawJson !== "string") {

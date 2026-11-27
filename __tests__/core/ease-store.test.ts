@@ -480,14 +480,14 @@ describe("Headless EaseStore Integration (core/store/create-ease-store)", () => 
       curveId: "custom-abc",
     })
 
-    // Solo channel toggle
+    // Solo channel toggle (focusChannel auto-activates solo on multi-channel tracks)
     store.getState().focusTrack("dialog:open")
     store.getState().focusChannel("translateY")
-    expect(store.getState().isSolo).toBe(false)
-    store.getState().toggleSolo()
     expect(store.getState().isSolo).toBe(true)
     store.getState().toggleSolo()
     expect(store.getState().isSolo).toBe(false)
+    store.getState().toggleSolo()
+    expect(store.getState().isSolo).toBe(true)
 
     // Rename curve
     const root = store.getState().customCurves[0]

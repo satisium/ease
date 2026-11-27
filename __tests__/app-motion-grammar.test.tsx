@@ -161,8 +161,8 @@ describe("App Motion Grammar — Step M-1: lib/motion.ts & Shell Slab Standardiz
     const channelPopover = container.querySelector(".origin-bottom-left")
     expect(channelPopover).not.toBeNull()
 
-    // Select Part 1 channel
-    const part1Option = screen.getByText("Part 1")
+    // Select Part 1 channel from the open popover
+    const part1Option = screen.getByRole("button", { name: "Part 1 channel" })
     fireEvent.click(part1Option)
     expect(storeApi!.getState().focusedChannelId).toBe("ch1")
   })

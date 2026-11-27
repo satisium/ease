@@ -34,9 +34,7 @@ export function usePairedHabitat({
 }: UsePairedHabitatOptions) {
   const store = useEaseStoreApi()
   const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
-  const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
   const isSolo = useEaseStore((s) => s.isSolo)
-  const isScrubAllChannels = useEaseStore((s) => s.isScrubAllChannels ?? true)
   const playbackState = useEaseStore((s) => s.playbackState)
   const compareQueue = useEaseStore((s) => s.compareQueue)
   const globalCompareTarget = useEaseStore((s) => s.globalCompareTarget)
@@ -78,13 +76,10 @@ export function usePairedHabitat({
     { compareItemId, onFrame }
   )
 
-  // Solo & single-channel scrub retention: keep mounted whenever solo is active or
-  // inspecting/scrubbing an isolated channel on this component family
-  const isSoloOrSingleScrub =
-    isSolo || (!isScrubAllChannels && focusedChannelId !== "all")
+  // Solo retention: keep mounted whenever solo is active on this component family
   const shouldForceMount = compareItemId
     ? playbackState !== "idle"
-    : baseForceMount || (isFocused && isSoloOrSingleScrub)
+    : baseForceMount || (isFocused && isSolo)
 
   const [isOpen, setIsOpen] = React.useState(() => {
     if (compareItemId) {
@@ -144,12 +139,6 @@ export function usePairedHabitat({
         return
       }
 
-      const isSoloOrSingleCurr =
-        curr.isSolo ||
-        (curr.playbackState === "scrubbing" &&
-          !(curr.isScrubAllChannels ?? true) &&
-          curr.focusedChannelId !== "all")
-
       if (
         curr.focusedTrackId === enterTrackId &&
         curr.playbackState === "playing" &&
@@ -161,7 +150,7 @@ export function usePairedHabitat({
         curr.playbackState === "playing" &&
         prev.playbackState !== "playing"
       ) {
-        if (!isSoloOrSingleCurr) {
+        if (!curr.isSolo) {
           setIsOpen(false)
         }
       }
@@ -192,16 +181,9 @@ export function usePairedHabitat({
         return
       }
 
-      const isSoloOrSingleState =
-        state.isSolo ||
-        (state.playbackState === "scrubbing" &&
-          !(state.isScrubAllChannels ?? true) &&
-          state.focusedChannelId !== "all")
-
       // CRITICAL RETENTION RULE:
-      // When isSolo === true OR (playbackState === "scrubbing" && !isScrubAllChannels && focusedChannelId !== "all"),
-      // NEVER drop isVisible to false when scrubbing hits 0% or 100% or stops!
-      if (isSoloOrSingleState) {
+      // When isSolo === true, NEVER drop isVisible to false when scrubbing hits 0% or 100% or stops!
+      if (state.isSolo) {
         return
       }
 
