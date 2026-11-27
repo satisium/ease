@@ -140,15 +140,18 @@ export function AuditionToolbar() {
   }, [trackBindings, focusedTrackId, currentPlugin])
 
   const activeChannel = React.useMemo(() => {
-    return currentChannels.find((c) => c.id === focusedChannelId)
+    return (
+      currentChannels.find((c) => c.id === focusedChannelId) ??
+      currentChannels.find((c) => c.property !== "opacity") ??
+      currentChannels[0]
+    )
   }, [currentChannels, focusedChannelId])
 
   const channelLabel =
-    focusedChannelId === "all"
-      ? "All Channels"
-      : focusedTrackId === "primitives:all" && focusedChannelId === "position"
-        ? "Position"
-        : (activeChannel?.label ?? focusedChannelId)
+    focusedTrackId === "primitives:all" &&
+    (focusedChannelId === "position" || focusedChannelId === "all")
+      ? "Position"
+      : (activeChannel?.label ?? focusedChannelId)
 
   const componentDisplayLabel =
     currentPlugin?.componentId === "primitives"

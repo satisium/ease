@@ -1193,6 +1193,9 @@ describe("In-Process Habitats & Preview Theater (Step B-3B)", () => {
             <button
               onClick={() => {
                 store.getState().focusChannel("position")
+                if (!store.getState().isSolo) {
+                  store.getState().toggleSolo()
+                }
               }}
             >
               Isolate Position

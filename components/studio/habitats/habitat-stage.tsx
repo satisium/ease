@@ -64,6 +64,7 @@ export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
   const mode = useEaseStore((s) => s.mode)
   const focusedTrackId = useEaseStore((s) => s.focusedTrackId)
   const focusedChannelId = useEaseStore((s) => s.focusedChannelId)
+  const isSolo = useEaseStore((s) => s.isSolo)
   const compareQueue = useEaseStore((s) => s.compareQueue)
   const globalCompareTarget = useEaseStore((s) => s.globalCompareTarget)
 
@@ -126,7 +127,7 @@ export function HabitatStage({ compareItemId }: HabitatStageProps = {}) {
     return (
       <PrimitivesXRay
         isPreviewMode={mode === "preview"}
-        controlledFilter={normalizedChannelId}
+        controlledFilter={isSolo ? normalizedChannelId : "all"}
       />
     )
   }

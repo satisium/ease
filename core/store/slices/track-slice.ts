@@ -27,6 +27,31 @@ import {
 } from "../../math/evaluator"
 import type { DraftScope, EaseStoreState, SliceContext } from "../types"
 
+/**
+ * Resolves a concrete channel ID for a track, preserving `preferredChannelId`
+ * when it exists on the target track and never defaulting to `"all"`.
+ */
+export function resolveTrackChannelId(
+  trackId: string,
+  trackBindings: TrackChannelMap,
+  preferredChannelId?: string | null
+): string {
+  const base = trackRegistry.get(trackId)
+  const channels = trackBindings[trackId] ?? base?.channels ?? []
+  if (
+    preferredChannelId &&
+    preferredChannelId !== "all" &&
+    channels.some((c) => c.id === preferredChannelId)
+  ) {
+    return preferredChannelId
+  }
+  return (
+    channels.find((c) => c.property !== "opacity")?.id ??
+    channels[0]?.id ??
+    "position"
+  )
+}
+
 export interface InitialTrackState {
   focusedTrackId: string
   focusedChannelId: string | "all"
@@ -62,22 +87,10 @@ export function createTrackSlice(
   | "triggerLive"
   | "interruptActive"
 > {
-  const initialChannel = (() => {
-    if (
-      initial.focusedTrackId !== "primitives:all" &&
-      initial.focusedChannelId === "all"
-    ) {
-      const base = trackRegistry.get(initial.focusedTrackId)
-      const channels =
-        initial.trackBindings[initial.focusedTrackId] ?? base?.channels ?? []
-      return (
-        channels.find((c) => c.property !== "opacity")?.id ??
-        channels[0]?.id ??
-        "all"
-      )
-    }
-    return initial.focusedChannelId
-  })()
+  const initialChannel =
+    initial.focusedChannelId === "all"
+      ? resolveTrackChannelId(initial.focusedTrackId, initial.trackBindings)
+      : initial.focusedChannelId
 
   return {
     focusedTrackId: initial.focusedTrackId,
@@ -112,14 +125,10 @@ export function createTrackSlice(
     },
 
     focusTrack: (trackId) => {
-      const base = trackRegistry.get(trackId)
-      const channels = ctx.get().trackBindings[trackId] ?? base?.channels ?? []
-      const defaultChannel =
-        trackId === "primitives:all"
-          ? "all"
-          : (channels.find((c) => c.property !== "opacity")?.id ??
-            channels[0]?.id ??
-            "all")
+      const defaultChannel = resolveTrackChannelId(
+        trackId,
+        ctx.get().trackBindings
+      )
 
       ctx.set({
         focusedTrackId: trackId,
@@ -309,10 +318,16 @@ export function createTrackSlice(
     },
 
     triggerLive: (trackId) => {
-      if (!ctx.get().isPinned) {
+      const state = ctx.get()
+      if (!state.isPinned) {
+        const nextChannelId = resolveTrackChannelId(
+          trackId,
+          state.trackBindings,
+          state.focusedChannelId
+        )
         ctx.set({
           focusedTrackId: trackId,
-          focusedChannelId: "all",
+          focusedChannelId: nextChannelId,
           isSolo: false,
         })
         ctx.conductor.setSoloActive(false)
@@ -419,9 +434,15 @@ export function createTrackSlice(
         }
       }
 
+      const nextChannelId = resolveTrackChannelId(
+        nextTrackId,
+        state.trackBindings,
+        state.focusedChannelId
+      )
+
       ctx.set({
         focusedTrackId: nextTrackId,
-        focusedChannelId: "all",
+        focusedChannelId: nextChannelId,
         isSolo: false,
       })
       ctx.conductor.setSoloActive(false)

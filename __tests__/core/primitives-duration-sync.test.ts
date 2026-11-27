@@ -57,7 +57,7 @@ describe("Primitives Multi-Channel Duration Synchronization & Duration Integrity
     const store = createEaseStore()
     store.getState().setCustomizePreviewMode("primitives")
     expect(store.getState().focusedTrackId).toBe("primitives:all")
-    expect(store.getState().focusedChannelId).toBe("all")
+    expect(store.getState().focusedChannelId).toBe("position")
 
     // Set duration to 700ms
     store.getState().setFocusedDurationMs(700)

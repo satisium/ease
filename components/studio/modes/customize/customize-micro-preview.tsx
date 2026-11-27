@@ -100,11 +100,11 @@ export function CustomizeMicroPreview({
   }, [components])
   const track = trackRegistry.get(focusedTrackId)
   const componentLabel = track?.componentLabel ?? "Component"
-  const activeChannel = track?.channels.find((c) => c.id === focusedChannelId)
-  const channelLabel =
-    focusedChannelId === "all"
-      ? "All Channels"
-      : (activeChannel?.label ?? focusedChannelId)
+  const activeChannel =
+    track?.channels.find((c) => c.id === focusedChannelId) ??
+    track?.channels.find((c) => c.property !== "opacity") ??
+    track?.channels[0]
+  const channelLabel = activeChannel?.label ?? focusedChannelId
 
   const pairedTrackId = React.useMemo(() => {
     return getPairedTrackId(focusedTrackId)

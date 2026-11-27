@@ -17,6 +17,7 @@ import {
   startDraft as startDraftReducer,
 } from "../../state/curve-tree-reducers"
 import { getTrackTotalDurationMs } from "../../math/evaluator"
+import { resolveTrackChannelId } from "./track-slice"
 import type { DraftScope, EaseStoreState, SliceContext } from "../types"
 
 export interface InitialWorkspaceState {
@@ -189,12 +190,18 @@ export function createWorkspaceSlice(
           "primitives:all": updatedPrimitivesChannels,
         }
 
+        const nextChannelId = resolveTrackChannelId(
+          "primitives:all",
+          nextBindings,
+          state.focusedChannelId
+        )
+
         ctx.set({
           customizePreviewMode: "primitives",
           stashedComponentTrackId: stashedTrack,
           stashedComponentChannelId: stashedChannel,
           focusedTrackId: "primitives:all",
-          focusedChannelId: "all",
+          focusedChannelId: nextChannelId,
           isSolo: false,
           trackBindings: nextBindings,
         })
@@ -204,14 +211,11 @@ export function createWorkspaceSlice(
         ctx.get().persist()
       } else {
         const targetTrackId = state.stashedComponentTrackId ?? "dialog:open"
-        let targetChannelId = state.stashedComponentChannelId ?? "all"
-        if (targetChannelId === "all" || !targetChannelId) {
-          const tr = trackRegistry.get(targetTrackId)
-          if (tr) {
-            const nonOpacity = tr.channels.find((c) => c.property !== "opacity")
-            targetChannelId = nonOpacity?.id ?? tr.channels[0]?.id ?? "all"
-          }
-        }
+        const targetChannelId = resolveTrackChannelId(
+          targetTrackId,
+          state.trackBindings,
+          state.stashedComponentChannelId
+        )
         ctx.set({
           customizePreviewMode: "component",
           stashedComponentTrackId: null,
