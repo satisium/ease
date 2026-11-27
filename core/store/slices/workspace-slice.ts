@@ -276,37 +276,21 @@ export function createWorkspaceSlice(
 
     seekScoped: (elapsedMs) => {
       const state = ctx.get()
-      if (
-        state.mode !== "compare" &&
-        !(state.isScrubAllChannels ?? true) &&
-        state.focusedChannelId !== "all"
-      ) {
+      if (state.mode !== "compare") {
         const channels = state.trackBindings[state.focusedTrackId] ?? []
-        const channelDuration = getTrackTotalDurationMs(
+        const soloId =
+          state.isSolo && state.focusedChannelId !== "all"
+            ? state.focusedChannelId
+            : null
+        const targetDuration = getTrackTotalDurationMs(
           { channels },
           state.isReducedMotion,
-          state.focusedChannelId
+          soloId
         )
-        if (ctx.conductor.getSnapshot().totalDurationMs !== channelDuration) {
-          ctx.conductor.setTotalDurationMs(channelDuration)
-          if (ctx.get().totalDurationMs !== channelDuration) {
-            ctx.set({ totalDurationMs: channelDuration })
-          }
-        }
-      } else if (
-        state.mode !== "compare" &&
-        (state.isScrubAllChannels ?? true)
-      ) {
-        const channels = state.trackBindings[state.focusedTrackId] ?? []
-        const trackDuration = getTrackTotalDurationMs(
-          { channels },
-          state.isReducedMotion,
-          null
-        )
-        if (ctx.conductor.getSnapshot().totalDurationMs !== trackDuration) {
-          ctx.conductor.setTotalDurationMs(trackDuration)
-          if (ctx.get().totalDurationMs !== trackDuration) {
-            ctx.set({ totalDurationMs: trackDuration })
+        if (ctx.conductor.getSnapshot().totalDurationMs !== targetDuration) {
+          ctx.conductor.setTotalDurationMs(targetDuration)
+          if (ctx.get().totalDurationMs !== targetDuration) {
+            ctx.set({ totalDurationMs: targetDuration })
           }
         }
       }

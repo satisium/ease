@@ -67,7 +67,6 @@ export function createTrackSlice(
   | "focusedChannelId"
   | "isPinned"
   | "isSolo"
-  | "isScrubAllChannels"
   | "trackBindings"
   | "getFocusedTrack"
   | "getFocusedChannel"
@@ -76,8 +75,7 @@ export function createTrackSlice(
   | "focusChannel"
   | "setPinned"
   | "toggleSolo"
-  | "toggleScrubAllChannels"
-  | "setScrubAllChannels"
+  | "setSolo"
   | "selectCurveForFocused"
   | "setFocusedDurationMs"
   | "setFocusedDelayMs"
@@ -97,7 +95,6 @@ export function createTrackSlice(
     focusedChannelId: initialChannel,
     isPinned: false,
     isSolo: false,
-    isScrubAllChannels: true,
     trackBindings: initial.trackBindings,
 
     getFocusedTrack: () => {
@@ -140,12 +137,26 @@ export function createTrackSlice(
     },
 
     focusChannel: (channelIdOrAll) => {
-      const resetSolo = channelIdOrAll === "all"
+      const state = ctx.get()
+      if (channelIdOrAll === "all") {
+        ctx.set({
+          focusedChannelId: channelIdOrAll,
+          isSolo: false,
+        })
+        ctx.conductor.setSoloActive(false)
+        ctx.syncDuration()
+        return
+      }
+      const channels =
+        state.trackBindings[state.focusedTrackId] ??
+        trackRegistry.get(state.focusedTrackId)?.channels ??
+        []
+      const nextSolo = channels.length > 1
       ctx.set({
         focusedChannelId: channelIdOrAll,
-        isSolo: resetSolo ? false : ctx.get().isSolo,
+        isSolo: nextSolo,
       })
-      if (resetSolo) ctx.conductor.setSoloActive(false)
+      ctx.conductor.setSoloActive(nextSolo)
       ctx.syncDuration()
     },
 
@@ -162,12 +173,11 @@ export function createTrackSlice(
       ctx.syncDuration()
     },
 
-    toggleScrubAllChannels: () => {
-      ctx.set({ isScrubAllChannels: !ctx.get().isScrubAllChannels })
-    },
-
-    setScrubAllChannels: (active) => {
-      ctx.set({ isScrubAllChannels: active })
+    setSolo: (solo) => {
+      if (solo && ctx.get().focusedChannelId === "all") return
+      ctx.set({ isSolo: solo })
+      ctx.conductor.setSoloActive(solo)
+      ctx.syncDuration()
     },
 
     selectCurveForFocused: (curveId) => {
@@ -328,9 +338,8 @@ export function createTrackSlice(
         ctx.set({
           focusedTrackId: trackId,
           focusedChannelId: nextChannelId,
-          isSolo: false,
         })
-        ctx.conductor.setSoloActive(false)
+        ctx.conductor.setSoloActive(state.isSolo)
         ctx.syncDuration()
       }
       ctx.conductor.triggerLive(trackId, ctx.computeDuration())
@@ -443,9 +452,8 @@ export function createTrackSlice(
       ctx.set({
         focusedTrackId: nextTrackId,
         focusedChannelId: nextChannelId,
-        isSolo: false,
       })
-      ctx.conductor.setSoloActive(false)
+      ctx.conductor.setSoloActive(state.isSolo)
       const nextDuration = ctx.computeDuration()
       ctx.conductor.interrupt({
         nextTrackId,
