@@ -10,6 +10,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Satisium build contract (appended below the Next.js block)
 
+> **Maintenance Mode (`finished`):** Ease (`v1.0.0`) is in `maintenance_only` mode per `.satisium/plan/releases.json`.
+> Only bug fixes, security patches, and umbrella spine alignment are permitted unless explicitly approved.
+> All Git and PR operations are governed by `.agents/rules/git.md`.
+
 You are working inside a **Satisium product** created from the Satisium Starter.
 
 ## 🔒 Satisium Immutable Truths (NEVER Hallucinate or Assume)
@@ -26,11 +30,8 @@ You are working inside a **Satisium product** created from the Satisium Starter.
 
 1. `FEATURE_WORKFLOW.md` — feature branching, zero-autonomous-git protocol, and Founder QA gating.
 2. `PRODUCT_SPEC.template.md` — the product intake blueprint (metadata, taxonomy, sitelinks, FAQs).
-3. `SEO_AEO_STRATEGY.md` — 3-engine discovery strategy (SEO, AEO, GEO), SERP sitelinks, and schema graph.
-4. `ANALYTICS_MANUAL.md` — 4-tier telemetry architecture, $0 stack, and event taxonomy.
-5. `starter-template.md` — build order, the shell, tooling.
-6. `component-kit.md` — the template component library (components, hooks, lib).
-7. `content/docs/**` — user-facing behaviour; the source of truth.
+3. `component-kit.md` — the template component library (components, hooks, lib).
+4. `content/docs/**` — user-facing behaviour; the source of truth.
 
 ## Product Generation Protocol (Building a Satisium Tool)
 
@@ -59,14 +60,14 @@ When instructing or acting as an AI agent to build a specific app, studio, or Sa
 
 ### Phase 2: Discovery & SEO Calibration
 
-1. Follow [`SEO_AEO_STRATEGY.md`](file:///home/satishkumar/Desktop/The%20Satisium%20Umbrella/starter-template/SEO_AEO_STRATEGY.md):
+1. Discovery & SEO calibration:
    - Verify `app/layout.tsx` dynamically evaluates and renders the JSON-LD schemas (`WebSite`, `Organization`, `WebApplication`, `SiteNavigationElement`, `FAQPage`) using `PRODUCT` and `SITE_URL`. Zero hardcoding in code.
    - Frame landing page section headers as direct user questions and apply the **45-Word Extractive Answer Rule** for Perplexity, Google AI Overviews, and Apple Intelligence citations.
    - Run `pnpm llm` to generate machine-readable markdown surfaces at `/llms.txt` and `/llms-full.txt`.
 
 ### Phase 3: Observability & Telemetry Calibration
 
-1. Follow [`ANALYTICS_MANUAL.md`](file:///home/satishkumar/Desktop/The%20Satisium%20Umbrella/starter-template/ANALYTICS_MANUAL.md):
+1. Observability & telemetry calibration:
    - Verify `components/analytics-provider.tsx` automatically injects `ecosystem`, `pillar`, `cluster`, `product_type`, `app_id`, and `app_name` into PostHog super-properties.
    - Define and fire product-specific milestone events (e.g., `studio_export_downloaded`, `saas_canvas_created`) using `trackEvent()` from `@/lib/analytics`.
    - Honor the **Zero-Key Rule**: The app must boot, build, and pass all tests with an empty `.env.local`.
@@ -102,11 +103,11 @@ When instructing or acting as an AI agent to build a specific app, studio, or Sa
 - **New registry component:** four files — `registry/ui/<name>.tsx`,
   `registry/demos/components/<name>/<name>-demo.tsx` (default export), `registry/strings/<name>.ts`,
   and an entry in `registry/index.ts` — then `pnpm build:registry:meta && pnpm registry:public`.
-- **Analytics:** add events to the taxonomy (`starter-template.md` §18.6) and fire them through
+- **Analytics:** add events to the taxonomy and fire them through
   `trackEvent` / `useTrackEvent`. Analytics may never be required for a feature to work.
 - **Zero-key rule:** the app must boot, build and pass tests with an empty `.env.local`.
 - **Kit preservation:** never delete template files, alternate section variants (`hero-variant-*`, `deck-box-*`, `features-variant-*`), docs layouts (`spatial`/`three-pane`), or UI primitives during spin-up or feature development. Keep all catalog options intact. Pruning unused files (`pnpm knip`) is strictly reserved for the pre-deployment phase.
-- **New dependency:** justified in `starter-template.md` §22 first. Prefer existing deps.
+- **New dependency:** justified before adding. Prefer existing deps.
 - **No `any`**, no `as unknown as`, no commented-out code, no `console.log` (use `lib/logger.ts`).
 
 ## Commands

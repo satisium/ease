@@ -18,8 +18,7 @@ export function ConsentBanner() {
       <div className="container mx-auto flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-16">
         <p className="text-sm text-muted-foreground">
           We use analytics to understand how our components are used and to
-          improve the documentation experience. No personal data is sold or
-          shared. Review our{" "}
+          improve ease. No personal data is sold or shared. Review our{" "}
           <Link
             href={ROUTES.privacy}
             className="underline underline-offset-4 hover:text-foreground"

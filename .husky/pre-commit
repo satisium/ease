@@ -1,1 +1,3 @@
+node scripts/guard-branch.mjs
+node scripts/guard-secrets.mjs
 pnpm exec lint-staged

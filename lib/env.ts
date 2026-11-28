@@ -15,6 +15,8 @@ const clientSchema = z.object({
     .url()
     .default("https://us.i.posthog.com"),
   NEXT_PUBLIC_GA_ID: z.string().optional(),
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: z.string().optional(),
+  NEXT_PUBLIC_VERCEL_ENV: z.string().optional(),
   NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION: z.string().optional(),
   NEXT_PUBLIC_BING_SITE_VERIFICATION: z.string().optional(),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
@@ -37,6 +39,8 @@ const clientRaw = {
     process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN,
   NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
   NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID,
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
+  NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
   NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION:
     process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
   NEXT_PUBLIC_BING_SITE_VERIFICATION:
@@ -84,7 +88,7 @@ export const env = {
 /** Feature switches — never gate UI on raw process.env. */
 export const features = {
   analytics: Boolean(env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN),
-  ga: Boolean(env.NEXT_PUBLIC_GA_ID),
+  ga: Boolean(env.NEXT_PUBLIC_GA_MEASUREMENT_ID || env.NEXT_PUBLIC_GA_ID),
   errorTracking: Boolean(env.SENTRY_DSN || env.NEXT_PUBLIC_SENTRY_DSN),
   lastModified: Boolean(env.GIT_TOKEN),
 } as const
