@@ -34,10 +34,6 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "changeset": "npx changeset",
-    "release": "changeset version",
-    "beta:enter": "changeset pre enter beta",
-    "beta:exit": "changeset pre exit",
     "doctor": "node scripts/doctor.mjs",
     "check:doctor": "node scripts/doctor.mjs",
     "test": "vitest run",
@@ -81,7 +77,6 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
-    "@changesets/cli": "^2.31.1",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@lhci/cli": "^0.15.1",
