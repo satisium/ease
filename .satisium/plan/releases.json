@@ -11,6 +11,6 @@
   "exceptions": [
     "radix-maia retained (no migration to base-maia)",
     "root-level folder layout retained (no migration to src/)",
-    "husky and existing CI/release workflows retained"
+    "husky and existing CI workflow retained"
   ]
 }
