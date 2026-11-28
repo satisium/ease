@@ -4,6 +4,7 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
 import { usePostHog } from "posthog-js/react"
 import { useConsent } from "@/lib/consent"
+import { isAnalyticsEnabled } from "@/lib/analytics"
 
 export default function PostHogPageView(): null {
   const pathname = usePathname()
@@ -12,6 +13,7 @@ export default function PostHogPageView(): null {
   const { status } = useConsent()
 
   useEffect(() => {
+    if (!isAnalyticsEnabled()) return
     if (pathname && posthog && status === "accepted") {
       let url = window.origin + pathname
       if (searchParams && searchParams.toString()) {

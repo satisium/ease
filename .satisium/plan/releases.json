@@ -1,0 +1,16 @@
+{
+  "app_id": "ease",
+  "current_version": "1.0.0",
+  "current_stage": "finished",
+  "policy": "maintenance_only",
+  "allowed_changes": [
+    "bug fixes",
+    "security patches",
+    "umbrella spine alignment"
+  ],
+  "exceptions": [
+    "radix-maia retained (no migration to base-maia)",
+    "root-level folder layout retained (no migration to src/)",
+    "husky and existing CI/release workflows retained"
+  ]
+}
